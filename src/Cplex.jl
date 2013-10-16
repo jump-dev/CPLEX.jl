@@ -4,7 +4,7 @@ module Cplex
     export makeenv, makeprob, readdata, solvelp, writedata
 
     # Temporary: eventually will use BinDeps to find appropriate path
-    const cplexlibpath = "/Users/huchette/Applications/IBM/ILOG/CPLEX_Studio_Preview1251/cplex/bin/x86-64_osx/libcplex1251remote"
+    const cplexlibpath = "/opt/cplex/cplex/bin/x86-64_sles10_4.1/libcplex124.so"
 
     # makes calling C functions a bit easier
     macro cpx_ccall(func, args...)
@@ -28,22 +28,29 @@ module Cplex
 
     # to make environment, call CPXopenCLPEX
     function makeenv()
-        tmp = Array(Ptr{Void}, 1)
-        tmp = @cpx_ccall(openCPLEX, Ptr{Void}, (Ptr{Uint8},), C_NULL)
-        if tmp == C_NULL
+	#tmp = Array(Ptr{Void}, 1)
+        #tmp::Ptr{Void} = C_NULL
+	status = Array(Cint, 1)
+        tmp = @cpx_ccall(openCPLEX, Ptr{Void}, (Ptr{Cint},), status)
+	println("env status = $(status)")
+	if tmp == C_NULL
             error("CPLEX: Error creating environment")
         end
-        return(CPXenv(tmp[1]))
+        return(CPXenv(tmp))
     end
 
     # to make problem, call CPXcreateprob
     function makeprob(env::CPXenv)
-        tmp = Array(Ptr{Void}, 1)
-        tmp = @cpx_ccall(createprob, Int32, (Ptr{Void}, Ptr{Uint8}, Ptr{Uint8}), env.env, C_NULL, C_NULL)
+        @assert env.env != C_NULL 
+	#tmp::Ptr{Void} = C_NULL
+	#tmp = Array(Ptr{Void}, 1)
+	status = Array(Cint, 1)
+	tmp = @cpx_ccall(createprob, Ptr{Void}, (Ptr{Void}, Ptr{Cint}, Ptr{Uint8}), env.env, status, "prob")
+	println("problem status=$(status)")
         if tmp == C_NULL
-            error("CPLEX: Error creating problem")
+            error("CPLEX: Error creating problem, $(tmp)")
         end
-        return CPXlp(tmp[1])
+        return CPXlp(tmp)
     end
 
     # to load data, call CPXreadcopyprob
