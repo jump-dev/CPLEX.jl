@@ -1,7 +1,9 @@
 module Cplex
 
     # exported functions
-    export makeenv, makeprob, readdata!, solvelp!, getsolution, writedata
+    export make_env, make_problem, read_file!, solve_lp!, get_solution, write_problem
+
+    # to add: set sense, add row, add column
 
     # Temporary: eventually will use BinDeps to find appropriate path
     const cplexlibpath = "/opt/cplex/cplex/bin/x86-64_sles10_4.1/libcplex124.so"
@@ -27,8 +29,8 @@ module Cplex
     type CPXproblem
         env::CPXenv # Cplex environment
         lp::Ptr{Void} # Cplex problem (lp)
-        n::Int # number of vars 
-        m::Int # number of constraints
+        nvars::Int # number of vars 
+        ncons::Int # number of constraints
 
         function CPXproblem(env::CPXenv, lp::Ptr{Void})
             prob = new(env, lp, 0, 0)
@@ -39,7 +41,7 @@ module Cplex
 
 
     # to make environment, call CPXopenCLPEX
-    function makeenv()
+    function make_env()
         status = Array(Cint, 1)
         tmp = @cpx_ccall(openCPLEX, Ptr{Void}, (Ptr{Cint},), status)
         if tmp == C_NULL
@@ -49,7 +51,7 @@ module Cplex
     end
 
     # to make problem, call CPXcreateprob
-    function makeprob(env::CPXenv)
+    function make_problem(env::CPXenv)
         @assert env.ptr != C_NULL 
         status = Array(Cint, 1)
         tmp = @cpx_ccall(createprob, Ptr{Void}, (Ptr{Void}, Ptr{Cint}, Ptr{Uint8}), env.ptr, status, "prob")
@@ -62,7 +64,7 @@ module Cplex
 
 
     # to load data, call CPXreadcopyprob
-    function readdata!(prob::CPXproblem, filename)
+    function read_file!(prob::CPXproblem, filename)
         ret = @cpx_ccall(readcopyprob, Cint, (Ptr{Void}, Ptr{Void}, Ptr{Uint8}, Ptr{Uint8}), prob.env.ptr, prob.lp, filename, C_NULL)
         if ret != 0
             error("CPLEX: Error reading MPS file")
@@ -71,14 +73,47 @@ module Cplex
         prob.m = @cpx_ccall(getnumrows, Cint, (Ptr{Void}, Ptr{Void}), prob.env.ptr, prob.lp)
     end
 
-    function solvelp!(prob::CPXproblem)
+    function load_problem!(prob::CPXproblem, A, collb, colub, obj, rowlb, rowub)
+
+        status = @cpx_ccall(addrows, 
+                            Cint, 
+                            (Ptr{Void}, Ptr{Void}, Cint, Cint, Cint, Prt{Float64}, Ptr{Uint8}, Ptr{Cint}, Ptr{Cint}, Ptr{Float64}, Ptr{Ptr{Uint8}}, Ptr{Ptr{Uint8}}), 
+                            prob.env.ptr, 
+                            prob.lp,
+                            ccnt,
+                            rcnt,
+                            nzcnt,
+                            rhs,
+                            sense,
+                            rmatbeg,
+                            rmatind,
+                            rmatval,
+                            C_NULL,
+                            C_NULL)
+        if ret != 0   
+            error("CPLEX: Error solving LP")
+        end
+    end
+
+    function set_sense!(prob::CPXproblem, sense)
+        if sense == :Min
+
+        elseif sense == :Max
+
+        else
+            error("Unrecognized objective sense $sense")
+        end
+    end
+
+
+    function solve_lp!(prob::CPXproblem)
         ret = @cpx_ccall(lpopt, Cint, (Ptr{Void}, Ptr{Void}), prob.env.ptr, prob.lp)
         if ret != 0
             error("CPLEX: Error solving LP")
         end
     end
 
-    function getsolution(prob::CPXproblem)
+    function get_solution(prob::CPXproblem)
         obj = [0.0]
         x   = Array(Float64, prob.n)
         status = Array(Cint, 1)
@@ -100,7 +135,7 @@ module Cplex
     end
 
     # to write output, call CPXwriteprob
-    function writedata(prob::CPXproblem, filename)
+    function write_problem(prob::CPXproblem, filename)
         ret = @cpx_ccall(writeprob, Int32, (Ptr{Void}, Ptr{Void}, Ptr{Uint8}, Ptr{Uint8}), prob.env.ptr, prob.lp, filename, C_NULL)
         if ret != 0
             error("CPLEX: Error writing problem data")
@@ -108,7 +143,7 @@ module Cplex
     end
 
     # to free problem, call CPXfreeprob
-    function freeProblem(prob::CPXproblem)
+    function free_Problem(prob::CPXproblem)
         status = @cpx_ccall(freeprob, Int32, (Ptr{Void}, Ptr{Void}), prob.env.ptr, prob.lp)
         if status != 0
             error("CPLEX: Error freeing problem")
@@ -116,7 +151,7 @@ module Cplex
     end
 
     # to close env, call CPXcloseCPLEX
-    function closeCPLEX(env::CPXenv)
+    function close_CPLEX(env::CPXenv)
         status = @cpx_ccall(closeCPLEX, Int32, (Ptr{Void},), env.ptr)
         if status != 0
             error("CPLEX: Error freeing environment")
