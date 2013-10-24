@@ -2,17 +2,17 @@ using Cplex
 
 env = makeenv()
 
-lp = makeprob(env)
+prob = makeprob(env)
 
-model_filename = "/opt/cplex/cplex/examples/data/example.mps"
+model_filename = "example.mps"
 
-readdata(env, lp, model_filename)
+readdata!(prob, model_filename)
 
-solvelp(env, lp)
+solvelp!(prob)
 
-obj = getsolution(env, lp)
+obj, x = getsolution(prob)
+
 println("Objective value = $(obj)")
 
 output_filename = "out.lp"
-writedata(env, lp, output_filename)
-
+writedata(prob, output_filename)
