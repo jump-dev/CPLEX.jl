@@ -12,7 +12,7 @@ end
 function make_problem(env::CPXenv)
     @assert env.ptr != C_NULL 
     status = Array(Cint, 1)
-    tmp = @cpx_ccall(createprob, Ptr{Void}, (Ptr{Void}, Ptr{Cint}, Ptr{Uint8}), env.ptr, status, "prob")
+    tmp = @cpx_ccall(createprob, Ptr{Void}, (Ptr{Void}, Ptr{Cint}, Ptr{Uint8}), env.ptr, status, "Cplex.jl")
     if tmp == C_NULL
         error("CPLEX: Error creating problem, $(tmp)")
     end
@@ -30,21 +30,18 @@ end
 
 function set_sense!(prob::CPXproblem, sense)
     if sense == :Min
-        status = @cpx_ccall(chgobjsen, Void, (Ptr{Void}, Ptr{Void}, Cint), prob.env.ptr, prob.lp, 1)
+        @cpx_ccall(chgobjsen, Void, (Ptr{Void}, Ptr{Void}, Cint), prob.env.ptr, prob.lp, 1)
     elseif sense == :Max
-        status = @cpx_ccall(chgobjsen, Void, (Ptr{Void}, Ptr{Void}, Cint), prob.env.ptr, prob.lp, -1)
+        @cpx_ccall(chgobjsen, Void, (Ptr{Void}, Ptr{Void}, Cint), prob.env.ptr, prob.lp, -1)
     else
         error("Unrecognized objective sense $sense")
-    end
-    if status != 0
-        error("CPLEX: Error changing problem sense")
     end
 end
 
 function write_problem(prob::CPXproblem, filename)
     ret = @cpx_ccall(writeprob, Int32, (Ptr{Void}, Ptr{Void}, Ptr{Uint8}, Ptr{Uint8}), prob.env.ptr, prob.lp, filename, C_NULL)
     if ret != 0
-        error("CPLEX: Error writing problem data")
+        error("CPLEX: Error writing problem data, status = $ret")
     end
 end
 

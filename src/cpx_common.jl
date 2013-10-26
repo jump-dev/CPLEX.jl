@@ -11,6 +11,14 @@ typealias FVec Vector{Float64}
 typealias CVec Vector{Cchar}
 typealias CoeffMat Union(Matrix{Float64}, SparseMatrixCSC{Float64})
 
+ivec(v::IVec) = v
+fvec(v::FVec) = v
+cvec(v::CVec) = v
+
+ivec{I<:Integer}(v::Vector{I}) = convert(IVec, v)
+fvec{T<:Real}(v::Vector{T}) = convert(FVec, v)
+cvec(v::Vector{Char}) = convert(CVec, v)
+
 # -----
 # Types
 # -----

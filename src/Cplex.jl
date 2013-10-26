@@ -17,7 +17,7 @@ module Cplex
            add_vars!, 
            add_rangeconstrs!, 
            add_rangeconstrs_t!, 
-           set_sense, 
+           set_sense!, 
            solve_lp!, 
            get_solution, 
            write_problem, 

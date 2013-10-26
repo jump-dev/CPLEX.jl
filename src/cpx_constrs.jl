@@ -1,16 +1,23 @@
 function add_rangeconstrs!(prob::CPXproblem, cbegins::IVec, inds::IVec, coeffs::FVec, lb::FVec, ub::FVec)
-    nvars = length(cbegins)
     nnz   = length(inds)
     ncons = length(lb)
-    (nvars == length(lb) == length(ub) && nnz == length(coeffs)) || error("Incompatible argument dimensions.")
+    (ncons  == length(ub) && nnz == length(coeffs)) || error("Incompatible constraint argument dimensions.")
 
-    sense = fill!(Array(Char, ncons), 'R')
+    sense = fill!(Array(Cchar, ncons), 'R')
 
-    if nvars > 0 && nnz > 0
+    for i in 1:ncons
+        if lb[i] == -Inf
+            lb[i] = -ub[i]
+            ub[i] = Inf
+            coeffs[cbegins[i]+1:cbegins[i+1]] = -coeffs[cbegins[i]+1:cbegins[i+1]]
+        end
+    end
+
+    if ncons > 0 && nnz > 0
         status = @cpx_ccall(addrows, Cint, (
                             Ptr{Void},        # environment
                             Ptr{Void},        # problem
-                            Cint,             # num constraints
+                            Cint,             # num new cols
                             Cint,             # num new rows
                             Cint,             # num non-zeros
                             Ptr{Float64},     # rhs
@@ -21,7 +28,7 @@ function add_rangeconstrs!(prob::CPXproblem, cbegins::IVec, inds::IVec, coeffs::
                             Ptr{Ptr{Uint8}},  # col names
                             Ptr{Ptr{Uint8}}   # row names
                             ), 
-                            prob.env.ptr, prob.lp, ccnt, ncons, nnz, ub, sense, cbegins, inds, coeffs, C_NULL, C_NULL)
+                            prob.env.ptr, prob.lp, 0, ncons, nnz, lb, sense, cbegins[1:end-1], inds, coeffs, C_NULL, C_NULL)
         if status != 0   
             error("CPLEX: Error adding constraints.")
         end
@@ -32,7 +39,10 @@ function add_rangeconstrs!(prob::CPXproblem, cbegins::IVec, inds::IVec, coeffs::
                             Ptr{Cint},
                             Ptr{Float64}
                             ),
-                            prob.env.ptr, prob.lp, ncons, convert(Vector, 1:ncons), lb)
+                            prob.env.ptr, prob.lp, ncons, convert(Vector, 1:ncons), ub-lb)
+        if status != 0
+            error("CPLEX: Error changing range values.")
+        end
     end
 end
 
@@ -41,7 +51,7 @@ function add_rangeconstrs!(prob::CPXproblem, cbeg::Vector, inds::Vector, coeffs:
 end
 
 function add_rangeconstrs_t!(prob::CPXproblem, At::SparseMatrixCSC{Float64}, lb::Vector, ub::Vector)
-    add_rangeconstrs!(prob, At.colptr[1:At.n], At.rowval, At.nzval, lb, ub)
+    add_rangeconstrs!(prob, At.colptr-1, At.rowval-1, At.nzval, lb, ub)
 end
 
 function add_rangeconstrs_t!(prob::CPXproblem, At::Matrix{Float64}, lb::Vector, ub::Vector)
@@ -50,6 +60,6 @@ end
 
 function add_rangeconstrs!(prob::CPXproblem, A::CoeffMat, lb::Vector, ub::Vector)
     m, n = size(A)
-    (m == length(lb) == length(ub) && n == prob.nvars) || error("Incompatible argument dimensions.")
+    (m == length(lb) == length(ub) && n == prob.nvars) || error("Incompatible constraint argument dimensions.")
     add_rangeconstrs_t!(prob, transpose(A), lb, ub)
 end
