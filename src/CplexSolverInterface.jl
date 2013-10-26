@@ -9,7 +9,8 @@ immutable CplexSolver <: AbstractMathProgSolver
 end
 
 function loadproblem!(m::CplexMathProgModel, A, collb, colub, obj, rowlb, rowub, sense)
-
+   add_vars!(m.inner, float(obj), float(collb), float(colub))
+   add_rangeconstrs!(m.inner, A, float(rowlb), float(rowub))
 end
 
 function writeproblem(m::CplexMathProgModel, filename::String)
