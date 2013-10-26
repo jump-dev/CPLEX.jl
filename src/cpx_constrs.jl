@@ -32,16 +32,18 @@ function add_rangeconstrs!(prob::CPXproblem, cbegins::IVec, inds::IVec, coeffs::
         if status != 0   
             error("CPLEX: Error adding constraints.")
         end
-        status = @cpx_ccall(chgrngval, Cint, (
-                            Ptr{Void},
-                            Ptr{Void},
-                            Cint,
-                            Ptr{Cint},
-                            Ptr{Float64}
-                            ),
-                            prob.env.ptr, prob.lp, ncons, convert(Vector, 1:ncons), ub-lb)
-        if status != 0
-            error("CPLEX: Error changing range values.")
+        for i = 1:ncons
+            status = @cpx_ccall(chgrngval, Cint, (
+                        Ptr{Void},
+                        Ptr{Void},
+                        Cint,
+                        Ptr{Cint},
+                        Ptr{Float64}
+                        ),
+                        prob.env.ptr, prob.lp, 1, [i-1], [ub[i]-lb[i]])
+            if status != 0
+                error("CPLEX: Error changing range values.")
+            end
         end
     end
 end
