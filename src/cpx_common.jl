@@ -46,7 +46,7 @@ type CPXproblem
 end
 
 # Temporary: eventually will use BinDeps to find appropriate path
-# const cplexlibpath = "/opt/cplex/cplex/bin/x86-64_sles10_4.1/libcplex124.so"
-# @osx_only begin
-#     const cplexlibpath = "/Users/huchette/Applications/IBM/ILOG/CPLEX_Studio_Preview1251/cplex/bin/x86-64_osx/libcplex1251.dylib"
-# end
+const cplexlibpath = "/opt/cplex/cplex/bin/x86-64_sles10_4.1/libcplex124.so"
+@osx_only begin
+    const cplexlibpath = "/Users/huchette/Applications/IBM/ILOG/CPLEX_Studio_Preview1251/cplex/bin/x86-64_osx/libcplex1251.dylib"
+end

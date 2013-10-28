@@ -1,7 +1,7 @@
 module Cplex
 
-    using BinDeps
-    @BinDeps.load_dependencies
+    # using BinDeps
+    # @BinDeps.load_dependencies
 
     ### imports
     import Base.convert, Base.show, Base.copy
