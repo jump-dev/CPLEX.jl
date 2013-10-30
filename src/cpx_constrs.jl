@@ -65,3 +65,19 @@ function add_rangeconstrs!(prob::CPXproblem, A::CoeffMat, lb::Vector, ub::Vector
     (m == length(lb) == length(ub) && n == prob.nvars) || error("Incompatible constraint argument dimensions.")
     add_rangeconstrs_t!(prob, transpose(A), lb, ub)
 end
+
+function get_constrLB(prob::CPXproblem)
+    error("How do we grab this from range constraints?")
+end
+
+function get_constrUB(prob::CPXproblem)
+    error("How do we grab this from range constraints?")
+end
+
+function set_constrLB!(prob::CPXproblem, lb)
+    error("How do we grab this from range constraints?")
+end
+
+function set_constrUB!(prob::CPXproblem, ub)
+    error("How do we grab this from range constraints?")
+end

@@ -6,6 +6,16 @@ macro cpx_ccall(func, args...)
     end
 end
 
+macro cpx_ccall_check(func, args...)
+    f = "CPX$(func)"
+    quote
+        status = ccall(($f,cplexlibpath), $(args...))
+        if status != 0
+            error("Error CPX$(func): code $(status)")
+        end
+    end
+end
+
 typealias IVec Vector{Cint}
 typealias FVec Vector{Float64}
 typealias CVec Vector{Cchar}

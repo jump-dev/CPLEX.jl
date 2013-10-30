@@ -17,15 +17,13 @@ end
 
 writeproblem(m::CplexMathProgModel, filename::String) = write_model(m.inner, filename)
 
-getVarLB(m::CplexMathProgModel) = error("Not yet implemented.")
+getVarLB(m::CplexMathProgModel) = get_varLB(m.inner)
 setVarLB!(m::CplexMathProgModel, l) = error("Not yet implemented.")
-
-getVarUB(m::CplexMathProgModel) = error("Not yet implemented.")
+getVarUB(m::CplexMathProgModel) = get_varUB(m.inner)
 setVarUB!(m::CplexMathProgModel, u) = error("Not yet implemented.")
 
 getConstrLB(m::CplexMathProgModel) = error("Not yet implemented.")
 setConstrLB!(m::CplexMathProgModel, lb) = error("Not yet implemented.")
-
 getConstrUB(m::CplexMathProgModel) = error("Not yet implemented.")
 setConstrUB!(m::CplexMathProgModel, ub) = error("Not yet implemented.")
 
@@ -41,7 +39,7 @@ updatemodel!(m::CplexMathProgModel) = println("Model update not necessary for Cp
 
 setsense!(m::CplexMathProgModel, sense) = set_sense!(m.inner, sense)
 
-getsense(m::CplexMathProgModel) = error("Not yet implemented.")
+getsense(m::CplexMathProgModel) = get_sense(m.inner)
 
 numvar(m::CplexMathProgModel) = m.inner.nvars
 numconstr(m::CplexMathProgModel) = m.inner.ncons

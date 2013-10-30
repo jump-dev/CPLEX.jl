@@ -28,6 +28,21 @@ function read_file!(prob::CPXproblem, filename)
     prob.ncons = @cpx_ccall(getnumrows, Cint, (Ptr{Void}, Ptr{Void}), prob.env.ptr, prob.lp)
 end
 
+function get_sense(prob::CPXproblem)
+    sense_int = @cpx_ccall(getobjsense, Cint, (
+                           Ptr{Void},
+                           Ptr{Void},
+                           ),
+                           prob.env.ptr, prob.lp)
+    if sense_int == 1
+        sense = :Min
+    elseif sense_int == -1
+        sense = :Max
+    else
+        error("CPLEX: Error grabbing problem sense")
+    end
+end      
+
 function set_sense!(prob::CPXproblem, sense)
     if sense == :Min
         @cpx_ccall(chgobjsen, Void, (Ptr{Void}, Ptr{Void}, Cint), prob.env.ptr, prob.lp, 1)
