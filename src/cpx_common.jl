@@ -16,10 +16,13 @@ macro cpx_ccall_check(func, args...)
     end
 end
 
+typealias GChars Union(Cchar, Char)
 typealias IVec Vector{Cint}
 typealias FVec Vector{Float64}
 typealias CVec Vector{Cchar}
 typealias CoeffMat Union(Matrix{Float64}, SparseMatrixCSC{Float64})
+
+typealias GCharOrVec Union(Cchar, Char, Vector{Cchar}, Vector{Char})
 
 ivec(v::IVec) = v
 fvec(v::FVec) = v
