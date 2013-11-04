@@ -8,12 +8,14 @@ immutable CplexSolver <: AbstractMathProgSolver
   options
 end
 
+CplexSolver(;kwargs...) = CplexSolver(kwargs)
+
 function CplexMathProgModel(options)
   env = make_env()
   for (name,value) in options
     setparam!(env, string(name), value)
   end
-  m = CplexMathProgModel(CPXproblem(env))
+  m = CplexMathProgModel(make_problem(env))
   return m
 end
 

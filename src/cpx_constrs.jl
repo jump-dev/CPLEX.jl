@@ -1,3 +1,34 @@
+function add_constrs!(prob::CPXproblem, cbegins::IVec, inds::IVec, coeffs::FVec, rel::CVec, rhs::FVec)
+    nnz   = length(inds)
+    ncons = length(lb)
+    (ncons  == length(ub) && nnz == length(coeffs)) || error("Incompatible constraint argument dimensions.")
+
+    if ncons > 0 && nnz > 0
+        status = @cpx_ccall(addrows, Cint, (
+                            Ptr{Void},        # environment
+                            Ptr{Void},        # problem
+                            Cint,             # num new cols
+                            Cint,             # num new rows
+                            Cint,             # num non-zeros
+                            Ptr{Float64},     # rhs
+                            Ptr{Uint8},       # sense
+                            Ptr{Cint},        # matrix start
+                            Ptr{Cint},        # matrix index
+                            Ptr{Float64},     # matrix values
+                            Ptr{Ptr{Uint8}},  # col names
+                            Ptr{Ptr{Uint8}}   # row names
+                            ), 
+                            prob.env.ptr, prob.lp, 0, ncons, nnz, lb, sense, cbegins[1:end-1], inds, coeffs, C_NULL, C_NULL)
+                            if status != 0   
+                                error("CPLEX: Error adding constraints.")
+                            end
+    end
+end
+
+function add_constrs!(prob::CPXproblem, A::CoeffMat, senses, b::Vector)
+
+end
+
 function add_rangeconstrs!(prob::CPXproblem, cbegins::IVec, inds::IVec, coeffs::FVec, lb::FVec, ub::FVec)
     nnz   = length(inds)
     ncons = length(lb)
