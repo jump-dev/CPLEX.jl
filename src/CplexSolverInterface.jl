@@ -1,18 +1,56 @@
 export CplexSolver
 
 type CplexMathProgModel <: AbstractMathProgModel
-   inner::CPXproblem
+  inner::CPXproblem
 end
 
 immutable CplexSolver <: AbstractMathProgSolver
-   options
+  options
 end
+
+function CplexMathProgModel(options)
+  env = make_env()
+  for (name,value) in options
+    setparam!(env, string(name), value)
+  end
+  m = CplexMathProgModel(CPXproblem(env))
+  return m
+end
+
+model(s::CplexSolver) = CplexMathProgModel(s.options)
 
 loadproblem!(m::CplexMathProgModel, filename::String) = read_file!(m.inner, filename)
 
 function loadproblem!(m::CplexMathProgModel, A, collb, colub, obj, rowlb, rowub, sense)
-   add_vars!(m.inner, float(obj), float(collb), float(colub))
-   add_rangeconstrs!(m.inner, A, float(rowlb), float(rowub))
+  add_vars!(m.inner, float(obj), float(collb), float(colub))
+
+  neginf = typemin(eltype(rowlb))
+  posinf = typemax(eltype(rowub))
+
+  rangeconstrs = any((rowlb .!= rowub) & (rowlb .> neginf) & (rowub .< posinf))
+  if rangeconstrs
+    warn("Julia Cplex interface doesn't properly support range (two-sided) constraints.")
+    add_rangeconstrs!(m.inner, float(A), float(rowlb), float(rowub))
+  else
+    b = Array(Float64,length(rowlb))
+    senses = Array(Cchar,length(rowlb))
+    for i in 1:length(rowlb)
+      if rowlb[i] == rowub[i]
+        senses[i] = '='
+        b[i] = rowlb[i]
+      elseif rowlb[i] > neginf
+        senses[i] = '>'
+        b[i] = rowlb[i]
+      else
+        @assert rowub[i] < posinf
+        senses[i] = '<'
+        b[i] = rowub[i]
+      end
+    end
+    add_constrs!(m.inner, float(A), senses, b)
+  end
+
+  set_sense!(m.inner, sense)
 end
 
 writeproblem(m::CplexMathProgModel, filename::String) = write_model(m.inner, filename)

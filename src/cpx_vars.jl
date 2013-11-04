@@ -36,7 +36,7 @@ function get_varLB(prob::CPXproblem)
     return lb
 end
 
-function set_varLB!(prob::CPXproblem, l) = error("Need to find appropriate CPLEX function")
+set_varLB!(prob::CPXproblem, l) = error("Need to find appropriate CPLEX function")
 
 function get_varUB(prob::CPXproblem)
     ub = Array(Float64, prob.nvars)
@@ -51,5 +51,5 @@ function get_varUB(prob::CPXproblem)
     return ub
 end
 
-function set_varUB!(prob::CPXproblem, u) = error("Need to find appropriate CPLEX function")
+set_varUB!(prob::CPXproblem, u) = error("Need to find appropriate CPLEX function")
 

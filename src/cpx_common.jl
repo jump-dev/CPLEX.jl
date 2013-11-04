@@ -2,14 +2,14 @@
 macro cpx_ccall(func, args...)
     f = "CPX$(func)"
     quote
-        ccall(($f,cplexlibpath), $(args...))
+        ccall(($f,libcplex), $(args...))
     end
 end
 
 macro cpx_ccall_check(func, args...)
     f = "CPX$(func)"
     quote
-        status = ccall(($f,cplexlibpath), $(args...))
+        status = ccall(($f,libcplex), $(args...))
         if status != 0
             error("Error CPX$(func): code $(status)")
         end
@@ -53,10 +53,4 @@ type CPXproblem
         finalizer(prob, free_problem)
         prob
     end
-end
-
-# Temporary: eventually will use BinDeps to find appropriate path
-const cplexlibpath = "/opt/cplex/cplex/bin/x86-64_sles10_4.1/libcplex124.so"
-@osx_only begin
-    const cplexlibpath = "/Users/huchette/Applications/IBM/ILOG/CPLEX_Studio_Preview1251/cplex/bin/x86-64_osx/libcplex1251.dylib"
 end
