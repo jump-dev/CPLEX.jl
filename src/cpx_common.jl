@@ -32,6 +32,12 @@ ivec{I<:Integer}(v::Vector{I}) = convert(IVec, v)
 fvec{T<:Real}(v::Vector{T}) = convert(FVec, v)
 cvec(v::Vector{Char}) = convert(CVec, v)
 
+_chklen(v, n::Integer) = (length(v) == n || error("Inconsistent argument dimensions."))
+
+cvecx(c::GChars, n::Integer) = fill(cchar(c), n)
+cvecx(c::Vector{Cchar}, n::Integer) = (_chklen(c, n); c)
+cvecx(c::Vector{Char}, n::Integer) = (_chklen(c, n); convert(Vector{Cchar}, c))
+
 # -----
 # Types
 # -----

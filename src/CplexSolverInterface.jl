@@ -86,7 +86,20 @@ numconstr(m::CplexMathProgModel) = m.inner.ncons
 
 optimize!(m::CplexMathProgModel) = solve_lp!(m.inner)
 
-status(m::CplexMathProgModel) = error("Not yet implemented.")
+function status(m::CplexMathProgModel)
+  ret = get_status(m.inner)
+  println(ret)
+  if ret == :CPX_STAT_OPTIMAL
+    status = :Optimal
+  elseif ret == :CPX_STAT_UNBOUNDED
+    status = :Unbounded
+  elseif ret == :CPX_STAT_INFEASIBLE
+    status = :Infeasible
+  else
+    status = ret
+  end
+  return status
+end
 
 getobjval(m::CplexMathProgModel)   = get_solution(m.inner)[1]
 getobjbound(m::CplexMathProgModel) = error("Not yet implemented.")
