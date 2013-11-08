@@ -6,16 +6,6 @@ macro cpx_ccall(func, args...)
     end
 end
 
-macro cpx_ccall_check(func, args...)
-    f = "CPX$(func)"
-    quote
-        status = ccall(($f,libcplex), $(args...))
-        if status != 0
-            error("Error CPX$(func): code $(status)")
-        end
-    end
-end
-
 typealias GChars Union(Cchar, Char)
 typealias IVec Vector{Cint}
 typealias FVec Vector{Float64}
@@ -56,9 +46,10 @@ type CPXproblem
     lp::Ptr{Void} # Cplex problem (lp)
     nvars::Int # number of vars 
     ncons::Int # number of constraints
+    nint::Int # number of integer variables
 
     function CPXproblem(env::CPXenv, lp::Ptr{Void})
-        prob = new(env, lp, 0, 0)
+        prob = new(env, lp, 0, 0, 0)
         finalizer(prob, free_problem)
         prob
     end

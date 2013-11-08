@@ -1,8 +1,14 @@
-function solve_lp!(prob::CPXproblem)
+function optimize!(prob::CPXproblem)
+  @assert prob.lp != C_NULL
+  if prob.nint == 0
     ret = @cpx_ccall(lpopt, Cint, (Ptr{Void}, Ptr{Void}), prob.env.ptr, prob.lp)
-    if ret != 0
-        error("CPLEX: Error solving LP")
-    end
+  else
+    ret = @cpx_ccall(mipopt, Cint, (Ptr{Void}, Ptr{Void}), prob.env.ptr, prob.lp)
+  end
+  if ret != 0
+    println(ret)
+    error("CPLEX: Error solving problem")
+  end
 end
 
 function get_solution(prob::CPXproblem)
@@ -59,6 +65,10 @@ function get_constr_duals(prob::CPXproblem)
    end
    return p
 end
+
+# function get_objbounds(prob::CPXproblem)
+    
+# end
 
 const status_symbols = [
     1   => :CPX_STAT_OPTIMAL,

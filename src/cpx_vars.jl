@@ -25,14 +25,17 @@ end
 
 function get_varLB(prob::CPXproblem)
     lb = Array(Float64, prob.nvars)
-    @cpx_ccall_check(getlb, Cint, (
-                     Ptr{Void},
-                     Ptr{Void},
-                     Ptr{Float64},
-                     Cint,
-                     Cint
-                     ),
-                     prob.env.ptr, prob.lp, lb, 0, prob.nvars-1)
+    status = @cpx_ccall(getlb, Cint, (
+                        Ptr{Void},
+                        Ptr{Void},
+                        Ptr{Float64},
+                        Cint,
+                        Cint
+                        ),
+                        prob.env.ptr, prob.lp, lb, 0, prob.nvars-1)
+    if status != 0
+        error("CPLEX: error getting variable lower bounds")
+    end
     return lb
 end
 
@@ -40,16 +43,36 @@ set_varLB!(prob::CPXproblem, l) = error("Need to find appropriate CPLEX function
 
 function get_varUB(prob::CPXproblem)
     ub = Array(Float64, prob.nvars)
-    @cpx_ccall_check(getlb, Cint, (
-                     Ptr{Void},
-                     Ptr{Void},
-                     Ptr{Float64},
-                     Cint,
-                     Cint
-                     ),
-                     prob.env.ptr, prob.lp, ub, 0, prob.nvars-1)
+    status = @cpx_ccall(getlb, Cint, (
+                        Ptr{Void},
+                        Ptr{Void},
+                        Ptr{Float64},
+                        Cint,
+                        Cint
+                        ),
+                        prob.env.ptr, prob.lp, ub, 0, prob.nvars-1)
+    if status != 0
+        error("CPLEX: error getting variable upper bounds")
+    end
     return ub
 end
 
 set_varUB!(prob::CPXproblem, u) = error("Need to find appropriate CPLEX function")
 
+function set_vartype!(prob::CPXproblem, vtype::Vector{Char})
+    status = @cpx_ccall(chgctype, Cint, (
+                        Ptr{Void},
+                        Ptr{Void},
+                        Cint,
+                        Ptr{Cint},
+                        Ptr{Cchar}
+                        ),
+                        prob.env.ptr, prob.lp, prob.nvars, Cint[0:prob.nvars-1], Cchar[vtype...])
+    if status != 0
+        error("CPLEX: error setting variable types")
+    end
+    # this should change...need to indicate whether to use MIP or LP solver
+    prob.nint = 1
+    # prob.nint += sum([vtype[i]=='I' for i=1:prob.nvars])
+    write_problem(prob, "out.lp")
+end

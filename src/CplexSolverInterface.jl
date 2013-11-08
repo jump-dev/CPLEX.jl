@@ -57,11 +57,13 @@ end
 
 writeproblem(m::CplexMathProgModel, filename::String) = write_model(m.inner, filename)
 
+# CPXchgbds
 getVarLB(m::CplexMathProgModel) = get_varLB(m.inner)
 setVarLB!(m::CplexMathProgModel, l) = error("Not yet implemented.")
 getVarUB(m::CplexMathProgModel) = get_varUB(m.inner)
 setVarUB!(m::CplexMathProgModel, u) = error("Not yet implemented.")
 
+# CPXchgcoef
 getConstrLB(m::CplexMathProgModel) = error("Not yet implemented.")
 setConstrLB!(m::CplexMathProgModel, lb) = error("Not yet implemented.")
 getConstrUB(m::CplexMathProgModel) = error("Not yet implemented.")
@@ -84,17 +86,17 @@ getsense(m::CplexMathProgModel) = get_sense(m.inner)
 numvar(m::CplexMathProgModel) = m.inner.nvars
 numconstr(m::CplexMathProgModel) = m.inner.ncons
 
-optimize!(m::CplexMathProgModel) = solve_lp!(m.inner)
+optimize!(m::CplexMathProgModel) = optimize!(m.inner)
 
 function status(m::CplexMathProgModel)
   ret = get_status(m.inner)
-  if ret == :CPX_STAT_OPTIMAL
+  if ret in [:CPX_STAT_OPTIMAL, :CPXMIP_OPTIMAL]
     stat = :Optimal
-  elseif ret == :CPX_STAT_UNBOUNDED
+  elseif ret in [:CPX_STAT_UNBOUNDED, :CPXMIP_UNBOUNDED]
     stat = :Unbounded
-  elseif ret == :CPX_STAT_INFEASIBLE
+  elseif ret in [:CPX_STAT_INFEASIBLE, :CPXMIP_INFEASIBLE]
     stat = :Infeasible
-  elseif ret == :CPX_STAT_INForUNBD
+  elseif ret in [:CPX_STAT_INForUNBD, :CPXMIP_INForUNBD]
     # this is an ugly hack that should be fixed at some point
     stat = :Unbounded
   else
@@ -104,14 +106,14 @@ function status(m::CplexMathProgModel)
 end
 
 getobjval(m::CplexMathProgModel)   = get_solution(m.inner)[1]
-getobjbound(m::CplexMathProgModel) = error("Not yet implemented.")
+getobjbound(m::CplexMathProgModel) = get_solution(m.inner)[1]
 getsolution(m::CplexMathProgModel) = get_solution(m.inner)[2]
 getconstrsolution(m::CplexMathProgModel) = error("Not yet implemented.")
 getreducedcosts(m::CplexMathProgModel) = get_reduced_costs(m.inner)
 getconstrduals(m::CplexMathProgModel) = get_constr_duals(m.inner)
 getrawsolver(m::CplexMathProgModel) = m.inner
 
-setvartype!(m::CplexMathProgModel, v::Vector{Char}) = error("Not yet implemented.")
+setvartype!(m::CplexMathProgModel, v::Vector{Char}) = set_vartype!(m.inner, v)
 getvartype(m::CplexMathProgModel) = error("Not yet implemented.")
 
 

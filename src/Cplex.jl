@@ -1,5 +1,7 @@
 module Cplex
 
+    @osx_only dlopen("libstdc++",RTLD_GLOBAL)
+
     using BinDeps
     @BinDeps.load_dependencies
 
@@ -18,7 +20,7 @@ module Cplex
            add_rangeconstrs!, 
            add_rangeconstrs_t!, 
            set_sense!, 
-           solve_lp!, 
+           optimize!, 
            get_solution, 
            write_problem, 
            free_problem, 
