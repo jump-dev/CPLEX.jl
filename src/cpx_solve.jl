@@ -26,6 +26,40 @@ function get_solution(prob::CPXproblem)
    return(obj[1], x)
 end
 
+function get_reduced_costs(prob::CPXproblem)
+    p = Array(Float64, prob.nvars)
+    status = Array(Cint, 1)
+    ret = @cpx_ccall(getdj, Cint,
+                     (Ptr{Void}, 
+                      Ptr{Void}, 
+                      Ptr{Float64}, 
+                      Cint, 
+                      Cint
+                      ),
+                      prob.env.ptr, prob.lp, p, 0, prob.nvars-1)
+    if ret != 0
+       error("CPLEX: Error getting reduced costs")
+   end
+   return p
+end
+
+function get_constr_duals(prob::CPXproblem)
+    p = Array(Float64, prob.nvars)
+    status = Array(Cint, 1)
+    ret = @cpx_ccall(getpi, Cint,
+                     (Ptr{Void}, 
+                      Ptr{Void}, 
+                      Ptr{Float64}, 
+                      Cint, 
+                      Cint
+                      ),
+                      prob.env.ptr, prob.lp, p, 0, prob.ncons-1)
+    if ret != 0
+       error("CPLEX: Error getting dual variables")
+   end
+   return p
+end
+
 const status_symbols = [
     1   => :CPX_STAT_OPTIMAL,
     2   => :CPX_STAT_UNBOUNDED,

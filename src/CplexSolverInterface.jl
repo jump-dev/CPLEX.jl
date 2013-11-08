@@ -38,14 +38,14 @@ function loadproblem!(m::CplexMathProgModel, A, collb, colub, obj, rowlb, rowub,
     senses = Array(Cchar,length(rowlb))
     for i in 1:length(rowlb)
       if rowlb[i] == rowub[i]
-        senses[i] = '='
+        senses[i] = 'E'
         b[i] = rowlb[i]
       elseif rowlb[i] > neginf
-        senses[i] = '>'
+        senses[i] = 'G'
         b[i] = rowlb[i]
       else
         @assert rowub[i] < posinf
-        senses[i] = '<'
+        senses[i] = 'L'
         b[i] = rowub[i]
       end
     end
@@ -88,26 +88,27 @@ optimize!(m::CplexMathProgModel) = solve_lp!(m.inner)
 
 function status(m::CplexMathProgModel)
   ret = get_status(m.inner)
-  println(ret)
   if ret == :CPX_STAT_OPTIMAL
-    status = :Optimal
+    stat = :Optimal
   elseif ret == :CPX_STAT_UNBOUNDED
-    status = :Unbounded
+    stat = :Unbounded
   elseif ret == :CPX_STAT_INFEASIBLE
-    status = :Infeasible
+    stat = :Infeasible
+  elseif ret == :CPX_STAT_INForUNBD
+    # this is an ugly hack that should be fixed at some point
+    stat = :Unbounded
   else
-    status = ret
+    stat = ret
   end
-  return status
+  return stat
 end
 
 getobjval(m::CplexMathProgModel)   = get_solution(m.inner)[1]
 getobjbound(m::CplexMathProgModel) = error("Not yet implemented.")
 getsolution(m::CplexMathProgModel) = get_solution(m.inner)[2]
 getconstrsolution(m::CplexMathProgModel) = error("Not yet implemented.")
-getreducedcosts(m::CplexMathProgModel) = error("Not yet implemented.")
-getconstrduals(m::CplexMathProgModel) = error("Not yet implemented.")
-
+getreducedcosts(m::CplexMathProgModel) = get_reduced_costs(m.inner)
+getconstrduals(m::CplexMathProgModel) = get_constr_duals(m.inner)
 getrawsolver(m::CplexMathProgModel) = m.inner
 
 setvartype!(m::CplexMathProgModel, v::Vector{Char}) = error("Not yet implemented.")

@@ -18,7 +18,7 @@ function add_constrs!(prob::CPXproblem, cbegins::IVec, inds::IVec, coeffs::FVec,
                             Ptr{Ptr{Uint8}},  # col names
                             Ptr{Ptr{Uint8}}   # row names
                             ), 
-                            prob.env.ptr, prob.lp, 0, ncons, nnz, rhs, rel, cbegins[1:end-1], inds, coeffs, C_NULL, C_NULL)
+                            prob.env.ptr, prob.lp, 0, ncons, nnz, rhs, rel, cbegins-1, inds-1, coeffs, C_NULL, C_NULL)
         if status != 0   
             error("CPLEX: Error adding constraints.")
         end
@@ -78,6 +78,7 @@ function add_rangeconstrs!(prob::CPXproblem, cbegins::IVec, inds::IVec, coeffs::
                             Ptr{Ptr{Uint8}}   # row names
                             ), 
                             prob.env.ptr, prob.lp, 0, ncons, nnz, lb, sense, cbegins[1:end-1], inds, coeffs, C_NULL, C_NULL)
+                            # prob.env.ptr, prob.lp, 0, ncons, nnz, lb, sense, cbegins-1, inds-1, coeffs, C_NULL, C_NULL)
         if status != 0   
             error("CPLEX: Error adding constraints.")
         end
