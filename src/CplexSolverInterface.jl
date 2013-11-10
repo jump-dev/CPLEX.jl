@@ -57,11 +57,10 @@ end
 
 writeproblem(m::CplexMathProgModel, filename::String) = write_model(m.inner, filename)
 
-# CPXchgbds
 getVarLB(m::CplexMathProgModel) = get_varLB(m.inner)
-setVarLB!(m::CplexMathProgModel, l) = error("Not yet implemented.")
+setVarLB!(m::CplexMathProgModel, l) = set_varLB!(m.inner, l)
 getVarUB(m::CplexMathProgModel) = get_varUB(m.inner)
-setVarUB!(m::CplexMathProgModel, u) = error("Not yet implemented.")
+setVarUB!(m::CplexMathProgModel, u) = set_varUB!(m.inner, u)
 
 # CPXchgcoef
 getConstrLB(m::CplexMathProgModel) = error("Not yet implemented.")
@@ -69,15 +68,36 @@ setConstrLB!(m::CplexMathProgModel, lb) = error("Not yet implemented.")
 getConstrUB(m::CplexMathProgModel) = error("Not yet implemented.")
 setConstrUB!(m::CplexMathProgModel, ub) = error("Not yet implemented.")
 
-getobj(m::CplexMathProgModel) = error("Not yet implemented.")
-setobj!(m::CplexMathProgModel, c) = error("Not yet implemented.")
+getobj(m::CplexMathProgModel) = get_obj(m.inner)
+setobj!(m::CplexMathProgModel, c) = set_obj!(m.inner, c)
 
-addvar!(m::CplexMathProgModel, constridx, constrcoef, l, u, coeff) = error("Not yet implemented.")
-addvar!(m::CplexMathProgModel, l, u, coeff) = error("Not yet implemented.")
+addvar!(m::CplexMathProgModel, constridx, constrcoef, l, u, coeff) = add_var!(m.inner, constridx, constrcoef, l, u, coeff)
 
-addconstr!(m::CplexMathProgModel, varidx, coef, lb, ub) = error("Not yet implemented.")
+function addconstr!(m::CplexMathProgModel, varidx, coef, lb, ub) 
+  neginf = typemin(eltype(lb))
+  posinf = typemax(eltype(ub))
 
-updatemodel!(m::CplexMathProgModel) = println("Model update not necessary for Cplex.")
+  rangeconstrs = any((lb .!= rowub) & (lb .> neginf) & (ub .< posinf))
+  if rangeconstrs
+    warn("Julia Cplex interface doesn't properly support range (two-sided) constraints.")
+    add_rangeconstrs!(m.inner, [0], varidx, float(coef), float(lb), float(ub))
+  else
+    if lb == ub
+      rel = 'E'
+      rhs = lb
+    elseif lb > neginf
+      rel = 'G'
+      rhs = lb
+    else
+      @assert ub < posinf
+      rel = 'L'
+      rhs = ub
+    end
+    add_constrs!(m.inner, [0], varidx, float(coef), rel, float(rhs))
+  end
+end
+
+updatemodel!(m::CplexMathProgModel) = warn("Model update not necessary for Cplex.")
 
 setsense!(m::CplexMathProgModel, sense) = set_sense!(m.inner, sense)
 
@@ -114,6 +134,4 @@ getconstrduals(m::CplexMathProgModel) = get_constr_duals(m.inner)
 getrawsolver(m::CplexMathProgModel) = m.inner
 
 setvartype!(m::CplexMathProgModel, v::Vector{Char}) = set_vartype!(m.inner, v)
-getvartype(m::CplexMathProgModel) = error("Not yet implemented.")
-
-
+getvartype(m::CplexMathProgModel) = get_vartype(m.inner)

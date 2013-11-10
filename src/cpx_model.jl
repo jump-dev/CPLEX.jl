@@ -53,6 +53,36 @@ function set_sense!(prob::CPXproblem, sense)
     end
 end
 
+function get_obj(prob::CPXproblem)
+    obj = Array(Float64, prob.nvars)
+    status = @cpx_ccall(getobj, Cint, (
+                        Ptr{Void},
+                        Ptr{Void},
+                        Ptr{Float64},
+                        Cint,
+                        Cint
+                        ),
+                        prob.env.ptr, prob.lp, obj, 0, prob.nvars-1)
+    if status != 0
+        error("CPLEX: error getting objective function")
+    end
+    return obj
+end
+
+function set_obj!(prob::CPXproblem, c::Vector)
+    status = @cpx_ccall(chgobj, Cint, (
+                        Ptr{Void},
+                        Ptr{Void},
+                        Cint,
+                        Ptr{Cint},
+                        Ptr{Float64}
+                        ),
+                        prob.env.ptr, prob.lp, prob.nvars, [0:prob.nvars-1], float(c))
+    if status != 0
+        error("CPLEX: error setting objective function")
+    end
+end
+
 function write_problem(prob::CPXproblem, filename)
     ret = @cpx_ccall(writeprob, Int32, (Ptr{Void}, Ptr{Void}, Ptr{Uint8}, Ptr{Uint8}), prob.env.ptr, prob.lp, filename, C_NULL)
     if ret != 0
