@@ -11,26 +11,57 @@ function optimize!(prob::CPXproblem)
   end
 end
 
+# function get_solution(prob::CPXproblem)
+#     obj = [2.0]
+#     nvars = num_var(prob)
+#     x   = Array(Float64, nvars)
+#     status = Array(Cint, 1)
+#     ret = @cpx_ccall(solution, Cint, (
+#                      Ptr{Void}, 
+#                      Ptr{Void}, 
+#                      Ptr{Cint}, 
+#                      Ptr{Float64}, 
+#                      Ptr{Float64}, 
+#                      Ptr{Float64}, 
+#                      Ptr{Float64}, 
+#                      Ptr{Float64}
+#                      ),
+#                      prob.env.ptr, prob.lp, status, obj, x, C_NULL, C_NULL, C_NULL)
+#     if ret != 0
+#        error("CPLEX: Error getting solution")
+#    end
+#    return(obj[1], x)
+# end
+
+function get_obj_val(prob::CPXproblem)
+  objval = Array(Float64, 1)
+  status = @cpx_ccall(getobjval, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Ptr{Float64}
+                      ),
+                      prob.env.ptr, prob.lp, objval)
+  if status != 0
+    error("CPLEX: error grabbing objective value")
+  end
+  return objval
+end
+
 function get_solution(prob::CPXproblem)
-    obj = [0.0]
-    nvars = num_var(prob)
-    x   = Array(Float64, nvars)
-    status = Array(Cint, 1)
-    ret = @cpx_ccall(solution,
-                     Cint,
-                     (Ptr{Void}, Ptr{Void}, Ptr{Cint}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}, Ptr{Float64}),
-                     prob.env.ptr,
-                     prob.lp,
-                     status,
-                     obj,
-                     x,
-                     C_NULL,
-                     C_NULL,
-                     C_NULL)
-    if ret != 0
-       error("CPLEX: Error getting solution")
-   end
-   return(obj[1], x)
+  nvars = num_var(prob)
+  x = Array(Float64, nvars)
+  status = @cpx_ccall(getx, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Ptr{Float64},
+                      Cint,
+                      Cint
+                      ),
+                      prob.env.ptr, prob.lp, x, 0, nvars-1)
+  if status != 0
+    error("CPLEX: error grabbing optimal solution (x)")
+  end
+  return x
 end
 
 function get_reduced_costs(prob::CPXproblem)

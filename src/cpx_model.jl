@@ -27,7 +27,7 @@ function read_file!(prob::CPXproblem, filename)
 end
 
 function get_sense(prob::CPXproblem)
-    sense_int = @cpx_ccall(getobjsense, Cint, (
+    sense_int = @cpx_ccall(getobjsen, Cint, (
                            Ptr{Void},
                            Ptr{Void},
                            ),
@@ -77,28 +77,28 @@ function set_obj!(prob::CPXproblem, c::Vector)
                         Ptr{Cint},
                         Ptr{Float64}
                         ),
-                        prob.env.ptr, prob.lp, nvars, [0:nvars-1], float(c))
+                        prob.env.ptr, prob.lp, nvars, Cint[0:nvars-1], float(c))                    
     if status != 0
         error("CPLEX: error setting objective function")
     end
 end
 
 function write_problem(prob::CPXproblem, filename)
-    ret = @cpx_ccall(writeprob, Int32, (Ptr{Void}, Ptr{Void}, Ptr{Uint8}, Ptr{Uint8}), prob.env.ptr, prob.lp, filename, C_NULL)
+    ret = @cpx_ccall(writeprob, Cint, (Ptr{Void}, Ptr{Void}, Ptr{Cchar}, Ptr{Cchar}), prob.env.ptr, prob.lp, filename, "LP")
     if ret != 0
         error("CPLEX: Error writing problem data, status = $ret")
     end
 end
 
 function free_problem(prob::CPXproblem)
-    status = @cpx_ccall(freeprob, Int32, (Ptr{Void}, Ptr{Void}), prob.env.ptr, prob.lp)
+    status = @cpx_ccall(freeprob, Cint, (Ptr{Void}, Ptr{Void}), prob.env.ptr, prob.lp)
     if status != 0
         error("CPLEX: Error freeing problem")
     end
 end
 
 function close_CPLEX(env::CPXenv)
-    status = @cpx_ccall(closeCPLEX, Int32, (Ptr{Void},), env.ptr)
+    status = @cpx_ccall(closeCPLEX, Cint, (Ptr{Void},), env.ptr)
     if status != 0
         error("CPLEX: Error freeing environment")
     end

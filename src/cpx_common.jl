@@ -24,7 +24,7 @@ cvec(v::Vector{Char}) = convert(CVec, v)
 
 _chklen(v, n::Integer) = (length(v) == n || error("Inconsistent argument dimensions."))
 
-cvecx(c::GChars, n::Integer) = fill(cchar(c), n)
+cvecx(c::GChars, n::Integer) = fill(Cchar[c...], n)
 cvecx(c::Vector{Cchar}, n::Integer) = (_chklen(c, n); c)
 cvecx(c::Vector{Char}, n::Integer) = (_chklen(c, n); convert(Vector{Cchar}, c))
 
@@ -47,7 +47,7 @@ type CPXproblem
     nint::Int # number of integer variables
 
     function CPXproblem(env::CPXenv, lp::Ptr{Void})
-        prob = new(env, lp, 0, 0, 0)
+        prob = new(env, lp, 0)
         finalizer(prob, free_problem)
         prob
     end

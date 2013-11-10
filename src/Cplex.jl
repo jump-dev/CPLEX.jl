@@ -15,11 +15,14 @@ module Cplex
     # exported functions
     export make_env, 
            make_problem, 
-           read_file!, 
+           read_file!,
+           add_var!, 
            add_vars!, 
            add_rangeconstrs!, 
            add_rangeconstrs_t!, 
-           set_sense!, 
+           add_constr!,
+           set_sense!,
+           set_obj!,
            optimize!, 
            get_solution, 
            write_problem, 
@@ -27,6 +30,7 @@ module Cplex
            close_CPLEX
 
     include("cpx_common.jl")
+    include("cpx_params.jl")
     include("cpx_model.jl")
     include("cpx_vars.jl")
     include("cpx_constrs.jl")

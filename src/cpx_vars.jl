@@ -1,6 +1,14 @@
-function add_vars!(prob::CPXproblem, obj::Vector, lb::Vector, ub::Vector)
+function add_vars!(prob::CPXproblem, obj::Vector, l::Vector, u::Vector)
     nvars = length(obj)
-    (nvars == length(lb) == length(ub)) || error("Inconsistent dimensions when adding variables.")
+    (nvars == length(l) == length(u)) || error("Inconsistent dimensions when adding variables.")
+    for i = 1:nvars
+        if l[i] == -Inf
+            l[i] = -CPX_INFBOUND
+        end
+        if u[i] == Inf
+            u[i] = CPX_INFBOUND
+        end
+    end
     if nvars > 0
         status = @cpx_ccall(newcols, Cint, (
                             Ptr{Void}, 
@@ -12,19 +20,26 @@ function add_vars!(prob::CPXproblem, obj::Vector, lb::Vector, ub::Vector)
                             Ptr{Uint8}, 
                             Ptr{Ptr{Uint8}}
                             ),
-                            prob.env.ptr, prob.lp, nvars, float(obj), float(lb), float(ub), C_NULL, C_NULL)
+                            prob.env.ptr, prob.lp, nvars, float(obj), float(l), float(u), C_NULL, C_NULL)
         if status != 0
             error("CPLEX: Error adding new variables")
         end
-        prob.nvars = prob.nvars + nvars
     end
 end
 
-add_var!(prob::CPXproblem, obj::Vector, lb::Vector, ub::Vector) = add_vars!(prob, obj, lb, ub)
+add_var!(prob::CPXproblem, obj::Vector, l::Vector, u::Vector) = add_vars!(prob, obj, l, u)
 
 function add_var!(prob::CPXproblem, constridx::IVec, constrcoef::FVec, l::FVec, u::FVec, objcoef::FVec)
-    nvars = length(obj)
-    (nvars == length(lb) == length(ub)) || error("Inconsistent dimensions when adding variables.")
+    nvars = length(objcoef)
+    (nvars == length(l) == length(u)) || error("Inconsistent dimensions when adding variables.")
+    for i = 1:nvars
+        if l[i] == -Inf
+            l[i] = -CPX_INFBOUND
+        end
+        if u[i] == Inf
+            u[i] = CPX_INFBOUND
+        end
+    end
     if nvars > 0
         status = @cpx_ccall(addcols, Cint, (
                             Ptr{Void},
@@ -39,14 +54,16 @@ function add_var!(prob::CPXproblem, constridx::IVec, constrcoef::FVec, l::FVec, 
                             Ptr{Float64},
                             Ptr{Ptr{Cchar}}
                             ),
-                            prob.env.ptr, prob.lp, nvars, length(constridx), objcoef, [0], constridx-1, constrcoef, l, u, C_NULL)
+                            prob.env.ptr, prob.lp, nvars, length(constridx), objcoef, Cint[0], constridx-1, constrcoef, l, u, C_NULL)
         if status != 0
             error("CPLEX: error adding columns to model")
         end
     end
 end
 
-add_var!(prob::CPXproblem, constridx::Vector, constrcoef::Vector, l::Vector, u::Vector, objcoef::Vector) = add_var!(prob, int(constridx), float(constrcoef), float(l), float(u), float(objcoef))
+function add_var!(prob::CPXproblem, constridx, constrcoef, l, u, objcoef)
+    return add_var!(prob, convert(IVec, [constridx...]), convert(FVec, [constrcoef...]), convert(FVec, [l...]), convert(FVec, [u...]), convert(FVec, [objcoef...]))
+end
 
 function get_varLB(prob::CPXproblem)
     nvars = num_var(prob)
@@ -67,7 +84,12 @@ end
 
 function set_varLB!(prob::CPXproblem, l::FVec)
     nvars = num_var(prob)
-    status = @cpx_ccall(getlb, Cint, (
+    for i = 1:nvars
+        if l[i] == -Inf
+            l[i] = -CPX_INFBOUND
+        end
+    end
+    status = @cpx_ccall(chgbds, Cint, (
                         Ptr{Void},
                         Ptr{Void},
                         Cint,
@@ -77,6 +99,7 @@ function set_varLB!(prob::CPXproblem, l::FVec)
                         ),
                         prob.env.ptr, prob.lp, nvars, Cint[0:nvars-1], fill(convert(Cchar, 'L'), nvars), l)
     if status != 0
+        println(status)
         error("CPLEX: error setting variable lower bounds")
     end
 end
@@ -100,7 +123,12 @@ end
 
 function set_varUB!(prob::CPXproblem, u::FVec)
     nvars = num_var(prob)
-    status = @cpx_ccall(getlb, Cint, (
+        for i = 1:nvars
+        if u[i] == Inf
+            u[i] = CPX_INFBOUND
+        end
+    end
+    status = @cpx_ccall(chgbds, Cint, (
                         Ptr{Void},
                         Ptr{Void},
                         Cint,
@@ -108,7 +136,7 @@ function set_varUB!(prob::CPXproblem, u::FVec)
                         Ptr{Cchar},
                         Ptr{Float64}
                         ),
-                        prob.env.ptr, prob.lp, nvars, Cint[0:prob.nvars-1], fill(convert(Cchar, 'U'), nvars), u)
+                        prob.env.ptr, prob.lp, nvars, Cint[0:nvars-1], fill(convert(Cchar, 'U'), nvars), u)
     if status != 0
         error("CPLEX: error setting variable lower bounds")
     end
@@ -131,7 +159,6 @@ function set_vartype!(prob::CPXproblem, vtype::Vector{Char})
     # this should change...need to indicate whether to use MIP or LP solver
     prob.nint = 1
     # prob.nint += sum([vtype[i]=='I' for i=1:prob.nvars])
-    write_problem(prob, "out.lp")
 end
 
 function get_vartype(prob::CPXproblem)

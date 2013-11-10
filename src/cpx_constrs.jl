@@ -19,31 +19,32 @@ function add_constrs!(prob::CPXproblem, cbegins::IVec, inds::IVec, coeffs::FVec,
                             Ptr{Ptr{Uint8}}   # row names
                             ), 
                             prob.env.ptr, prob.lp, 0, ncons, nnz, rhs, rel, cbegins-1, inds-1, coeffs, C_NULL, C_NULL)
+
         if status != 0   
             error("CPLEX: Error adding constraints.")
         end
     end
 end
 
-function add_constrs!(model::CPXproblem, cbeg::Vector, inds::Vector, coeffs::Vector, rel::GCharOrVec, rhs::Vector)
+function add_constrs!(model::CPXproblem, cbeg::Vector, inds::Vector, coeffs::Vector, rel::Vector, rhs::Vector)
     add_constrs!(model, ivec(cbeg), ivec(inds), fvec(coeffs), cvecx(rel, length(cbeg)), fvec(rhs))
 end
 
 function add_constrs_t!(model::CPXproblem, At::SparseMatrixCSC{Float64}, rel::GCharOrVec, b::Vector)
     n, m = size(At)
-    (m == length(b) && n == model.nvars) || error("Incompatible argument dimensions.")
+    (m == length(b) && n == num_var(model)) || error("Incompatible argument dimensions.")
     add_constrs!(model, At.colptr[1:At.n], At.rowval, At.nzval, rel, b)
 end
 
 function add_constrs_t!(model::CPXproblem, At::Matrix{Float64}, rel::GCharOrVec, b::Vector)
     n, m = size(At)
-    (m == length(b) && n == model.nvars) || error("Incompatible argument dimensions.")
+    (m == length(b) && n == num_var(model)) || error("Incompatible argument dimensions.")
     add_constrs_t!(model, sparse(At), rel, b)
 end
 
 function add_constrs!(model::CPXproblem, A::CoeffMat, rel::GCharOrVec, b::Vector{Float64})
     m, n = size(A)
-    (m == length(b) && n == model.nvars) || error("Incompatible argument dimensions.")
+    (m == length(b) && n == num_var(model)) || error("Incompatible argument dimensions.")
     add_constrs_t!(model, transpose(A), rel, b)
 end
 
@@ -112,7 +113,7 @@ end
 
 function add_rangeconstrs!(prob::CPXproblem, A::CoeffMat, lb::Vector, ub::Vector)
     m, n = size(A)
-    (m == length(lb) == length(ub) && n == prob.nvars) || error("Incompatible constraint argument dimensions.")
+    (m == length(lb) == length(ub) && n == num_var(prob)) || error("Incompatible constraint argument dimensions.")
     add_rangeconstrs_t!(prob, transpose(A), lb, ub)
 end
 
@@ -139,7 +140,7 @@ function get_constr_senses(prob::CPXproblem)
     if status != 0
         error("CPLEX: error grabbing constraint senses")
     end
-    return sense 
+    return senses 
 end
 
 function set_constr_senses!(prob::CPXproblem, senses::Vector)
@@ -151,7 +152,7 @@ function set_constr_senses!(prob::CPXproblem, senses::Vector)
                         Ptr{Cint},
                         Ptr{Cchar}
                         ),
-                        prob.env.ptr, prob.lp, ncons, [0:ncons-1], Cchar[senses...])
+                        prob.env.ptr, prob.lp, ncons, Cint[0:ncons-1], Cchar[senses...])
     if status != 0
         error("CPLEX: error changing constraint senses")
     end
@@ -175,6 +176,7 @@ function get_rhs(prob::CPXproblem)
 end
 
 function set_rhs!(prob::CPXproblem, rhs::Vector)
+    ncons = num_constr(prob)
     status = @cpx_ccall(chgrhs, Cint, (
                         Ptr{Void},
                         Ptr{Void},
@@ -182,7 +184,7 @@ function set_rhs!(prob::CPXproblem, rhs::Vector)
                         Ptr{Cint},
                         Ptr{Float64}
                         ),
-                        prob.env.ptr, prob.lp, prob.ncons, [0:num_constr(prob)-1], float(rhs))
+                        prob.env.ptr, prob.lp, ncons, Cint[0:ncons-1], float(rhs))
     if status != 0
         error("CPLEX: error setting RHS")
     end
@@ -219,8 +221,9 @@ end
 function set_constrLB!(prob::CPXproblem, lb)
     senses = get_constr_senses(prob)
     rhs    = get_rhs(prob)
+    sense_changed = false
     for i = 1:num_constr(prob)
-        if senses[i] == 'G' || sense == 'E'
+        if senses[i] == 'G' || senses[i] == 'E'
             # Do nothing
         elseif senses[i] == 'L' && lb[i] != -Inf
             # LEQ constraint with non-NegInf LB implies a range
@@ -242,8 +245,9 @@ end
 function set_constrUB!(prob::CPXproblem, lb)
     senses = get_constr_senses(prob)
     rhs    = get_rhs(prob)
+    sense_changed = false
     for i = 1:num_constr(prob)
-        if senses[i] == 'L' || sense == 'E'
+        if senses[i] == 'L' || senses[i] == 'E'
             # Do nothing
         elseif senses[i] == 'L' && lb[i] != -Inf
             # GEQ constraint with non-PosInf UB implies a range

@@ -1,0 +1,1 @@
+const CPX_INFBOUND = 1e20

@@ -57,16 +57,16 @@ end
 
 writeproblem(m::CplexMathProgModel, filename::String) = write_model(m.inner, filename)
 
-getVarLB(m::CplexMathProgModel) = get_varLB(m.inner)
-setVarLB!(m::CplexMathProgModel, l) = set_varLB!(m.inner, l)
-getVarUB(m::CplexMathProgModel) = get_varUB(m.inner)
-setVarUB!(m::CplexMathProgModel, u) = set_varUB!(m.inner, u)
+getvarLB(m::CplexMathProgModel) = get_varLB(m.inner)
+setvarLB!(m::CplexMathProgModel, l) = set_varLB!(m.inner, l)
+getvarUB(m::CplexMathProgModel) = get_varUB(m.inner)
+setvarUB!(m::CplexMathProgModel, u) = set_varUB!(m.inner, u)
 
 # CPXchgcoef
-getConstrLB(m::CplexMathProgModel) = get_constrLB(m.inner)
-setConstrLB!(m::CplexMathProgModel, lb) = set_constrLB(m.inner, lb)
-getConstrUB(m::CplexMathProgModel) = get_constrUB(m.inner)
-setConstrUB!(m::CplexMathProgModel, ub) = set_constrUB(m.inner, ub)
+getconstrLB(m::CplexMathProgModel) = get_constrLB(m.inner)
+setconstrLB!(m::CplexMathProgModel, lb) = set_constrLB!(m.inner, lb)
+getconstrUB(m::CplexMathProgModel) = get_constrUB(m.inner)
+setconstrUB!(m::CplexMathProgModel, ub) = set_constrUB!(m.inner, ub)
 
 getobj(m::CplexMathProgModel) = get_obj(m.inner)
 setobj!(m::CplexMathProgModel, c) = set_obj!(m.inner, c)
@@ -77,7 +77,7 @@ function addconstr!(m::CplexMathProgModel, varidx, coef, lb, ub)
   neginf = typemin(eltype(lb))
   posinf = typemax(eltype(ub))
 
-  rangeconstrs = any((lb .!= rowub) & (lb .> neginf) & (ub .< posinf))
+  rangeconstrs = any((lb .!= ub) & (lb .> neginf) & (ub .< posinf))
   if rangeconstrs
     warn("Julia Cplex interface doesn't properly support range (two-sided) constraints.")
     add_rangeconstrs!(m.inner, [0], varidx, float(coef), float(lb), float(ub))
@@ -93,11 +93,11 @@ function addconstr!(m::CplexMathProgModel, varidx, coef, lb, ub)
       rel = 'L'
       rhs = ub
     end
-    add_constrs!(m.inner, [0], varidx, float(coef), rel, float(rhs))
+    add_constrs!(m.inner, ivec([1]), ivec(varidx), fvec(coef), Cchar[rel...], fvec([rhs...]))
   end
 end
 
-updatemodel!(m::CplexMathProgModel) = warn("Model update not necessary for Cplex.")
+updatemodel!(m::CplexMathProgModel) = Base.warn_once("Model update not necessary for Cplex.")
 
 setsense!(m::CplexMathProgModel, sense) = set_sense!(m.inner, sense)
 
@@ -125,9 +125,9 @@ function status(m::CplexMathProgModel)
   return stat
 end
 
-getobjval(m::CplexMathProgModel)   = get_solution(m.inner)[1]
-getobjbound(m::CplexMathProgModel) = get_solution(m.inner)[1]
-getsolution(m::CplexMathProgModel) = get_solution(m.inner)[2]
+getobjval(m::CplexMathProgModel)   = get_obj_val(m.inner)
+getobjbound(m::CplexMathProgModel) = get_solution(m.inner)
+getsolution(m::CplexMathProgModel) = get_solution(m.inner)
 getconstrsolution(m::CplexMathProgModel) = get_constr_solution(m.inner)
 getreducedcosts(m::CplexMathProgModel) = get_reduced_costs(m.inner)
 getconstrduals(m::CplexMathProgModel) = get_constr_duals(m.inner)
