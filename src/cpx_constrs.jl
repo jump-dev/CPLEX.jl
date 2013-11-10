@@ -116,18 +116,148 @@ function add_rangeconstrs!(prob::CPXproblem, A::CoeffMat, lb::Vector, ub::Vector
     add_rangeconstrs_t!(prob, transpose(A), lb, ub)
 end
 
+function num_constr(prob::CPXproblem)
+    ncons = @cpx_ccall(getnumrows, Cint, (
+                       Ptr{Void},
+                       Ptr{Void}
+                       ),
+                       prob.env.ptr, prob.lp)
+    return ncons
+end
+
+function get_constr_senses(prob::CPXproblem)
+    ncons = num_constr(prob)
+    senses = Array(Cchar, ncons)
+    status = @cpx_ccall(getsense, Cint, (
+                        Ptr{Void},
+                        Ptr{Void},
+                        Ptr{Cchar},
+                        Cint,
+                        Cint
+                        ),
+                        prob.env.ptr, prob.lp, senses, 0, ncons-1)
+    if status != 0
+        error("CPLEX: error grabbing constraint senses")
+    end
+    return sense 
+end
+
+function set_constr_senses!(prob::CPXproblem, senses::Vector)
+    ncons = num_constr(prob)
+    status = @cpx_ccall(chgsense, Cint, (
+                        Ptr{Void},
+                        Ptr{Void},
+                        Cint, 
+                        Ptr{Cint},
+                        Ptr{Cchar}
+                        ),
+                        prob.env.ptr, prob.lp, ncons, [0:ncons-1], Cchar[senses...])
+    if status != 0
+        error("CPLEX: error changing constraint senses")
+    end
+end
+
+function get_rhs(prob::CPXproblem)
+    ncons = num_constr(prob)
+    rhs = Array(Float64, ncons)
+    status = @cpx_ccall(getrhs, Cint, (
+                        Ptr{Void},
+                        Ptr{Void},
+                        Ptr{Float64},
+                        Cint,
+                        Cint
+                        ),
+                        prob.env.ptr, prob.lp, rhs, 0, ncons-1)
+    if status != 0
+        error("CPLEX: error grabbing RHS")
+    end
+    return rhs
+end
+
+function set_rhs!(prob::CPXproblem, rhs::Vector)
+    status = @cpx_ccall(chgrhs, Cint, (
+                        Ptr{Void},
+                        Ptr{Void},
+                        Cint,
+                        Ptr{Cint},
+                        Ptr{Float64}
+                        ),
+                        prob.env.ptr, prob.lp, prob.ncons, [0:num_constr(prob)-1], float(rhs))
+    if status != 0
+        error("CPLEX: error setting RHS")
+    end
+end
+
 function get_constrLB(prob::CPXproblem)
-    error("How do we grab this from range constraints?")
+    senses = get_constr_senses(prob)
+    ret    = get_rhs(prob)
+    for i = 1:num_constr(prob)
+        if senses[i] == 'G' || senses[i] == 'E'
+            # Do nothing
+        else
+            # LEQ constraint so LB is -Inf
+            ret[i] = -Inf
+        end
+    end
+    return ret
 end
 
 function get_constrUB(prob::CPXproblem)
-    error("How do we grab this from range constraints?")
+    senses = get_constr_senses(prob)
+    ret    = get_rhs(prob)
+    for i = 1:num_constr(prob)
+        if senses[i] == 'L' || senses[i] == 'E'
+            # Do nothing
+        else
+            # GEQ constraint so UB is Inf
+            ret[i] = +Inf
+        end
+    end
+    return ret
 end
 
 function set_constrLB!(prob::CPXproblem, lb)
-    error("How do we grab this from range constraints?")
+    senses = get_constr_senses(prob)
+    rhs    = get_rhs(prob)
+    for i = 1:num_constr(prob)
+        if senses[i] == 'G' || sense == 'E'
+            # Do nothing
+        elseif senses[i] == 'L' && lb[i] != -Inf
+            # LEQ constraint with non-NegInf LB implies a range
+            if isapprox(lb[i], rhs[i])
+                # seems to be an equality
+                senses[i] = 'E'
+                sense_changed = true
+            else
+                error("Tried to set LB != -Inf on a LEQ constraint (index $i)")
+            end
+        end
+    end
+    if sense_changed
+        set_constr_senses!(prob, senses)
+    end
+    set_rhs!(prob, lb)
 end
 
-function set_constrUB!(prob::CPXproblem, ub)
-    error("How do we grab this from range constraints?")
+function set_constrUB!(prob::CPXproblem, lb)
+    senses = get_constr_senses(prob)
+    rhs    = get_rhs(prob)
+    for i = 1:num_constr(prob)
+        if senses[i] == 'L' || sense == 'E'
+            # Do nothing
+        elseif senses[i] == 'L' && lb[i] != -Inf
+            # GEQ constraint with non-PosInf UB implies a range
+            if isapprox(ub[i], rhs[i])
+                # seems to be an equality
+                senses[i] = 'E'
+                sense_changed = true
+            else
+                error("Tried to set LB != +Inf on a GEQ constraint (index $i)")
+            end
+        end
+    end
+    if sense_changed
+        set_constr_senses!(prob, senses)
+    end
+    set_rhs!(prob, lb)
 end

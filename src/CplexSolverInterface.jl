@@ -63,10 +63,10 @@ getVarUB(m::CplexMathProgModel) = get_varUB(m.inner)
 setVarUB!(m::CplexMathProgModel, u) = set_varUB!(m.inner, u)
 
 # CPXchgcoef
-getConstrLB(m::CplexMathProgModel) = error("Not yet implemented.")
-setConstrLB!(m::CplexMathProgModel, lb) = error("Not yet implemented.")
-getConstrUB(m::CplexMathProgModel) = error("Not yet implemented.")
-setConstrUB!(m::CplexMathProgModel, ub) = error("Not yet implemented.")
+getConstrLB(m::CplexMathProgModel) = get_constrLB(m.inner)
+setConstrLB!(m::CplexMathProgModel, lb) = set_constrLB(m.inner, lb)
+getConstrUB(m::CplexMathProgModel) = get_constrUB(m.inner)
+setConstrUB!(m::CplexMathProgModel, ub) = set_constrUB(m.inner, ub)
 
 getobj(m::CplexMathProgModel) = get_obj(m.inner)
 setobj!(m::CplexMathProgModel, c) = set_obj!(m.inner, c)
@@ -103,8 +103,8 @@ setsense!(m::CplexMathProgModel, sense) = set_sense!(m.inner, sense)
 
 getsense(m::CplexMathProgModel) = get_sense(m.inner)
 
-numvar(m::CplexMathProgModel) = m.inner.nvars
-numconstr(m::CplexMathProgModel) = m.inner.ncons
+numvar(m::CplexMathProgModel) = num_var(m.inner)
+numconstr(m::CplexMathProgModel) = num_constr(m.inner)
 
 optimize!(m::CplexMathProgModel) = optimize!(m.inner)
 
@@ -128,7 +128,7 @@ end
 getobjval(m::CplexMathProgModel)   = get_solution(m.inner)[1]
 getobjbound(m::CplexMathProgModel) = get_solution(m.inner)[1]
 getsolution(m::CplexMathProgModel) = get_solution(m.inner)[2]
-getconstrsolution(m::CplexMathProgModel) = error("Not yet implemented.")
+getconstrsolution(m::CplexMathProgModel) = get_constr_solution(m.inner)
 getreducedcosts(m::CplexMathProgModel) = get_reduced_costs(m.inner)
 getconstrduals(m::CplexMathProgModel) = get_constr_duals(m.inner)
 getrawsolver(m::CplexMathProgModel) = m.inner

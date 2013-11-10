@@ -13,7 +13,8 @@ end
 
 function get_solution(prob::CPXproblem)
     obj = [0.0]
-    x   = Array(Float64, prob.nvars)
+    nvars = num_var(prob)
+    x   = Array(Float64, nvars)
     status = Array(Cint, 1)
     ret = @cpx_ccall(solution,
                      Cint,
@@ -33,7 +34,8 @@ function get_solution(prob::CPXproblem)
 end
 
 function get_reduced_costs(prob::CPXproblem)
-    p = Array(Float64, prob.nvars)
+    nvars = num_var(prob)
+    p = Array(Float64, nvars)
     status = Array(Cint, 1)
     ret = @cpx_ccall(getdj, Cint,
                      (Ptr{Void}, 
@@ -42,7 +44,7 @@ function get_reduced_costs(prob::CPXproblem)
                       Cint, 
                       Cint
                       ),
-                      prob.env.ptr, prob.lp, p, 0, prob.nvars-1)
+                      prob.env.ptr, prob.lp, p, 0, nvars-1)
     if ret != 0
        error("CPLEX: Error getting reduced costs")
    end
@@ -50,7 +52,8 @@ function get_reduced_costs(prob::CPXproblem)
 end
 
 function get_constr_duals(prob::CPXproblem)
-    p = Array(Float64, prob.nvars)
+    ncons = num_constr(prob)
+    p = Array(Float64, ncons)
     status = Array(Cint, 1)
     ret = @cpx_ccall(getpi, Cint,
                      (Ptr{Void}, 
@@ -59,16 +62,29 @@ function get_constr_duals(prob::CPXproblem)
                       Cint, 
                       Cint
                       ),
-                      prob.env.ptr, prob.lp, p, 0, prob.ncons-1)
+                      prob.env.ptr, prob.lp, p, 0, ncons-1)
     if ret != 0
        error("CPLEX: Error getting dual variables")
    end
    return p
 end
 
-# function get_objbounds(prob::CPXproblem)
-    
-# end
+function get_constr_solution(prob::CPXproblem)
+  ncons = num_constr(prob)
+  Ax = Array(Float64, ncons)
+  status = @cpx_ccall(getax, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Ptr{Float64},
+                      Cint,
+                      Cint
+                      ),
+                      prob.env.ptr, prob.lp, Ax, 0, ncons-1)
+  if status != 0
+    error("CPLEX: error grabbing constraint solution (Ax)")
+  end
+  return Ax
+end
 
 const status_symbols = [
     1   => :CPX_STAT_OPTIMAL,

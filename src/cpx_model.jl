@@ -24,8 +24,6 @@ function read_file!(prob::CPXproblem, filename)
     if ret != 0
         error("CPLEX: Error reading MPS file")
     end
-    prob.nvars = @cpx_ccall(getnumcols, Cint, (Ptr{Void}, Ptr{Void}), prob.env.ptr, prob.lp)
-    prob.ncons = @cpx_ccall(getnumrows, Cint, (Ptr{Void}, Ptr{Void}), prob.env.ptr, prob.lp)
 end
 
 function get_sense(prob::CPXproblem)
@@ -54,7 +52,8 @@ function set_sense!(prob::CPXproblem, sense)
 end
 
 function get_obj(prob::CPXproblem)
-    obj = Array(Float64, prob.nvars)
+    nvars = num_var(prob)
+    obj = Array(Float64, nvars)
     status = @cpx_ccall(getobj, Cint, (
                         Ptr{Void},
                         Ptr{Void},
@@ -62,7 +61,7 @@ function get_obj(prob::CPXproblem)
                         Cint,
                         Cint
                         ),
-                        prob.env.ptr, prob.lp, obj, 0, prob.nvars-1)
+                        prob.env.ptr, prob.lp, obj, 0, nvars-1)
     if status != 0
         error("CPLEX: error getting objective function")
     end
@@ -70,6 +69,7 @@ function get_obj(prob::CPXproblem)
 end
 
 function set_obj!(prob::CPXproblem, c::Vector)
+    nvars = num_var(prob)
     status = @cpx_ccall(chgobj, Cint, (
                         Ptr{Void},
                         Ptr{Void},
@@ -77,7 +77,7 @@ function set_obj!(prob::CPXproblem, c::Vector)
                         Ptr{Cint},
                         Ptr{Float64}
                         ),
-                        prob.env.ptr, prob.lp, prob.nvars, [0:prob.nvars-1], float(c))
+                        prob.env.ptr, prob.lp, nvars, [0:nvars-1], float(c))
     if status != 0
         error("CPLEX: error setting objective function")
     end

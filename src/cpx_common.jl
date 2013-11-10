@@ -44,8 +44,6 @@ end
 type CPXproblem
     env::CPXenv # Cplex environment
     lp::Ptr{Void} # Cplex problem (lp)
-    nvars::Int # number of vars 
-    ncons::Int # number of constraints
     nint::Int # number of integer variables
 
     function CPXproblem(env::CPXenv, lp::Ptr{Void})
