@@ -1,9 +1,24 @@
 Cplex.jl
 ========
 
-Julia interface for the CPLEX optimization software
+Cplex.jl is a Julia interface for the CPLEX optimization software. CPLEX functionality is extensive, so coverage is incomplete, but the basic functionality for solving linear and mixed-integer programs is provided.
 
-Note: if on OS-X, need to add ``LD_LIBRARY_PATH="/path/to/Cplex/library":$LD_LIBRARY_PATH`` to your ``.bash_profile``.
+Cplex.jl is intended for use with the [MathProgBase](https://github.com/JuliaOpt/MathProgBase.jl) solver interface; an internal API, while present, is not documented.
 
-On my install, must run ``dlopen("libstdc++",RTLD_GLOBAL)`` before loading the Cplex module to avoid C++ linking issues.
+Setting up Cplex
+----------------
 
+NOTE: CPLEX [does not currently support linking to their dynamic C library](https://www.ibm.com/developerworks/community/forums/html/topic?id=ca96447c-fe2d-4e8a-900e-cfe358a9bcec&ps=25), which is necessary for use from Julia. However, the steps outlined below have worked for OS-X and Linux machines. 
+
+1. First, you must obtain a copy of the CPLEX software and a license; trial versions and academic licenses are available [here](http://www-01.ibm.com/software/websphere/products/optimization/cplex-studio-preview-edition/).
+
+2. Once CPLEX is installed on your machine, point the LD_LIBRARY_PATH variable to the Cplex library by adding ``LD_LIBRARY_PATH="/path/to/Cplex/library":$LD_LIBRARY_PATH`` to your ``.bash_profile``.
+
+3. Clone this module to your ``.julia`` directory.
+
+4. Open a Julia prompt and run ``> Pkg.build("Cplex")``; the module should now be ready for use!
+
+Troubleshooting
+---------------
+* There is a potential conflict between the C++ library used by CPLEX and that used by newer Julia installs. If ``Pkg.build("Cplex")`` fails, this might be to blame: you must enter ``dlopen("libstdc++",RTLD_GLOBAL)`` before loading the Cplex module to avoid C++ linking issues (This statement is currently included for OS-X by default, as it's unclear the issue exists on other platforms). 
+* If you have any install problems, find any bugs, or want any features added, feel free to open an issue.
