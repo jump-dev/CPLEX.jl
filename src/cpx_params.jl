@@ -12,7 +12,7 @@ function get_param_type(prob::CPXproblem, indx::Int)
                     ),
                     prob.env.ptr, indx, ptype)
   if stat != 0
-    error("CPLEX: error grabbing paramter type")
+    error("CPLEX: error grabbing parameter type")
   end
   if ptype[1] == 0
     ret = :None
