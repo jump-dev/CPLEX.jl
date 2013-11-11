@@ -16,6 +16,7 @@ module Cplex
     export make_env, 
            make_problem, 
            read_file!,
+           set_params!,
            add_var!, 
            add_vars!, 
            add_rangeconstrs!, 
