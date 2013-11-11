@@ -31,24 +31,5 @@ cvecx(c::Vector{Char}, n::Integer) = (_chklen(c, n); convert(Vector{Cchar}, c))
 # -----
 # Types
 # -----
-type CPXenv
-    ptr::Ptr{Void}
 
-    function CPXenv(ptr::Ptr{Void})
-        env = new(ptr)
-        # finalizer(env, close_CPLEX)
-        env
-    end
-end
 
-type CPXproblem
-    env::CPXenv # Cplex environment
-    lp::Ptr{Void} # Cplex problem (lp)
-    nint::Int # number of integer variables
-
-    function CPXproblem(env::CPXenv, lp::Ptr{Void})
-        prob = new(env, lp, 0)
-        finalizer(prob, free_problem)
-        prob
-    end
-end

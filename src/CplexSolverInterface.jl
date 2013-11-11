@@ -11,7 +11,7 @@ end
 CplexSolver(;kwargs...) = CplexSolver(kwargs)
 
 function CplexMathProgModel(options)
-  env = make_env()
+  env = Env()
   for (name,value) in options
     set_param!(env, string(name), value)
   end

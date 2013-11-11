@@ -1,15 +1,17 @@
-# to make environment, call CPXopenCLPEX
-function make_env()
-    status = Array(Cint, 1)
-    tmp = @cpx_ccall(openCPLEX, Ptr{Void}, (Ptr{Cint},), status)
-    if tmp == C_NULL
-        error("CPLEX: Error creating environment")
+type CPXproblem
+    env::Env # Cplex environment
+    lp::Ptr{Void} # Cplex problem (lp)
+    nint::Int # number of integer variables
+
+    function CPXproblem(env::Env, lp::Ptr{Void})
+        prob = new(env, lp, 0)
+        finalizer(prob, free_problem)
+        prob
     end
-    return(CPXenv(tmp))
 end
 
 # to make problem, call CPXcreateprob
-function make_problem(env::CPXenv)
+function make_problem(env::Env)
     @assert env.ptr != C_NULL 
     status = Array(Cint, 1)
     tmp = @cpx_ccall(createprob, Ptr{Void}, (Ptr{Void}, Ptr{Cint}, Ptr{Uint8}), env.ptr, status, "Cplex.jl")
@@ -97,7 +99,7 @@ function free_problem(prob::CPXproblem)
     end
 end
 
-function close_CPLEX(env::CPXenv)
+function close_CPLEX(env::Env)
     status = @cpx_ccall(closeCPLEX, Cint, (Ptr{Void},), env.ptr)
     if status != 0
         error("CPLEX: Error freeing environment")

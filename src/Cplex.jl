@@ -29,10 +29,11 @@ module Cplex
            write_problem, 
            free_problem, 
            close_CPLEX
-
+    
     include("cpx_common.jl")
-    include("cpx_params.jl")
+    include("cpx_env.jl")
     include("cpx_model.jl")
+    include("cpx_params.jl")
     include("cpx_vars.jl")
     include("cpx_constrs.jl")
     include("cpx_solve.jl")
