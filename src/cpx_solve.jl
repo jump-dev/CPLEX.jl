@@ -1,6 +1,6 @@
-function optimize!(prob::CPXproblem)
+function optimize!(prob::Model)
   @assert prob.lp != C_NULL
-  if prob.nint == 0
+  if !prob.has_int
     ret = @cpx_ccall(lpopt, Cint, (Ptr{Void}, Ptr{Void}), prob.env.ptr, prob.lp)
   else
     ret = @cpx_ccall(mipopt, Cint, (Ptr{Void}, Ptr{Void}), prob.env.ptr, prob.lp)
@@ -11,7 +11,7 @@ function optimize!(prob::CPXproblem)
   end
 end
 
-# function get_solution(prob::CPXproblem)
+# function get_solution(prob::Model)
 #     obj = [2.0]
 #     nvars = num_var(prob)
 #     x   = Array(Float64, nvars)
@@ -33,7 +33,7 @@ end
 #    return(obj[1], x)
 # end
 
-function get_obj_val(prob::CPXproblem)
+function get_obj_val(prob::Model)
   objval = Array(Float64, 1)
   status = @cpx_ccall(getobjval, Cint, (
                       Ptr{Void},
@@ -47,7 +47,7 @@ function get_obj_val(prob::CPXproblem)
   return objval
 end
 
-function get_solution(prob::CPXproblem)
+function get_solution(prob::Model)
   nvars = num_var(prob)
   x = Array(Float64, nvars)
   status = @cpx_ccall(getx, Cint, (
@@ -64,7 +64,7 @@ function get_solution(prob::CPXproblem)
   return x
 end
 
-function get_reduced_costs(prob::CPXproblem)
+function get_reduced_costs(prob::Model)
     nvars = num_var(prob)
     p = Array(Float64, nvars)
     status = Array(Cint, 1)
@@ -82,7 +82,7 @@ function get_reduced_costs(prob::CPXproblem)
    return p
 end
 
-function get_constr_duals(prob::CPXproblem)
+function get_constr_duals(prob::Model)
     ncons = num_constr(prob)
     p = Array(Float64, ncons)
     status = Array(Cint, 1)
@@ -100,7 +100,7 @@ function get_constr_duals(prob::CPXproblem)
    return p
 end
 
-function get_constr_solution(prob::CPXproblem)
+function get_constr_solution(prob::Model)
   ncons = num_constr(prob)
   Ax = Array(Float64, ncons)
   status = @cpx_ccall(getax, Cint, (
@@ -156,5 +156,5 @@ const status_symbols = [
     121 => :CPXMIP_OPTIMAL_RELAXED
 ]
 
-get_status(model::CPXproblem) = status_symbols[int(get_status_code(model))]::Symbol
-get_status_code(model::CPXproblem) = @cpx_ccall(getstat, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
+get_status(model::Model) = status_symbols[int(get_status_code(model))]::Symbol
+get_status_code(model::Model) = @cpx_ccall(getstat, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)

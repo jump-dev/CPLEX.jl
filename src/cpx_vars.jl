@@ -1,4 +1,4 @@
-function add_vars!(prob::CPXproblem, obj::Vector, l::Vector, u::Vector)
+function add_vars!(prob::Model, obj::Vector, l::Vector, u::Vector)
     nvars = length(obj)
     (nvars == length(l) == length(u)) || error("Inconsistent dimensions when adding variables.")
     for i = 1:nvars
@@ -27,9 +27,9 @@ function add_vars!(prob::CPXproblem, obj::Vector, l::Vector, u::Vector)
     end
 end
 
-add_var!(prob::CPXproblem, obj::Vector, l::Vector, u::Vector) = add_vars!(prob, obj, l, u)
+add_var!(prob::Model, obj::Vector, l::Vector, u::Vector) = add_vars!(prob, obj, l, u)
 
-function add_var!(prob::CPXproblem, constridx::IVec, constrcoef::FVec, l::FVec, u::FVec, objcoef::FVec)
+function add_var!(prob::Model, constridx::IVec, constrcoef::FVec, l::FVec, u::FVec, objcoef::FVec)
     nvars = length(objcoef)
     (nvars == length(l) == length(u)) || error("Inconsistent dimensions when adding variables.")
     for i = 1:nvars
@@ -61,11 +61,11 @@ function add_var!(prob::CPXproblem, constridx::IVec, constrcoef::FVec, l::FVec, 
     end
 end
 
-function add_var!(prob::CPXproblem, constridx, constrcoef, l, u, objcoef)
+function add_var!(prob::Model, constridx, constrcoef, l, u, objcoef)
     return add_var!(prob, convert(IVec, [constridx...]), convert(FVec, [constrcoef...]), convert(FVec, [l...]), convert(FVec, [u...]), convert(FVec, [objcoef...]))
 end
 
-function get_varLB(prob::CPXproblem)
+function get_varLB(prob::Model)
     nvars = num_var(prob)
     lb = Array(Float64, nvars)
     status = @cpx_ccall(getlb, Cint, (
@@ -82,7 +82,7 @@ function get_varLB(prob::CPXproblem)
     return lb
 end
 
-function set_varLB!(prob::CPXproblem, l::FVec)
+function set_varLB!(prob::Model, l::FVec)
     nvars = num_var(prob)
     for i = 1:nvars
         if l[i] == -Inf
@@ -104,7 +104,7 @@ function set_varLB!(prob::CPXproblem, l::FVec)
     end
 end
 
-function get_varUB(prob::CPXproblem)
+function get_varUB(prob::Model)
     nvars = num_var(prob)
     ub = Array(Float64, nvars)
     status = @cpx_ccall(getub, Cint, (
@@ -121,7 +121,7 @@ function get_varUB(prob::CPXproblem)
     return ub
 end
 
-function set_varUB!(prob::CPXproblem, u::FVec)
+function set_varUB!(prob::Model, u::FVec)
     nvars = num_var(prob)
         for i = 1:nvars
         if u[i] == Inf
@@ -143,7 +143,7 @@ function set_varUB!(prob::CPXproblem, u::FVec)
 end
 
 
-function set_vartype!(prob::CPXproblem, vtype::Vector{Char})
+function set_vartype!(prob::Model, vtype::Vector{Char})
     nvars = num_var(prob)
     status = @cpx_ccall(chgctype, Cint, (
                         Ptr{Void},
@@ -157,11 +157,11 @@ function set_vartype!(prob::CPXproblem, vtype::Vector{Char})
         error("CPLEX: error setting variable types")
     end
     # this should change...need to indicate whether to use MIP or LP solver
-    prob.nint = 1
+    prob.has_int = true
     # prob.nint += sum([vtype[i]=='I' for i=1:prob.nvars])
 end
 
-function get_vartype(prob::CPXproblem)
+function get_vartype(prob::Model)
     nvars = num_var(prob)
     vartypes = Array(Cchar, nvars)
     status = @cpx_ccall(getctype, Cint, (
@@ -178,7 +178,7 @@ function get_vartype(prob::CPXproblem)
     return(vartypes)
 end
 
-function num_var(prob::CPXproblem)
+function num_var(prob::Model)
     nvar = @cpx_ccall(getnumcols, Cint, (
                       Ptr{Void},
                       Ptr{Void}

@@ -1,4 +1,4 @@
-function add_constrs!(prob::CPXproblem, cbegins::IVec, inds::IVec, coeffs::FVec, rel::CVec, rhs::FVec)
+function add_constrs!(prob::Model, cbegins::IVec, inds::IVec, coeffs::FVec, rel::CVec, rhs::FVec)
     nnz   = length(inds)
     ncons = length(rhs)
     (nnz == length(coeffs)) || error("Incompatible constraint argument dimensions.")
@@ -26,29 +26,29 @@ function add_constrs!(prob::CPXproblem, cbegins::IVec, inds::IVec, coeffs::FVec,
     end
 end
 
-function add_constrs!(model::CPXproblem, cbeg::Vector, inds::Vector, coeffs::Vector, rel::Vector, rhs::Vector)
+function add_constrs!(model::Model, cbeg::Vector, inds::Vector, coeffs::Vector, rel::Vector, rhs::Vector)
     add_constrs!(model, ivec(cbeg), ivec(inds), fvec(coeffs), cvecx(rel, length(cbeg)), fvec(rhs))
 end
 
-function add_constrs_t!(model::CPXproblem, At::SparseMatrixCSC{Float64}, rel::GCharOrVec, b::Vector)
+function add_constrs_t!(model::Model, At::SparseMatrixCSC{Float64}, rel::GCharOrVec, b::Vector)
     n, m = size(At)
     (m == length(b) && n == num_var(model)) || error("Incompatible argument dimensions.")
     add_constrs!(model, At.colptr[1:At.n], At.rowval, At.nzval, rel, b)
 end
 
-function add_constrs_t!(model::CPXproblem, At::Matrix{Float64}, rel::GCharOrVec, b::Vector)
+function add_constrs_t!(model::Model, At::Matrix{Float64}, rel::GCharOrVec, b::Vector)
     n, m = size(At)
     (m == length(b) && n == num_var(model)) || error("Incompatible argument dimensions.")
     add_constrs_t!(model, sparse(At), rel, b)
 end
 
-function add_constrs!(model::CPXproblem, A::CoeffMat, rel::GCharOrVec, b::Vector{Float64})
+function add_constrs!(model::Model, A::CoeffMat, rel::GCharOrVec, b::Vector{Float64})
     m, n = size(A)
     (m == length(b) && n == num_var(model)) || error("Incompatible argument dimensions.")
     add_constrs_t!(model, transpose(A), rel, b)
 end
 
-function add_rangeconstrs!(prob::CPXproblem, cbegins::IVec, inds::IVec, coeffs::FVec, lb::FVec, ub::FVec)
+function add_rangeconstrs!(prob::Model, cbegins::IVec, inds::IVec, coeffs::FVec, lb::FVec, ub::FVec)
     nnz   = length(inds)
     ncons = length(lb)
     (ncons  == length(ub) && nnz == length(coeffs)) || error("Incompatible constraint argument dimensions.")
@@ -99,25 +99,25 @@ function add_rangeconstrs!(prob::CPXproblem, cbegins::IVec, inds::IVec, coeffs::
     end
 end
 
-function add_rangeconstrs!(prob::CPXproblem, cbeg::Vector, inds::Vector, coeffs::Vector, lb::Vector, ub::Vector)
+function add_rangeconstrs!(prob::Model, cbeg::Vector, inds::Vector, coeffs::Vector, lb::Vector, ub::Vector)
     add_rangeconstrs!(prob, ivec(cbeg), ivec(inds), fvec(coeffs), fvec(lb), fvec(ub))
 end
 
-function add_rangeconstrs_t!(prob::CPXproblem, At::SparseMatrixCSC{Float64}, lb::Vector, ub::Vector)
+function add_rangeconstrs_t!(prob::Model, At::SparseMatrixCSC{Float64}, lb::Vector, ub::Vector)
     add_rangeconstrs!(prob, At.colptr-1, At.rowval-1, At.nzval, lb, ub)
 end
 
-function add_rangeconstrs_t!(prob::CPXproblem, At::Matrix{Float64}, lb::Vector, ub::Vector)
+function add_rangeconstrs_t!(prob::Model, At::Matrix{Float64}, lb::Vector, ub::Vector)
     add_rangeconstrs_t!(prob, sparse(At), lb, ub)
 end
 
-function add_rangeconstrs!(prob::CPXproblem, A::CoeffMat, lb::Vector, ub::Vector)
+function add_rangeconstrs!(prob::Model, A::CoeffMat, lb::Vector, ub::Vector)
     m, n = size(A)
     (m == length(lb) == length(ub) && n == num_var(prob)) || error("Incompatible constraint argument dimensions.")
     add_rangeconstrs_t!(prob, transpose(A), lb, ub)
 end
 
-function num_constr(prob::CPXproblem)
+function num_constr(prob::Model)
     ncons = @cpx_ccall(getnumrows, Cint, (
                        Ptr{Void},
                        Ptr{Void}
@@ -126,7 +126,7 @@ function num_constr(prob::CPXproblem)
     return ncons
 end
 
-function get_constr_senses(prob::CPXproblem)
+function get_constr_senses(prob::Model)
     ncons = num_constr(prob)
     senses = Array(Cchar, ncons)
     status = @cpx_ccall(getsense, Cint, (
@@ -143,7 +143,7 @@ function get_constr_senses(prob::CPXproblem)
     return senses 
 end
 
-function set_constr_senses!(prob::CPXproblem, senses::Vector)
+function set_constr_senses!(prob::Model, senses::Vector)
     ncons = num_constr(prob)
     status = @cpx_ccall(chgsense, Cint, (
                         Ptr{Void},
@@ -158,7 +158,7 @@ function set_constr_senses!(prob::CPXproblem, senses::Vector)
     end
 end
 
-function get_rhs(prob::CPXproblem)
+function get_rhs(prob::Model)
     ncons = num_constr(prob)
     rhs = Array(Float64, ncons)
     status = @cpx_ccall(getrhs, Cint, (
@@ -175,7 +175,7 @@ function get_rhs(prob::CPXproblem)
     return rhs
 end
 
-function set_rhs!(prob::CPXproblem, rhs::Vector)
+function set_rhs!(prob::Model, rhs::Vector)
     ncons = num_constr(prob)
     status = @cpx_ccall(chgrhs, Cint, (
                         Ptr{Void},
@@ -190,7 +190,7 @@ function set_rhs!(prob::CPXproblem, rhs::Vector)
     end
 end
 
-function get_constrLB(prob::CPXproblem)
+function get_constrLB(prob::Model)
     senses = get_constr_senses(prob)
     ret    = get_rhs(prob)
     for i = 1:num_constr(prob)
@@ -204,7 +204,7 @@ function get_constrLB(prob::CPXproblem)
     return ret
 end
 
-function get_constrUB(prob::CPXproblem)
+function get_constrUB(prob::Model)
     senses = get_constr_senses(prob)
     ret    = get_rhs(prob)
     for i = 1:num_constr(prob)
@@ -218,7 +218,7 @@ function get_constrUB(prob::CPXproblem)
     return ret
 end
 
-function set_constrLB!(prob::CPXproblem, lb)
+function set_constrLB!(prob::Model, lb)
     senses = get_constr_senses(prob)
     rhs    = get_rhs(prob)
     sense_changed = false
@@ -242,7 +242,7 @@ function set_constrLB!(prob::CPXproblem, lb)
     set_rhs!(prob, lb)
 end
 
-function set_constrUB!(prob::CPXproblem, lb)
+function set_constrUB!(prob::Model, lb)
     senses = get_constr_senses(prob)
     rhs    = get_rhs(prob)
     sense_changed = false

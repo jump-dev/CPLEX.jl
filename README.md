@@ -16,7 +16,9 @@ NOTE: CPLEX [does not officially support linking to their dynamic C library](htt
 
 3. Clone this module to your ``.julia`` directory.
 
-4. Open a Julia prompt and run ``> Pkg.build("Cplex")``; the module should now be ready for use!
+4. Check that your version is included in in ``deps/build.jl`` in the aliases for the library dependency; if not, simply add the name of your Cplex dynamic library.
+
+5. Open a Julia prompt and run ``> Pkg.build("Cplex")``; the module should now be ready for use!
 
 Troubleshooting
 ---------------

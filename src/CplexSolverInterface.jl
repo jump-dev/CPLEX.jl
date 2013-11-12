@@ -1,7 +1,7 @@
 export CplexSolver
 
 type CplexMathProgModel <: AbstractMathProgModel
-  inner::CPXproblem
+  inner::Model
 end
 
 immutable CplexSolver <: AbstractMathProgSolver
@@ -15,7 +15,7 @@ function CplexMathProgModel(options)
   for (name,value) in options
     set_param!(env, string(name), value)
   end
-  m = CplexMathProgModel(make_problem(env))
+  m = CplexMathProgModel(Model(env, "Cplex.jl"))
   return m
 end
 

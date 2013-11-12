@@ -27,9 +27,3 @@ _chklen(v, n::Integer) = (length(v) == n || error("Inconsistent argument dimensi
 cvecx(c::GChars, n::Integer) = fill(Cchar[c...], n)
 cvecx(c::Vector{Cchar}, n::Integer) = (_chklen(c, n); c)
 cvecx(c::Vector{Char}, n::Integer) = (_chklen(c, n); convert(Vector{Cchar}, c))
-
-# -----
-# Types
-# -----
-
-

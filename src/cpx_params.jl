@@ -3,7 +3,7 @@
 const CPX_INFBOUND = 1e20
 const CPX_STR_PARAM_MAX = 512
 
-function get_param_type(prob::CPXproblem, indx::Int)
+function get_param_type(prob::Model, indx::Int)
   ptype = Array(Cint, 1)
   stat = @cpx_ccall(getparamtype, Cint, (
                     Ptr{Void},
@@ -29,9 +29,9 @@ function get_param_type(prob::CPXproblem, indx::Int)
   return ret
 end
 
-get_param_type(prob::CPXproblem, name::ASCIIString) = get_param_type(prob, paramName2Indx[name])
+get_param_type(prob::Model, name::ASCIIString) = get_param_type(prob, paramName2Indx[name])
 
-function set_param!(prob::CPXproblem, pindx::Int, val, ptype::Symbol)
+function set_param!(prob::Model, pindx::Int, val, ptype::Symbol)
   if ptype == :Int
     stat = @cpx_ccall(setintparam, Cint, (Ptr{Void}, Cint, Cint), prob.env.ptr, pindx, int(val))
   elseif ptype == :Double
@@ -48,17 +48,17 @@ function set_param!(prob::CPXproblem, pindx::Int, val, ptype::Symbol)
   end
 end
 
-set_param!(prob::CPXproblem, pindx::Int, val) = set_param!(prob, pindx, val, get_param_type(prob, pindx))
+set_param!(prob::Model, pindx::Int, val) = set_param!(prob, pindx, val, get_param_type(prob, pindx))
 
-set_param!(prob::CPXproblem, pname::ASCIIString, val) = set_param!(prob, paramName2Indx[pname], val)
+set_param!(prob::Model, pname::ASCIIString, val) = set_param!(prob, paramName2Indx[pname], val)
 
-# set_params!(prob::CPXproblem, args...)
+# set_params!(prob::Model, args...)
 #   for (name, v) in args
 #     set_param!(prob, string(name), v)
 #   end
 # end
 
-function get_param(prob::CPXproblem, pindx::Int, ptype::Symbol)
+function get_param(prob::Model, pindx::Int, ptype::Symbol)
   if ptype == :Int
     val = Array(Cint, 1)
     stat = @cpx_ccall(getintparam, Cint, (Ptr{Void}, Cint, Cint), prob.env.ptr, pindx, val)
@@ -82,9 +82,9 @@ function get_param(prob::CPXproblem, pindx::Int, ptype::Symbol)
   return ret
 end
 
-get_param(prob::CPXproblem, pindx::Int) = get_param(prob, pindx, get_param_type(prob, pindx))
+get_param(prob::Model, pindx::Int) = get_param(prob, pindx, get_param_type(prob, pindx))
 
-get_param(prob::CPXproblem, pname::ASCIIString) = get_param(prob, paramName2Indx[pname])
+get_param(prob::Model, pname::ASCIIString) = get_param(prob, paramName2Indx[pname])
 
 # grep "#define" cpxconst.h | grep "CPX_PARAM_" | awk '{ printf("\"%s\" => %s,\n",$2,$3) }'
 const paramName2Indx = [
