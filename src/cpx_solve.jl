@@ -1,118 +1,95 @@
-function optimize!(prob::Model)
-  @assert prob.lp != C_NULL
-  if !prob.has_int
-    ret = @cpx_ccall(lpopt, Cint, (Ptr{Void}, Ptr{Void}), prob.env.ptr, prob.lp)
+function optimize!(model::Model)
+  @assert is_valid(model.env)
+  if !model.has_int
+    stat = @cpx_ccall(lpopt, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
   else
-    ret = @cpx_ccall(mipopt, Cint, (Ptr{Void}, Ptr{Void}), prob.env.ptr, prob.lp)
+    stat = @cpx_ccall(mipopt, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
   end
-  if ret != 0
-    println(ret)
-    error("CPLEX: Error solving problem")
+  if stat != 0
+    throw(CplexError(model.env, stat))
   end
 end
 
-# function get_solution(prob::Model)
-#     obj = [2.0]
-#     nvars = num_var(prob)
-#     x   = Array(Float64, nvars)
-#     status = Array(Cint, 1)
-#     ret = @cpx_ccall(solution, Cint, (
-#                      Ptr{Void}, 
-#                      Ptr{Void}, 
-#                      Ptr{Cint}, 
-#                      Ptr{Float64}, 
-#                      Ptr{Float64}, 
-#                      Ptr{Float64}, 
-#                      Ptr{Float64}, 
-#                      Ptr{Float64}
-#                      ),
-#                      prob.env.ptr, prob.lp, status, obj, x, C_NULL, C_NULL, C_NULL)
-#     if ret != 0
-#        error("CPLEX: Error getting solution")
-#    end
-#    return(obj[1], x)
-# end
-
-function get_obj_val(prob::Model)
-  objval = Array(Float64, 1)
-  status = @cpx_ccall(getobjval, Cint, (
-                      Ptr{Void},
-                      Ptr{Void},
-                      Ptr{Float64}
-                      ),
-                      prob.env.ptr, prob.lp, objval)
-  if status != 0
-    error("CPLEX: error grabbing objective value")
+function get_obj_val(model::Model)
+  objval = Array(Cdouble, 1)
+  stat = @cpx_ccall(getobjval, Cint, (
+                    Ptr{Void},
+                    Ptr{Void},
+                    Ptr{Cdouble}
+                    ),
+                    model.env.ptr, model.lp, objval)
+  if stat != 0
+    throw(CplexError(model.env, stat))
   end
   return objval
 end
 
-function get_solution(prob::Model)
-  nvars = num_var(prob)
-  x = Array(Float64, nvars)
-  status = @cpx_ccall(getx, Cint, (
-                      Ptr{Void},
-                      Ptr{Void},
-                      Ptr{Float64},
-                      Cint,
-                      Cint
-                      ),
-                      prob.env.ptr, prob.lp, x, 0, nvars-1)
-  if status != 0
-    error("CPLEX: error grabbing optimal solution (x)")
+function get_solution(model::Model)
+  nvars = num_var(model)
+  x = Array(Cdouble, nvars)
+  stat = @cpx_ccall(getx, Cint, (
+                    Ptr{Void},
+                    Ptr{Void},
+                    Ptr{Cdouble},
+                    Cint,
+                    Cint
+                    ),
+                    model.env.ptr, model.lp, x, 0, nvars-1)
+  if stat != 0
+    throw(CplexError(model.env, stat))
   end
   return x
 end
 
-function get_reduced_costs(prob::Model)
-    nvars = num_var(prob)
-    p = Array(Float64, nvars)
+function get_reduced_costs(model::Model)
+    nvars = num_var(model)
+    p = Array(Cdouble, nvars)
     status = Array(Cint, 1)
-    ret = @cpx_ccall(getdj, Cint,
-                     (Ptr{Void}, 
+    stat = @cpx_ccall(getdj, Cint, (
                       Ptr{Void}, 
-                      Ptr{Float64}, 
+                      Ptr{Void}, 
+                      Ptr{Cdouble}, 
                       Cint, 
                       Cint
                       ),
-                      prob.env.ptr, prob.lp, p, 0, nvars-1)
-    if ret != 0
-       error("CPLEX: Error getting reduced costs")
+                      model.env.ptr, model.lp, p, 0, nvars-1)
+    if stat != 0
+       throw(CplexError(model.env, stat))
    end
    return p
 end
 
-function get_constr_duals(prob::Model)
-    ncons = num_constr(prob)
-    p = Array(Float64, ncons)
+function get_constr_duals(model::Model)
+    ncons = num_constr(model)
+    p = Array(Cdouble, ncons)
     status = Array(Cint, 1)
-    ret = @cpx_ccall(getpi, Cint,
-                     (Ptr{Void}, 
+    stat = @cpx_ccall(getpi, Cint, (
                       Ptr{Void}, 
-                      Ptr{Float64}, 
+                      Ptr{Void}, 
+                      Ptr{Cdouble}, 
                       Cint, 
                       Cint
                       ),
-                      prob.env.ptr, prob.lp, p, 0, ncons-1)
-    if ret != 0
-       error("CPLEX: Error getting dual variables")
+                      model.env.ptr, model.lp, p, 0, ncons-1)
+    if stat != 0
+       throw(CplexError(model.env, stat))
    end
    return p
 end
 
-function get_constr_solution(prob::Model)
-  ncons = num_constr(prob)
-  Ax = Array(Float64, ncons)
-  status = @cpx_ccall(getax, Cint, (
-                      Ptr{Void},
-                      Ptr{Void},
-                      Ptr{Float64},
-                      Cint,
-                      Cint
-                      ),
-                      prob.env.ptr, prob.lp, Ax, 0, ncons-1)
-  if status != 0
-    error("CPLEX: error grabbing constraint solution (Ax)")
+function get_constr_solution(model::Model)
+  ncons = num_constr(model)
+  Ax = Array(Cdouble, ncons)
+  stat = @cpx_ccall(getax, Cint, (
+                    Ptr{Void},
+                    Ptr{Void},
+                    Ptr{Cdouble},
+                    Cint,
+                    Cint
+                    ),
+                    model.env.ptr, model.lp, Ax, 0, ncons-1)
+  if stat != 0
+    throw(CplexError(model.env, stat))
   end
   return Ax
 end

@@ -8,9 +8,9 @@ end
 
 typealias GChars Union(Cchar, Char)
 typealias IVec Vector{Cint}
-typealias FVec Vector{Float64}
+typealias FVec Vector{Cdouble}
 typealias CVec Vector{Cchar}
-typealias CoeffMat Union(Matrix{Float64}, SparseMatrixCSC{Float64})
+typealias CoeffMat Union(Matrix{Cdouble}, SparseMatrixCSC{Cdouble})
 
 typealias GCharOrVec Union(Cchar, Char, Vector{Cchar}, Vector{Char})
 

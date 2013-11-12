@@ -14,7 +14,7 @@ end
 function Model(env::Env, name::ASCIIString)
     @assert is_valid(env) 
     stat = Array(Cint, 1)
-    tmp = @cpx_ccall(createprob, Ptr{Void}, (Ptr{Void}, Ptr{Cint}, Ptr{Uint8}), env.ptr, stat, name)
+    tmp = @cpx_ccall(createprob, Ptr{Void}, (Ptr{Void}, Ptr{Cint}, Ptr{Cchar}), env.ptr, stat, name)
     if tmp == C_NULL
         throw(CplexError(model.env, stat))
     end
@@ -23,7 +23,7 @@ end
 
 function read_model(model::Model, filename::ASCIIString)
 
-    stat = @cpx_ccall(readcopyprob, Cint, (Ptr{Void}, Ptr{Void}, Ptr{Uint8}, Ptr{Uint8}), model.env.ptr, model.lp, filename, C_NULL)
+    stat = @cpx_ccall(readcopyprob, Cint, (Ptr{Void}, Ptr{Void}, Ptr{Cchar}, Ptr{Cchar}), model.env.ptr, model.lp, filename, C_NULL)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
@@ -66,11 +66,11 @@ end
 
 function get_obj(model::Model)
     nvars = num_var(model)
-    obj = Array(Float64, nvars)
+    obj = Array(Cdouble, nvars)
     stat = @cpx_ccall(getobj, Cint, (
                       Ptr{Void},
                       Ptr{Void},
-                      Ptr{Float64},
+                      Ptr{Cdouble},
                       Cint,
                       Cint
                       ),
@@ -88,7 +88,7 @@ function set_obj!(model::Model, c::Vector)
                         Ptr{Void},
                         Cint,
                         Ptr{Cint},
-                        Ptr{Float64}
+                        Ptr{Cdouble}
                         ),
                         model.env.ptr, model.lp, nvars, Cint[0:nvars-1], float(c))                    
     if stat != 0

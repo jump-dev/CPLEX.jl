@@ -1,4 +1,4 @@
-function add_vars!(prob::Model, obj::Vector, l::Vector, u::Vector)
+function add_vars!(model::Model, obj::Vector, l::Vector, u::Vector)
     nvars = length(obj)
     (nvars == length(l) == length(u)) || error("Inconsistent dimensions when adding variables.")
     for i = 1:nvars
@@ -10,26 +10,26 @@ function add_vars!(prob::Model, obj::Vector, l::Vector, u::Vector)
         end
     end
     if nvars > 0
-        status = @cpx_ccall(newcols, Cint, (
-                            Ptr{Void}, 
-                            Ptr{Void}, 
-                            Cint, 
-                            Ptr{Float64}, 
-                            Ptr{Float64}, 
-                            Ptr{Float64}, 
-                            Ptr{Uint8}, 
-                            Ptr{Ptr{Uint8}}
-                            ),
-                            prob.env.ptr, prob.lp, nvars, float(obj), float(l), float(u), C_NULL, C_NULL)
-        if status != 0
-            error("CPLEX: Error adding new variables")
+        stat = @cpx_ccall(newcols, Cint, (
+                          Ptr{Void}, 
+                          Ptr{Void}, 
+                          Cint, 
+                          Ptr{Cdouble}, 
+                          Ptr{Cdouble}, 
+                          Ptr{Cdouble}, 
+                          Ptr{Cchar}, 
+                          Ptr{Ptr{Cchar}}
+                          ),
+                          model.env.ptr, model.lp, nvars, float(obj), float(l), float(u), C_NULL, C_NULL)
+        if stat != 0
+            throw(CplexError(model.env, stat))
         end
     end
 end
 
-add_var!(prob::Model, obj::Vector, l::Vector, u::Vector) = add_vars!(prob, obj, l, u)
+add_var!(model::Model, obj::Vector, l::Vector, u::Vector) = add_vars!(model, obj, l, u)
 
-function add_var!(prob::Model, constridx::IVec, constrcoef::FVec, l::FVec, u::FVec, objcoef::FVec)
+function add_var!(model::Model, constridx::IVec, constrcoef::FVec, l::FVec, u::FVec, objcoef::FVec)
     nvars = length(objcoef)
     (nvars == length(l) == length(u)) || error("Inconsistent dimensions when adding variables.")
     for i = 1:nvars
@@ -41,148 +41,150 @@ function add_var!(prob::Model, constridx::IVec, constrcoef::FVec, l::FVec, u::FV
         end
     end
     if nvars > 0
-        status = @cpx_ccall(addcols, Cint, (
-                            Ptr{Void},
-                            Ptr{Void},
-                            Cint,
-                            Cint,
-                            Ptr{Float64},
-                            Ptr{Cint},
-                            Ptr{Cint},
-                            Ptr{Float64},
-                            Ptr{Float64},
-                            Ptr{Float64},
-                            Ptr{Ptr{Cchar}}
-                            ),
-                            prob.env.ptr, prob.lp, nvars, length(constridx), objcoef, Cint[0], constridx-1, constrcoef, l, u, C_NULL)
-        if status != 0
-            error("CPLEX: error adding columns to model")
+        stat = @cpx_ccall(addcols, Cint, (
+                          Ptr{Void},
+                          Ptr{Void},
+                          Cint,
+                          Cint,
+                          Ptr{Cdouble},
+                          Ptr{Cint},
+                          Ptr{Cint},
+                          Ptr{Cdouble},
+                          Ptr{Cdouble},
+                          Ptr{Cdouble},
+                          Ptr{Ptr{Cchar}}
+                          ),
+                          model.env.ptr, model.lp, nvars, length(constridx), objcoef, Cint[0], constridx-1, constrcoef, l, u, C_NULL)
+        if stat != 0
+            throw(CplexError(model.env, stat))
         end
     end
 end
 
-function add_var!(prob::Model, constridx, constrcoef, l, u, objcoef)
-    return add_var!(prob, convert(IVec, [constridx...]), convert(FVec, [constrcoef...]), convert(FVec, [l...]), convert(FVec, [u...]), convert(FVec, [objcoef...]))
+function add_var!(model::Model, constridx, constrcoef, l, u, objcoef)
+    return add_var!(model, [constridx...], [constrcoef...], [l...], [u...], [objcoef...])
 end
 
-function get_varLB(prob::Model)
-    nvars = num_var(prob)
-    lb = Array(Float64, nvars)
-    status = @cpx_ccall(getlb, Cint, (
-                        Ptr{Void},
-                        Ptr{Void},
-                        Ptr{Float64},
-                        Cint,
-                        Cint
-                        ),
-                        prob.env.ptr, prob.lp, lb, 0, nvars-1)
-    if status != 0
-        error("CPLEX: error getting variable lower bounds")
+function add_var!(model::Model, constridx::Vector, constrcoef::Vector, l::Vector, u::Vector, objcoef::Vector)
+    return add_var!(model, ivec(constridx), fvec(constrcoef), fvec(l), fvec(u), fvec(objcoef))
+end
+
+function get_varLB(model::Model)
+    nvars = num_var(model)
+    lb = Array(Cdouble, nvars)
+    stat = @cpx_ccall(getlb, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Ptr{Cdouble},
+                      Cint,
+                      Cint
+                      ),
+                      model.env.ptr, model.lp, lb, 0, nvars-1)
+    if stat != 0
+        throw(CplexError(model.env, stat))
     end
     return lb
 end
 
-function set_varLB!(prob::Model, l::FVec)
-    nvars = num_var(prob)
+function set_varLB!(model::Model, l::FVec)
+    nvars = num_var(model)
     for i = 1:nvars
         if l[i] == -Inf
             l[i] = -CPX_INFBOUND
         end
     end
-    status = @cpx_ccall(chgbds, Cint, (
-                        Ptr{Void},
-                        Ptr{Void},
-                        Cint,
-                        Ptr{Cint},
-                        Ptr{Cchar},
-                        Ptr{Float64}
-                        ),
-                        prob.env.ptr, prob.lp, nvars, Cint[0:nvars-1], fill(convert(Cchar, 'L'), nvars), l)
-    if status != 0
-        println(status)
-        error("CPLEX: error setting variable lower bounds")
+    stat = @cpx_ccall(chgbds, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Cint,
+                      Ptr{Cint},
+                      Ptr{Cchar},
+                      Ptr{Cdouble}
+                      ),
+                      model.env.ptr, model.lp, nvars, Cint[0:nvars-1], fill(convert(Cchar, 'L'), nvars), l)
+    if stat != 0
+        throw(CplexError(model.env, stat))
     end
 end
 
-function get_varUB(prob::Model)
-    nvars = num_var(prob)
-    ub = Array(Float64, nvars)
-    status = @cpx_ccall(getub, Cint, (
-                        Ptr{Void},
-                        Ptr{Void},
-                        Ptr{Float64},
-                        Cint,
-                        Cint
-                        ),
-                        prob.env.ptr, prob.lp, ub, 0, nvars-1)
-    if status != 0
-        error("CPLEX: error getting variable upper bounds")
+function get_varUB(model::Model)
+    nvars = num_var(model)
+    ub = Array(Cdouble, nvars)
+    stat = @cpx_ccall(getub, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Ptr{Cdouble},
+                      Cint,
+                      Cint
+                      ),
+                      model.env.ptr, model.lp, ub, 0, nvars-1)
+    if stat != 0
+        throw(CplexError(model.env, stat))
     end
     return ub
 end
 
-function set_varUB!(prob::Model, u::FVec)
-    nvars = num_var(prob)
+function set_varUB!(model::Model, u::FVec)
+    nvars = num_var(model)
         for i = 1:nvars
         if u[i] == Inf
             u[i] = CPX_INFBOUND
         end
     end
-    status = @cpx_ccall(chgbds, Cint, (
-                        Ptr{Void},
-                        Ptr{Void},
-                        Cint,
-                        Ptr{Cint},
-                        Ptr{Cchar},
-                        Ptr{Float64}
-                        ),
-                        prob.env.ptr, prob.lp, nvars, Cint[0:nvars-1], fill(convert(Cchar, 'U'), nvars), u)
-    if status != 0
-        error("CPLEX: error setting variable lower bounds")
+    stat = @cpx_ccall(chgbds, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Cint,
+                      Ptr{Cint},
+                      Ptr{Cchar},
+                      Ptr{Cdouble}
+                      ),
+                      model.env.ptr, model.lp, nvars, Cint[0:nvars-1], fill(convert(Cchar, 'U'), nvars), u)
+    if stat != 0
+        throw(CplexError(model.env, stat))
     end
 end
 
 
-function set_vartype!(prob::Model, vtype::Vector{Char})
-    nvars = num_var(prob)
-    status = @cpx_ccall(chgctype, Cint, (
-                        Ptr{Void},
-                        Ptr{Void},
-                        Cint,
-                        Ptr{Cint},
-                        Ptr{Cchar}
-                        ),
-                        prob.env.ptr, prob.lp, nvars, Cint[0:nvars-1], Cchar[vtype...])
-    if status != 0
-        error("CPLEX: error setting variable types")
+function set_vartype!(model::Model, vtype::Vector{Char})
+    nvars = num_var(model)
+    stat = @cpx_ccall(chgctype, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Cint,
+                      Ptr{Cint},
+                      Ptr{Cchar}
+                      ),
+                      model.env.ptr, model.lp, nvars, Cint[0:nvars-1], Cchar[vtype...])
+    if stat != 0
+        throw(CplexError(model.env, stat))
     end
     # this should change...need to indicate whether to use MIP or LP solver
-    prob.has_int = true
-    # prob.nint += sum([vtype[i]=='I' for i=1:prob.nvars])
+    model.has_int = true
 end
 
-function get_vartype(prob::Model)
-    nvars = num_var(prob)
+function get_vartype(model::Model)
+    nvars = num_var(model)
     vartypes = Array(Cchar, nvars)
-    status = @cpx_ccall(getctype, Cint, (
-                        Ptr{Void},
-                        Ptr{Void},
-                        Ptr{Cchar},
-                        Cint,
-                        Cint
-                        ),
-                        prob.env.ptr, prob.lp, vartypes, 0, nvars-1)
-    if status != 0
-        error("CPLEX: error grabbing variable types")
+    stat = @cpx_ccall(getctype, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Ptr{Cchar},
+                      Cint,
+                      Cint
+                      ),
+                      model.env.ptr, model.lp, vartypes, 0, nvars-1)
+    if stat != 0
+        throw(CplexError(model.env, stat))
     end
     return(vartypes)
 end
 
-function num_var(prob::Model)
+function num_var(model::Model)
     nvar = @cpx_ccall(getnumcols, Cint, (
                       Ptr{Void},
                       Ptr{Void}
                       ),
-                      prob.env.ptr, prob.lp)
+                      model.env.ptr, model.lp)
     return(nvar)
 end
