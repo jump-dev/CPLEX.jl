@@ -1,9 +1,10 @@
 # TSP
 
 using JuMP
-using Cplex 
+using Cplex
 
-m = Model(solver=CplexSolver(LazyConstraints=1))
+# m = Model(solver=CplexSolver(LazyConstraints=1))
+m = Model(solver=CplexSolver())
 
 n = 6
 cities = [ 50 200;
@@ -45,7 +46,7 @@ for j = 1:n
   @addConstraint(m, sum{x[i,j], i=1:n} == 2)
 end
 
-function subtour(cb::Cplex.CallbackData)
+function subtour(cb)
   println("In subtour")
   cur_sol = getValue(x)
   println(cur_sol)
@@ -107,8 +108,7 @@ function subtour(cb::Cplex.CallbackData)
 
 end
 
-setmipsolcallback(m, subtour)
+setlazycallback(m, subtour)
 solve(m)
 
 println(getValue(x))
-

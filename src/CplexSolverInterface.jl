@@ -2,6 +2,9 @@ export CplexSolver
 
 type CplexMathProgModel <: AbstractMathProgModel
   inner::Model
+  lazycb
+  cutcb
+  heuristiccb
 end
 
 immutable CplexSolver <: AbstractMathProgSolver
@@ -12,10 +15,11 @@ CplexSolver(;kwargs...) = CplexSolver(kwargs)
 
 function CplexMathProgModel(options)
   env = Env()
+  println(options)
   for (name,value) in options
     set_param!(env, string(name), value)
   end
-  m = CplexMathProgModel(Model(env, "Cplex.jl"))
+  m = CplexMathProgModel(Model(env, "Cplex.jl"), nothing, nothing, nothing)
   return m
 end
 

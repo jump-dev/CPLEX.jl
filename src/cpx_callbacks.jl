@@ -59,19 +59,17 @@ function setcallbackcut(cbdata::CallbackData, ind::Vector{Cint}, val::Vector{Cdo
     end
 end
 
-cbcut(cbdata::CallbackData, ind::Vector{Cint}, val::Vector{Float64}, sense::Char, rhs::Float64) 
-    = setcallbackcut(cbdata, ind, convert(Vector{Cdouble}, val), sense, convert(Vector{Cdouble}, rhs))
+cbcut(cbdata::CallbackData, ind::Vector{Cint}, val::Vector{Float64}, sense::Char, rhs::Float64) = setcallbackcut(cbdata, ind, convert(Vector{Cdouble}, val), sense, convert(Vector{Cdouble}, rhs))
 
-cblazy(cbdata::CallbackData, ind::Vector{Cint}, val::Vector{Float64}, sense::Char, rhs::Float64) 
-    = setcallbackcut(cbdata, ind, convert(Vector{Cdouble}, val), sense, convert(Vector{Cdouble}, rhs))
+cblazy(cbdata::CallbackData, ind::Vector{Cint}, val::Vector{Float64}, sense::Char, rhs::Float64) = setcallbackcut(cbdata, ind, convert(Vector{Cdouble}, val), sense, convert(Vector{Cdouble}, rhs))
 
 export cbcut, cblazy
 
 function cbsolution(cbdata::CallbackData, sol::Vector{Cdouble})
     nvar = num_vars(cbdata.model)
     @assert length(sol) >= nvar
-
-    stat = @grb_ccall(getcallbacknodex, Cint, (
+## note: this is not right. getcallbacknodex returns the subproblem LP soln
+    stat = @cpx_ccall(getcallbacknodex, Cint, (
                       Ptr{Void},
                       Ptr{Void},
                       Cint,
@@ -84,6 +82,8 @@ function cbsolution(cbdata::CallbackData, sol::Vector{Cdouble})
         throw(CplexError(cbdata.model.env, ret))
     end
 end
+
+cbsolution(cbdata::CallbackData) = cbsolution(cbdata, Array(Cdouble, num_vars(cbdata.model)))
 
 function cbget{T}(::Type{T},cbdata::CallbackData, where::Cint, what::Integer)
     
@@ -169,10 +169,10 @@ for (fname, what) in ((:cbget_mipsol_sol, 4001), (:cbget_mipnode_rel, 5002))
     @eval function ($fname)(cbdata::CallbackData, where::Cint, out::Vector{Float64})
         nvar = num_vars(cbdata.model)
         @assert length(out) >= nvar
-        ret = @grb_ccall(cbget, Cint, (Ptr{Void}, Cint, Cint, Ptr{Float64}),
+        ret = @cpx_ccall(cbget, Cint, (Ptr{Void}, Cint, Cint, Ptr{Float64}),
                          cbdata.cbdata, where, $what, out)
         if ret != 0
-            throw(GurobiError(cbdata.model.env, ret))
+            throw(CplexError(cbdata.model.env, ret))
         end
     end
     @eval function ($fname)(cbdata::CallbackData, where::Cint)

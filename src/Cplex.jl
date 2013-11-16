@@ -16,7 +16,7 @@ module Cplex
     export make_env, 
            make_problem, 
            read_file!,
-           set_params!,
+           set_param!,
            add_var!, 
            add_vars!, 
            add_rangeconstrs!, 
@@ -37,7 +37,8 @@ module Cplex
     include("cpx_vars.jl")
     include("cpx_constrs.jl")
     include("cpx_solve.jl")
+    include("cpx_callbacks.jl")
 
     include("CplexSolverInterface.jl")
-
+    include("CplexSolverCallbacksInterface.jl")
 end

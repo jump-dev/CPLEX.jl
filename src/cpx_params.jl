@@ -29,47 +29,47 @@ function get_param_type(model::Model, indx::Int)
   return ret
 end
 
-get_param_type(model::Model, name::ASCIIString) = get_param_type(model, paramName2Indx[name])
+get_param_type(env::Env, name::ASCIIString) = get_param_type(model, paramName2Indx[name])
 
-function set_param!(model::Model, pindx::Int, val, ptype::Symbol)
+function set_param!(env::Env, pindx::Int, val, ptype::Symbol)
   if ptype == :Int
-    stat = @cpx_ccall(setintparam, Cint, (Ptr{Void}, Cint, Cint), model.env.ptr, pindx, int(val))
+    stat = @cpx_ccall(setintparam, Cint, (Ptr{Void}, Cint, Cint), env.ptr, pindx, int(val))
   elseif ptype == :Double
-    stat = @cpx_ccall(setdblparam, Cint, (Ptr{Void}, Cint, Cdouble), model.env.ptr, pindx, float(val))
+    stat = @cpx_ccall(setdblparam, Cint, (Ptr{Void}, Cint, Cdouble), env.ptr, pindx, float(val))
   elseif ptype == :String
-    stat = @cpx_ccall(setstrparam, Cint, (Ptr{Void}, Cint, Ptr{Cchar}), model.env.ptr, pindx, Cchar[val...])
+    stat = @cpx_ccall(setstrparam, Cint, (Ptr{Void}, Cint, Ptr{Cchar}), env.ptr, pindx, Cchar[val...])
   elseif ptype == :None
     warn("Trying to set a parameter of type None; doing nothing")
   else
     error("Unrecognized parameter type")
   end
   if stat != 0
-    throw(CplexError(model.env, stat))
+    throw(CplexError(env, stat))
   end
 end
 
-set_param!(model::Model, pindx::Int, val) = set_param!(model, pindx, val, get_param_type(model, pindx))
+set_param!(env::Env, pindx::Int, val) = set_param!(env, pindx, val, get_param_type(env, pindx))
 
-set_param!(model::Model, pname::ASCIIString, val) = set_param!(model, paramName2Indx[pname], val)
+set_param!(env::Env, pname::ASCIIString, val) = set_param!(env, paramName2Indx[pname], val)
 
-# set_params!(prob::Model, args...)
+# set_params!(env::Env, args...)
 #   for (name, v) in args
 #     set_param!(prob, string(name), v)
 #   end
 # end
 
-function get_param(model::Model, pindx::Int, ptype::Symbol)
+function get_param(env::Env, pindx::Int, ptype::Symbol)
   if ptype == :Int
     val = Array(Cint, 1)
-    stat = @cpx_ccall(getintparam, Cint, (Ptr{Void}, Cint, Cint), model.env.ptr, pindx, val)
+    stat = @cpx_ccall(getintparam, Cint, (Ptr{Void}, Cint, Cint), env.ptr, pindx, val)
     ret = val[1]
   elseif ptype == :Double
     val = Array(Cdouble, 1)
-    stat = @cpx_ccall(getdblparam, Cint, (Ptr{Void}, Cint, Cdouble), model.env.ptr, pindx, val)
+    stat = @cpx_ccall(getdblparam, Cint, (Ptr{Void}, Cint, Cdouble), env.ptr, pindx, val)
     ret = val[1]
   elseif ptype == :String
     buf = Array(Cchar, CPX_STR_PARAM_MAX) # max str param length is 512 in Cplex 12.51
-    stat = @cpx_ccall(getstrparam, Cint, (Ptr{Void}, Cint, Ptr{Cchar}), model.env.ptr, pindx, buf)
+    stat = @cpx_ccall(getstrparam, Cint, (Ptr{Void}, Cint, Ptr{Cchar}), env.ptr, pindx, buf)
     ret = bytestring(pointer(buf))
   elseif ptype == :None
     warn("Trying to set a parameter of type None; doing nothing")
@@ -77,14 +77,14 @@ function get_param(model::Model, pindx::Int, ptype::Symbol)
     error("Unrecognized parameter type")
   end
   if stat != 0
-    throw(CplexError(model.env, stat))
+    throw(CplexError(env, stat))
   end
   return ret
 end
 
-get_param(model::Model, pindx::Int) = get_param(model, pindx, get_param_type(model, pindx))
+get_param(env::Env, pindx::Int) = get_param(env, pindx, get_param_type(model, pindx))
 
-get_param(model::Model, pname::ASCIIString) = get_param(model, paramName2Indx[pname])
+get_param(env::Env, pname::ASCIIString) = get_param(env, paramName2Indx[pname])
 
 # grep "#define" cpxconst.h | grep "CPX_PARAM_" | awk '{ printf("\"%s\" => %s,\n",$2,$3) }'
 const paramName2Indx = [
