@@ -1,8 +1,11 @@
 # makes calling C functions a bit easier
 macro cpx_ccall(func, args...)
     f = "CPX$(func)"
-    quote
+    @unix_only return quote
         ccall(($f,libcplex), $(args...))
+    end
+    @windows_only return quote
+        ccall(($f,libcplex), stdcall, $(args...))
     end
 end
 
