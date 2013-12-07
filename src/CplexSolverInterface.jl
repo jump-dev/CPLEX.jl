@@ -110,7 +110,21 @@ getsense(m::CplexMathProgModel) = get_sense(m.inner)
 numvar(m::CplexMathProgModel) = num_var(m.inner)
 numconstr(m::CplexMathProgModel) = num_constr(m.inner)
 
-optimize!(m::CplexMathProgModel) = optimize!(m.inner)
+# optimize!(m::CplexMathProgModel) = optimize!(m.inner)
+
+function optimize!(m::CplexMathProgModel)
+    # set callbacks if present
+    if m.lazycb != nothing
+      setmathproglazycallback!(m)
+    end
+    if m.cutcb != nothing
+      setmathprogcutcallback!(m)
+    end
+    if m.heuristiccb != nothing
+      setmathprogheuristiccallback!(m)
+    end
+    optimize!(m.inner)
+end
 
 function status(m::CplexMathProgModel)
   ret = get_status(m.inner)

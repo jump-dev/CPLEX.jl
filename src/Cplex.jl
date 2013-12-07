@@ -29,7 +29,7 @@ module Cplex
            write_problem, 
            free_problem, 
            close_CPLEX
-    
+    include("full_defines.jl") 
     include("cpx_common.jl")
     include("cpx_env.jl")
     include("cpx_model.jl")

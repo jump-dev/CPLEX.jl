@@ -1,7 +1,7 @@
 # strategy: take as input name of parameter. Map this to Int and query as to type of argument. Based on this answer (Int, Bool, Char, Num), call correct CPX function
 
-const CPX_INFBOUND = 1e20
-const CPX_STR_PARAM_MAX = 512
+# const CPX_INFBOUND = 1e20
+# const CPX_STR_PARAM_MAX = 512
 
 function get_param_type(model::Model, indx::Int)
   ptype = Array(Cint, 1)
