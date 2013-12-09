@@ -30,18 +30,19 @@ end
 # these are to be used if calling directly from Cplex.jl w/o MathProgBase
 export CallbackData, set_callback_func!
 
-function setcallbackcut(cbdata::CallbackData, ind::Vector{Cint}, val::Vector{Cdouble}, sense::Char, rhs::Cdouble)
+function setcallbackcut(cbdata::CallbackData, where::Cint, ind::Vector{Cint}, val::Vector{Cdouble}, sense::Char, rhs::Cdouble)
     len = length(ind)
     @assert length(val) == len
-    if sense == '<'
-        sns = Cint['L']
-    elseif sense == '>'
-        sns = Cint['G']
-    elseif sense == '='
-        sns = Cint['E']
-    else
-        error("Invalid cut sense")
-    end
+    # if sense == '<'
+    #     sns = Cint['L']
+    # elseif sense == '>'
+    #     sns = Cint['G']
+    # elseif sense == '='
+    #     sns = Cint['E']
+    # else
+    #     error("Invalid cut sense")
+    # end
+    sns = convert(Cint, sense)
     ## the last argument, purgeable, describes Cplex's treatment of the cut, i.e. whether it has liberty to drop it later in the tree.
     ## should really have default and then allow user override
     stat = @cpx_ccall(cutcallbackadd, Cint, (
@@ -55,15 +56,15 @@ function setcallbackcut(cbdata::CallbackData, ind::Vector{Cint}, val::Vector{Cdo
                       Ptr{Cdouble},
                       Cint
                       ),
-                      cbdata.model.env, cbdata.cbdata, wherefrom, len, rhs, sns, ind, val, CPX_USECUT_PURGE)
+                      cbdata.model.env, cbdata.cbdata, where, len, rhs, sns, ind, val, CPX_USECUT_PURGE)
     if stat != 0
         throw(CplexError(cbdata.model.env.ptr, stat))
     end
 end
 
-cbcut(cbdata::CallbackData, ind::Vector{Cint}, val::Vector{Float64}, sense::Char, rhs::Float64) = setcallbackcut(cbdata, ind, convert(Vector{Cdouble}, val), sense, convert(Vector{Cdouble}, rhs))
+cbcut(cbdata::CallbackData, where::Integer, ind::Vector{Cint}, val::Vector{Cdouble}, sense::Char, rhs::Cdouble) = setcallbackcut(cbdata, where, ind, val, sense, rhs)
 
-cblazy(cbdata::CallbackData, ind::Vector{Cint}, val::Vector{Float64}, sense::Char, rhs::Float64) = setcallbackcut(cbdata, ind, convert(Vector{Cdouble}, val), sense, convert(Vector{Cdouble}, rhs))
+cblazy(cbdata::CallbackData, where::Integer, ind::Vector{Cint}, val::Vector{Cdouble}, sense::Char, rhs::Cdouble) = setcallbackcut(cbdata, where, ind, val, sense, rhs)
 
 export cbcut, cblazy
 

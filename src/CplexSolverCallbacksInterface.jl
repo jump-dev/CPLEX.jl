@@ -55,7 +55,7 @@ end
 
 function cbaddlazy!(d::CplexCallbackData,varidx,varcoef,sense,rhs)
     @assert d.state == :MIPNode || d.state == :MIPSol
-    cblazy(d.cbdata, convert(Vector{Cint}, varidx), float(varcoef), sensemap[sense], float(rhs))
+    cblazy(d.cbdata, d.where, convert(Vector{Cint}, varidx), float(varcoef), sensemap[sense], float(rhs))
 end
 
 # breaking abstraction, define our low-level callback to eliminate
