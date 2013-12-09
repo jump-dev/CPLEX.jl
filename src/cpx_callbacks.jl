@@ -140,7 +140,6 @@ function cbget_mipsol_sol(cbdata::CallbackData, where::Integer)
                       ),
                       cbdata.model.env, cbdata.cbdata, where, sol, 0, nvar-1)
     if stat != 0
-      println(stat)
       throw(CplexError(cbdata.model.env, stat))
     end
     return sol

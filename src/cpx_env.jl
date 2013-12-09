@@ -21,7 +21,7 @@ end
 function get_error_msg(env::Env, code::Number)
     @assert env.ptr != C_NULL
     buf = Array(Cchar, 4096) # minimum size for Cplex to accept
-    errstr = @cpx_ccall(geterrorstring, Ptr{Cchar}, (Ptr{Void}, Cint, Ptr{Cchar}), env.ptr_env, convert(Cint, code), buf)
+    errstr = @cpx_ccall(geterrorstring, Ptr{Cchar}, (Ptr{Void}, Cint, Ptr{Cchar}), env.ptr, convert(Cint, code), buf)
     if errstr != C_NULL
       return bytestring(pointer(buf))
     else
@@ -34,6 +34,6 @@ type CplexError
   msg::ASCIIString
 
   function CplexError(env::Env, code::Integer)
-    new(convert(Int, Code), get_error_msg(env, code))
+    new(convert(Cint, code), get_error_msg(env, code))
   end
 end

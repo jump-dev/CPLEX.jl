@@ -7,23 +7,23 @@ type CplexMathProgModel <: AbstractMathProgModel
   heuristiccb
 end
 
-immutable CplexSolver <: AbstractMathProgSolver
-  options
-end
-
-CplexSolver(;kwargs...) = CplexSolver(kwargs)
-
-function CplexMathProgModel(options)
+function CplexMathProgModel(;options...)
   env = Env()
-  println(options)
+  set_param!(env, "CPX_PARAM_MIPCBREDLP", 0) # access variables in original problem, not presolved
+  set_param!(env, "CPX_PARAM_PRELINEAR", 0) # MAY NOT BE NECESSARY, only performs linear presolving so can recover original variables
   for (name,value) in options
     set_param!(env, string(name), value)
   end
+
   m = CplexMathProgModel(Model(env, "Cplex.jl"), nothing, nothing, nothing)
   return m
 end
 
-model(s::CplexSolver) = CplexMathProgModel(s.options)
+immutable CplexSolver <: AbstractMathProgSolver
+  options
+end
+CplexSolver(;kwargs...) = CplexSolver(kwargs)
+model(s::CplexSolver) = CplexMathProgModel(;s.options...)
 
 loadproblem!(m::CplexMathProgModel, filename::String) = read_file!(m.inner, filename)
 

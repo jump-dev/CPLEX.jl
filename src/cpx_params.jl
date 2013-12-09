@@ -3,14 +3,14 @@
 # const CPX_INFBOUND = 1e20
 # const CPX_STR_PARAM_MAX = 512
 
-function get_param_type(model::Model, indx::Int)
+function get_param_type(env::Env, indx::Int)
   ptype = Array(Cint, 1)
   stat = @cpx_ccall(getparamtype, Cint, (
                     Ptr{Void},
                     Cint,
                     Ptr{Cint}
                     ),
-                    model.env.ptr, indx, ptype)
+                    env.ptr, indx, ptype)
   if stat != 0
     error("CPLEX: error grabbing parameter type")
   end
@@ -29,7 +29,7 @@ function get_param_type(model::Model, indx::Int)
   return ret
 end
 
-get_param_type(env::Env, name::ASCIIString) = get_param_type(model, paramName2Indx[name])
+get_param_type(env::Env, name::ASCIIString) = get_param_type(env, paramName2Indx[name])
 
 function set_param!(env::Env, pindx::Int, val, ptype::Symbol)
   if ptype == :Int
