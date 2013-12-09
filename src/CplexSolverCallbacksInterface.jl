@@ -40,15 +40,7 @@ function cbgetbestbound(d::CplexCallbackData)
     end
 end
 
-function cbgetexplorednodes(d::CplexCallbackData)
-    if d.state == :MIPNode
-        return cbget_mipnode_nodcnt(d.cbdata, d.where)
-    elseif d.state == :MIPSol
-        return cbdet_mipsol_nodcnt(d.cbdata, d.where)
-    else
-        error("Unrecognized callback state $(d.state)")
-    end
-end
+cbgetexplorednodes(d::CplexCallbackData) = cbget_nodcnt(d.cbdata, d.where)
         
 # returns :MIPNode :MIPSol :Other
 cbgetstate(d::CplexCallbackData) = d.state
