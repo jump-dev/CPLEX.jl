@@ -33,15 +33,6 @@ export CallbackData, set_callback_func!
 function setcallbackcut(cbdata::CallbackData, where::Cint, ind::Vector{Cint}, val::Vector{Cdouble}, sense::Char, rhs::Cdouble)
     len = length(ind)
     @assert length(val) == len
-    # if sense == '<'
-    #     sns = Cint['L']
-    # elseif sense == '>'
-    #     sns = Cint['G']
-    # elseif sense == '='
-    #     sns = Cint['E']
-    # else
-    #     error("Invalid cut sense")
-    # end
     sns = convert(Cint, sense)
     ## the last argument, purgeable, describes Cplex's treatment of the cut, i.e. whether it has liberty to drop it later in the tree.
     ## should really have default and then allow user override
@@ -52,11 +43,11 @@ function setcallbackcut(cbdata::CallbackData, where::Cint, ind::Vector{Cint}, va
                       Cint,
                       Cdouble,
                       Cint,
-                      Cint,
+                      Ptr{Cint},
                       Ptr{Cdouble},
                       Cint
                       ),
-                      cbdata.model.env, cbdata.cbdata, where, len, rhs, sns, ind, val, CPX_USECUT_PURGE)
+                      cbdata.model.env, cbdata.cbdata, where, len, rhs, sns, ind-1, val, 0) # CPX_USECUT_FORCE = 0
     if stat != 0
         throw(CplexError(cbdata.model.env.ptr, stat))
     end
@@ -88,22 +79,22 @@ export cbcut, cblazy
 
 # cbsolution(cbdata::CallbackData) = cbsolution(cbdata, Array(Cdouble, num_vars(cbdata.model)))
 
-function cbget{T}(::Type{T},cbdata::CallbackData, where::Cint, what::Integer)
+# function cbget{T}(::Type{T},cbdata::CallbackData, where::Cint, what::Integer)
     
-    out = Array(T,1)
-    stat = @cpx_ccall(getcallbackinfo, Cint, (
-                      Ptr{Void}, 
-                      Ptr{Void},
-                      Cint, 
-                      Cint, 
-                      Ptr{T}
-                      ),
-                      cbdata.model.env.ptr, cbdata.cbdata, where, what, out)
-    if stat != 0
-        throw(CplexError(cbdata.model.env, stat))
-    end
-    return out[1]
-end
+#     out = Array(T,1)
+#     stat = @cpx_ccall(getcallbackinfo, Cint, (
+#                       Ptr{Void}, 
+#                       Ptr{Void},
+#                       Cint, 
+#                       Cint, 
+#                       Ptr{T}
+#                       ),
+#                       cbdata.model.env.ptr, cbdata.cbdata, where, what, out)
+#     if stat != 0
+#         throw(CplexError(cbdata.model.env, stat))
+#     end
+#     return out[1]
+# end
 
 # function cbdet_mipsol_objbst(d.cbdata, d.where) 
 
@@ -113,6 +104,7 @@ end
 
 # end
 
+# TODO: think we want solution vector for this function, not obj. val
 function cbget_mipnode_rel(cbdata::CallbackData, where::Integer)
   sol = Array(Cdouble, 1)
   stat = @cpx_ccall(getcallbacknodeobjval, Cint, (
@@ -131,6 +123,15 @@ end
 function cbget_mipsol_sol(cbdata::CallbackData, where::Integer)
     nvar = num_var(cbdata.model)
     sol = Array(Cdouble, nvar)
+    # stat = @cpx_ccall(getcallbackincumbent, Cint, (
+    #                   Ptr{Void},
+    #                   Ptr{Void},
+    #                   Cint,
+    #                   Ptr{Cdouble},
+    #                   Cint,
+    #                   Cint
+    #                   ),
+    #                   cbdata.model.env, cbdata.cbdata, where, sol, 0, nvar-1)
     stat = @cpx_ccall(getcallbacknodex, Cint, (
                       Ptr{Void},
                       Ptr{Void},
@@ -141,7 +142,8 @@ function cbget_mipsol_sol(cbdata::CallbackData, where::Integer)
                       ),
                       cbdata.model.env, cbdata.cbdata, where, sol, 0, nvar-1)
     if stat != 0
-      throw(CplexError(cbdata.model.env, stat))
+      # throw(CplexError(cbdata.model.env, stat))
+      error(CplexError(cbdata.model.env, stat).msg)
     end
     return sol
 end

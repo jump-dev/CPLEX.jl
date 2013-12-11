@@ -3,7 +3,6 @@
 using JuMP
 using Cplex
 
-# m = Model(solver=CplexSolver(LazyConstraints=1))
 m = Model(solver=CplexSolver())
 
 n = 6
@@ -49,7 +48,7 @@ end
 function subtour(cb)
   println("In subtour")
   cur_sol = getValue(x)
-  println(cur_sol)
+  # println(cur_sol)
 
   # Find any subtour
   in_subtour = fill(false,n)
@@ -73,9 +72,9 @@ function subtour(cb)
     end
     if !found_node
       println("Done exploring")
-      println(in_subtour)
       # Completely explored this subtour
       if subtour_length == n
+        println("found tour!")
         # Done!
         break
       else
@@ -109,6 +108,8 @@ function subtour(cb)
 end
 
 setlazycallback(m, subtour)
-solve(m)
+stat = solve(m)
 
 println(getValue(x))
+println(stat)
+println(getObjectiveValue(m))
