@@ -15,6 +15,11 @@ function cbgetmipsolution(d::CplexCallbackData)
     return cbget_mipsol_sol(d.cbdata, d.where)
 end
 
+function cbgetmipsolution(d::CplexCallbackData, output)
+    @assert d.state == :MIPSol
+    return cbget_mipsol_sol(d.cbdata, d.where, output)
+end
+
 function cbgetlpsolution(d::CplexCallbackData)
     @assert d.state == :MIPNode
     return cbget_mipnode_rel(d.cbdata, d.where)

@@ -120,18 +120,11 @@ function cbget_mipnode_rel(cbdata::CallbackData, where::Integer)
   return sol[1]
 end
 
-function cbget_mipsol_sol(cbdata::CallbackData, where::Integer)
+cbget_mipsol_sol(cbdata::CallbackData, where::Integer) = cbget_mipsol_sol(cbdata, where, Array(Cdouble, num_var(cbdata.model)))
+
+function cbget_mipsol_sol(cbdata::CallbackData, where::Integer, sol::Array{Cdouble})
     nvar = num_var(cbdata.model)
-    sol = Array(Cdouble, nvar)
-    # stat = @cpx_ccall(getcallbackincumbent, Cint, (
-    #                   Ptr{Void},
-    #                   Ptr{Void},
-    #                   Cint,
-    #                   Ptr{Cdouble},
-    #                   Cint,
-    #                   Cint
-    #                   ),
-    #                   cbdata.model.env, cbdata.cbdata, where, sol, 0, nvar-1)
+    # sol = Array(Cdouble, nvar)
     stat = @cpx_ccall(getcallbacknodex, Cint, (
                       Ptr{Void},
                       Ptr{Void},
