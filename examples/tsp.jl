@@ -1,7 +1,7 @@
 # TSP
 
 using JuMP
-using Cplex
+using CPLEX
 
 m = Model(solver=CplexSolver())
 
