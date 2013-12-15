@@ -1,4 +1,4 @@
-module CPLEX
+module CPLEXLink
 
     @osx_only dlopen("libstdc++",RTLD_GLOBAL)
 
