@@ -52,7 +52,8 @@ cbgetstate(d::CplexCallbackData) = d.state
 
 cbaddsolution!(d::CplexCallbackData, x) = cbsolution(d.stat, x)
 
-const sensemap = [:(==) => 'E', :(<=) => 'L', :(>=) => 'G']
+# const sensemap = [:(==) => 'E', :(<=) => 'L', :(>=) => 'G']
+const sensemap = ['=' => 'E', '<' => 'L', '>' => 'G']
 function cbaddcut!(d::CplexCallbackData,varidx,varcoef,sense,rhs)
     @assert d.state == :MIPNode
     cbcut(d.cbdata, convert(Vector{Cint}, varidx), float(varcoef), sensemap[sense], float(rhs))
