@@ -61,8 +61,12 @@ function add_var!(model::Model, constridx::IVec, constrcoef::FVec, l::FVec, u::F
     end
 end
 
+function add_var!(model::Model, l, u, objcoef)
+  return add_var!(model, 1, 0., convert(Cdouble, l), convert(Cdouble, u), convert(Cdouble, objcoef))
+end
+
 function add_var!(model::Model, constridx, constrcoef, l, u, objcoef)
-    return add_var!(model, [constridx...], [constrcoef...], [l...], [u...], [objcoef...])
+    return add_var!(model, Cint[constridx...], Cdouble[constrcoef...], Cdouble[l...], Cdouble[u...], Cdouble[objcoef...])
 end
 
 function add_var!(model::Model, constridx::Vector, constrcoef::Vector, l::Vector, u::Vector, objcoef::Vector)

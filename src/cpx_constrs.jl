@@ -26,6 +26,8 @@ function add_constrs!(model::Model, cbegins::IVec, inds::IVec, coeffs::FVec, rel
     end
 end
 
+add_constr!(model::Model, coef::Vector, sense::Char, rhs) = add_constrs!(model, [0], [1:length(coef)], coef, [sense], [rhs])
+
 function add_constrs!(model::Model, cbeg::Vector, inds::Vector, coeffs::Vector, rel::Vector, rhs::Vector)
     add_constrs!(model, ivec(cbeg), ivec(inds), fvec(coeffs), cvecx(rel, length(cbeg)), fvec(rhs))
 end
