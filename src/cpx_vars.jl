@@ -1,6 +1,8 @@
-function add_vars!(model::Model, obj::Vector, l::Vector, u::Vector)
+function add_vars!(model::Model, obj::Vector, l::Bounds, u::Bounds)
     nvars = length(obj)
-    (nvars == length(l) == length(u)) || error("Inconsistent dimensions when adding variables.")
+    obj = fvec(obj)
+    l = fvecx(l, nvars)
+    u = fvecx(u, nvars)
     for i = 1:nvars
         if l[i] == -Inf
             l[i] = -CPX_INFBOUND
@@ -61,9 +63,7 @@ function add_var!(model::Model, constridx::IVec, constrcoef::FVec, l::FVec, u::F
     end
 end
 
-function add_var!(model::Model, l, u, objcoef)
-  return add_var!(model, 1, 0., convert(Cdouble, l), convert(Cdouble, u), convert(Cdouble, objcoef))
-end
+add_var!(model::Model, obj, l, u) = add_vars!(model, Cdouble[obj], Cdouble[l], Cdouble[u])
 
 function add_var!(model::Model, constridx, constrcoef, l, u, objcoef)
     return add_var!(model, Cint[constridx...], Cdouble[constrcoef...], Cdouble[l...], Cdouble[u...], Cdouble[objcoef...])

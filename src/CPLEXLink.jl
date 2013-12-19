@@ -38,6 +38,7 @@ module CPLEXLink
     include("cpx_constrs.jl")
     include("cpx_solve.jl")
     include("cpx_callbacks.jl")
+    include("cpx_highlevel.jl")
 
     include("CplexSolverInterface.jl")
     include("CplexSolverCallbacksInterface.jl")

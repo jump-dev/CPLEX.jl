@@ -12,13 +12,13 @@
 #
 
 using MathProgBase
-using Gurobi
+using CPLEXLink
 
-env = Gurobi.Env()
+env = CPLEXLink.Env()
 
-model = gurobi_model(env; 
+model = CPLEXLink.cplex_model(env; 
 	name="lp_02", 
-	sense=:maximize, 
+	sense=:Max, 
 	f = [1000., 350.],
 	A = [-1. 1.5; 12. 8.; 1000. 300.], 
 	b = [0., 1000., 70000.], 
@@ -26,8 +26,8 @@ model = gurobi_model(env;
 
 println(model)
 
-optimize(model)
+optimize!(model)
 
 println()
-println("soln = $(get_solution(model))")
-println("objv = $(get_objval(model))")
+println("soln = $(CPLEXLink.get_solution(model))")
+println("objv = $(CPLEXLink.get_objval(model))")

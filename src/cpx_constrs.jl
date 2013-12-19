@@ -3,6 +3,16 @@ function add_constrs!(model::Model, cbegins::IVec, inds::IVec, coeffs::FVec, rel
     ncons = length(rhs)
     (nnz == length(coeffs)) || error("Incompatible constraint argument dimensions.")
 
+    for k in 1:length(rel)
+      if rel[k] == '>'
+        rel[k] = convert(Cchar, 'G')
+      elseif rel[k] == '<'
+        rel[k] = convert(Cchar, 'L')
+      elseif rel[k] == '='
+        rel[k] = convert(Cchar, 'E')
+      end
+    end
+
     if ncons > 0 && nnz > 0
         stat = @cpx_ccall(addrows, Cint, (
                           Ptr{Void},        # environment
@@ -26,7 +36,7 @@ function add_constrs!(model::Model, cbegins::IVec, inds::IVec, coeffs::FVec, rel
     end
 end
 
-add_constr!(model::Model, coef::Vector, sense::Char, rhs) = add_constrs!(model, [0], [1:length(coef)], coef, [sense], [rhs])
+add_constr!(model::Model, coef::Vector, sense::Char, rhs) = add_constrs!(model, [1], [1:length(coef)], coef, [sense], [rhs])
 
 function add_constrs!(model::Model, cbeg::Vector, inds::Vector, coeffs::Vector, rel::Vector, rhs::Vector)
     add_constrs!(model, ivec(cbeg), ivec(inds), fvec(coeffs), cvecx(rel, length(cbeg)), fvec(rhs))
@@ -49,6 +59,8 @@ function add_constrs!(model::Model, A::CoeffMat, rel::GCharOrVec, b::Vector{Floa
     (m == length(b) && n == num_var(model)) || error("Incompatible argument dimensions.")
     add_constrs_t!(model, transpose(A), rel, b)
 end
+
+add_constrs!(model::Model, cbeg::Vector, inds::Vector, coeffs::Vector, rel::Char, rhs::Vector) = add_constrs!(model, cbeg, inds, coeffs, cvecx(rel, length(cbeg)), rhs)
 
 function add_rangeconstrs!(model::Model, cbegins::IVec, inds::IVec, coeffs::FVec, lb::FVec, ub::FVec)
     nnz   = length(inds)

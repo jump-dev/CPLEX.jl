@@ -16,27 +16,25 @@ env = CPLEXLink.Env()
 # println("method = $method")
 
 model = CPLEXLink.Model(env, "lp_01")
-set_sense!(model, :Max)
+CPLEXLink.set_sense!(model, :Max)
 
 # add variables
-add_var!(model, 1.0, 45., Inf)  # x
-CPLEXLink.write_model(model, "out.lp")
-add_var!(model, 1.0,  5., Inf)  # y
+CPLEXLink.add_var!(model, 1.0, 45., Inf)  # x
+CPLEXLink.add_var!(model, 1.0,  5., Inf)  # y
 
 # add constraints
-add_constr!(model, [50., 24.], '<', 2400.)
-add_constr!(model, [30., 33.], '<', 2100.)
+CPLEXLink.add_constr!(model, [50., 24.], '<', 2400.)
+CPLEXLink.add_constr!(model, [30., 33.], '<', 2100.)
 
 println(model)
 
 # perform optimization
 CPLEXLink.optimize!(model)
-CPLEXLink.write_model(model, "out.lp")
 
-sol = get_solution(model)
+sol = CPLEXLink.get_solution(model)
 println("soln = $(sol)")
 
-objv = get_objval(model)
+objv = CPLEXLink.get_objval(model)
 println("objv = $(objv)")
 
 gc()  # test finalizers

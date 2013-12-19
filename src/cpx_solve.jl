@@ -10,7 +10,7 @@ function optimize!(model::Model)
   end
 end
 
-function get_obj_val(model::Model)
+function get_objval(model::Model)
   objval = Array(Cdouble, 1)
   stat = @cpx_ccall(getobjval, Cint, (
                     Ptr{Void},

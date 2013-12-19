@@ -143,7 +143,7 @@ function status(m::CplexMathProgModel)
   return stat
 end
 
-getobjval(m::CplexMathProgModel)   = get_obj_val(m.inner)
+getobjval(m::CplexMathProgModel)   = get_objval(m.inner)
 getobjbound(m::CplexMathProgModel) = get_solution(m.inner)
 getsolution(m::CplexMathProgModel) = get_solution(m.inner)
 getconstrsolution(m::CplexMathProgModel) = get_constr_solution(m.inner)
