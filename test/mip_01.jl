@@ -10,23 +10,22 @@
 #         z is binary
 #
 
-using Gurobi
+using CPLEXLink
 
-env = Gurobi.Env()
+env = CPLEXLink.Env()
 
-model = Gurobi.Model(env, "mip_01", :maximize)
+model = CPLEXLink.Model(env, "mip_01")
+CPLEXLink.set_sense!(model, :Max)
 
-add_cvar!(model, 1., 0., 5.)  # x
-add_ivar!(model, 2., 0, 10)   # y
-add_bvar!(model, 5.)          # z
-update_model!(model)
+CPLEXLink.add_var!(model, 1., 0., 5.)  # x
+CPLEXLink.add_var!(model, 2., 0, 10)   # y
+CPLEXLink.add_var!(model, 5., 0, 1)    # z
+CPLEXLink.set_vartype!(model, ['C', 'I', 'B'])
 
-add_constr!(model, ones(3), '<', 10.)
-add_constr!(model, [1., 2., 1.], '<', 15.)
+CPLEXLink.add_constr!(model, ones(3), '<', 10.)
+CPLEXLink.add_constr!(model, [1., 2., 1.], '<', 15.)
 
-println(model)
+optimize!(model)
 
-optimize(model)
-
-println("sol = $(get_solution(model))")
-println("objv = $(get_objval(model))")
+println("sol = $(CPLEXLink.get_solution(model))")
+println("objv = $(CPLEXLink.get_objval(model))")

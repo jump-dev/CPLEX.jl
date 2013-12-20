@@ -4,8 +4,6 @@
 function add_qpterms!(model::Model, qr::IVec, qc::IVec, qv::FVec)
     nnz = length(qr)
     (nnz == length(qc) == length(qv)) || error("Inconsistent argument dimensions.")
-    
-# int CPXchgqpcoef(CPXCENVptr env, CPXLPptr lp, int i, int j, double newvalue)
     for k in 1:nnz
         stat = @cpx_ccall(chgqpcoef, Cint, (
                           Ptr{Void},
