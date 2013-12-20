@@ -1,11 +1,12 @@
 type Model
     env::Env # Cplex environment
     lp::Ptr{Void} # Cplex problem (lp)
-    has_int::Bool # number of integer variables
+    has_int::Bool # problem has integer variables?
+    has_qc::Bool # problem has quadratic constraints?
     callback::Any
 
     function Model(env::Env, lp::Ptr{Void})
-        model = new(env, lp, 0, nothing)
+        model = new(env, lp, false, false, nothing)
         finalizer(model, free_problem)
         model
     end
@@ -22,7 +23,6 @@ function Model(env::Env, name::ASCIIString)
 end
 
 function read_model(model::Model, filename::ASCIIString)
-
     stat = @cpx_ccall(readcopyprob, Cint, (Ptr{Void}, Ptr{Void}, Ptr{Cchar}, Ptr{Cchar}), model.env.ptr, model.lp, filename, C_NULL)
     if stat != 0
         throw(CplexError(model.env, stat))

@@ -116,37 +116,39 @@ end
 
 # add_qconstr!
 
-# function add_qconstr!(model::Model, lind::IVec, lval::FVec, qr::IVec, qc::IVec, qv::FVec, rel::Cchar, rhs::Float64)
-#     qnnz = length(qr)
-#     qnnz == length(qc) == length(qv) || error("Inconsistent argument dimensions.")
+function add_qconstr!(model::Model, lind::IVec, lval::FVec, qr::IVec, qc::IVec, qv::FVec, rel::Cchar, rhs::Float64)
+    qnnz = length(qr)
+    qnnz == length(qc) == length(qv) || error("Inconsistent argument dimensions.")
 
-#     lnnz = length(lind)
-#     lnnz == length(lval) || error("Inconsistent argument dimensions.")
+    lnnz = length(lind)
+    lnnz == length(lval) || error("Inconsistent argument dimensions.")
     
-#     if qnnz > 0
-#         stat = @grb_ccall(addqconstr, Cint, (
-#                           Ptr{Void},    # env
-#                           Ptr{Void},    # model
-#                           Cint,         # lnnz
-#                           Cint,         # qnnz
-#                           Float64,      # rhs
-#                           Cchar,        # sense
-#                           Ptr{Cint},    # lind
-#                           Ptr{Float64}, # lval
-#                           Ptr{Cint},    # qrow
-#                           Ptr{Cint},    # qcol
-#                           Ptr{Float64}, # qval
-#                           Ptr{Uint8}    # name
-#                           ), 
-#                           model.env.ptr, model.lp, lnnz, qnnz, rhs, rel, lind-1, lval, qr-1, qc-1, qv, C_NULL)
-#     if stat != 0
-#         throw(CplexError(model.env, stat))
-#     end 
-#     nothing
-# end
+    if qnnz > 0
+        stat = @cpx_ccall(addqconstr, Cint, (
+                          Ptr{Void},    # env
+                          Ptr{Void},    # model
+                          Cint,         # lnnz
+                          Cint,         # qnnz
+                          Float64,      # rhs
+                          Cchar,        # sense
+                          Ptr{Cint},    # lind
+                          Ptr{Float64}, # lval
+                          Ptr{Cint},    # qrow
+                          Ptr{Cint},    # qcol
+                          Ptr{Float64}, # qval
+                          Ptr{Uint8}    # name
+                          ), 
+                          model.env.ptr, model.lp, lnnz, qnnz, rhs, rel, lind-1, lval, qr-1, qc-1, qv, C_NULL)
+        if stat != 0
+            throw(CplexError(model.env, stat))
+        end 
+        model.has_qc = true
+    end
+    nothing
+end
 
-# function add_qconstr!(model::Model, lind::Vector, lval::Vector, qr::Vector, qc::Vector, qv::Vector{Float64}, rel::GChars, rhs::Real)
-#     const sensemap = ['=' => 'E', '<' => 'L', '>' => 'G']
-#     add_qconstr!(model, ivec(lind), fvec(lval), ivec(qr), ivec(qc), fvec(qv), cchar(sensemap[rel]), float64(rhs))
-# end
+function add_qconstr!(model::Model, lind::Vector, lval::Vector, qr::Vector, qc::Vector, qv::Vector{Float64}, rel::GChars, rhs::Real)
+    const sensemap = ['=' => 'E', '<' => 'L', '>' => 'G']
+    add_qconstr!(model, ivec(lind), fvec(lval), ivec(qr), ivec(qc), fvec(qv), cchar(sensemap[rel]), float64(rhs))
+end
 
