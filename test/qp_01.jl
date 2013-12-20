@@ -8,22 +8,18 @@
 #    solution: (0.25, 0.75), objv = 1.875
 #
 
-using Gurobi 
+using CPLEXLink 
 
-env = Gurobi.Env()
+env = CPLEXLink.Env()
 
-model = Gurobi.Model(env, "qp_02")
+model = CPLEXLink.Model(env, "qp_02")
 
-add_cvars!(model, [1., 1.], 0., Inf)
-update_model!(model)
+CPLEXLink.add_vars!(model, [1., 1.], 0., Inf)
 
-add_qpterms!(model, [1, 1, 2], [1, 2, 2], [2., 1., 1.])
-add_constr!(model, [1., 1.], '=', 1.)
-update_model!(model)
+CPLEXLink.add_qpterms!(model, [1, 1, 2], [1, 2, 2], [2., 1., 1.])
+CPLEXLink.add_constr!(model, [1., 1.], '=', 1.)
 
-println(model)
+CPLEXLink.optimize!(model)
 
-optimize(model)
-
-println("sol = $(get_solution(model))")
-println("obj = $(get_objval(model))")
+println("sol = $(CPLEXLink.get_solution(model))")
+println("obj = $(CPLEXLink.get_objval(model))")

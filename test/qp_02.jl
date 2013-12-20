@@ -6,18 +6,19 @@
 #           x +   y       >= 1
 #
 
-using Gurobi
+using CPLEXLink
 
-env = Gurobi.Env()
+env = CPLEXLink.Env()
 
-model = gurobi_model(env; 
+model = CPLEXLink.cplex_model(env; 
 	name = "qp_02", 
 	f = [0., 0., 0.],
 	H = [2. 1. 0.; 1. 2. 1.; 0. 1. 2.],
 	A = -[1. 2. 3.; 1. 1. 0.], 
 	b = -[4., 1.])
 
-optimize(model)
+CPLEXLink.write_model(model, "out.lp")
+CPLEXLink.optimize!(model)
 
-println("sol = $(get_solution(model))")
-println("obj = $(get_objval(model))")
+println("sol = $(CPLEXLink.get_solution(model))")
+println("obj = $(CPLEXLink.get_objval(model))")

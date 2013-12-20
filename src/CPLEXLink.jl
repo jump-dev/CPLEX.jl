@@ -36,6 +36,7 @@ module CPLEXLink
     include("cpx_params.jl")
     include("cpx_vars.jl")
     include("cpx_constrs.jl")
+    include("cpx_quad.jl")
     include("cpx_solve.jl")
     include("cpx_callbacks.jl")
     include("cpx_highlevel.jl")

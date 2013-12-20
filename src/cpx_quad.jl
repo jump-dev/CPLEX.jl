@@ -5,6 +5,11 @@ function add_qpterms!(model::Model, qr::IVec, qc::IVec, qv::FVec)
     nnz = length(qr)
     (nnz == length(qc) == length(qv)) || error("Inconsistent argument dimensions.")
     for k in 1:nnz
+        if qr[k] != qc[k] #Cplex adds half of value to (qr[k],qc[k]) and to (qc[k],qr[k])
+            val = qv[k]
+        else 
+            val = 2*qv[k]
+        end
         stat = @cpx_ccall(chgqpcoef, Cint, (
                           Ptr{Void},
                           Ptr{Void},
@@ -12,8 +17,7 @@ function add_qpterms!(model::Model, qr::IVec, qc::IVec, qv::FVec)
                           Cint,
                           Cdouble
                           ),
-                          model.env.ptr, model.lp, qr[k]-1, qc[k]-1, qv[k])
-    end
+                          model.env.ptr, model.lp, qr[k]-1, qc[k]-1, val)
         if stat != 0
             throw(CplexError(model.env, stat))
         end 
@@ -27,7 +31,7 @@ end
 
 
 function add_qpterms!(model, H::SparseMatrixCSC{Float64}) # H must be symmetric
-    n = num_vars(model)
+    n = num_var(model)
     (H.m == n && H.n == n) || error("H must be an n-by-n symmetric matrix.")
     
     nnz_h = nnz(H)
@@ -62,7 +66,7 @@ function add_qpterms!(model, H::SparseMatrixCSC{Float64}) # H must be symmetric
 end
 
 function add_qpterms!(model, H::Matrix{Float64}) # H must be symmetric
-    n = num_vars(model)
+    n = num_var(model)
     size(H) == (n, n) || error("H must be an n-by-n symmetric matrix.")
     
     nmax = int(n * (n + 1) / 2)
@@ -97,14 +101,14 @@ function add_qpterms!(model, H::Matrix{Float64}) # H must be symmetric
 end
 
 function add_diag_qpterms!(model, H::Vector)  # H stores only the diagonal element
-    n = num_vars(model)
+    n = num_var(model)
     n == length(H) || error("Incompatible dimensions.")
     q = [convert(Cint,1):convert(Cint,n)]
     add_qpterms!(model, q, q, fvec(h))
 end
 
 function add_diag_qpterms!(model, hv::Real)  # all diagonal elements are H
-    n = num_vars(model)
+    n = num_var(model)
     q = [convert(Cint,1):convert(Cint,n)]
     add_qpterms!(model, q, q, fill(float64(hv), n))
 end
@@ -112,40 +116,37 @@ end
 
 # add_qconstr!
 
-function add_qconstr!(model::Model, lind::IVec, lval::FVec, qr::IVec, qc::IVec, qv::FVec, rel::Cchar, rhs::Float64)
-    qnnz = length(qr)
-    qnnz == length(qc) == length(qv) || error("Inconsistent argument dimensions.")
+# function add_qconstr!(model::Model, lind::IVec, lval::FVec, qr::IVec, qc::IVec, qv::FVec, rel::Cchar, rhs::Float64)
+#     qnnz = length(qr)
+#     qnnz == length(qc) == length(qv) || error("Inconsistent argument dimensions.")
 
-    lnnz = length(lind)
-    lnnz == length(lval) || error("Inconsistent argument dimensions.")
+#     lnnz = length(lind)
+#     lnnz == length(lval) || error("Inconsistent argument dimensions.")
     
-    if qnnz > 0
-        stat = @grb_ccall(addqconstr, Cint, (
-                          Ptr{Void},    # env
-                          Ptr{Void},    # model
-                          Cint,         # lnnz
-                          Cint,         # qnnz
-                          Float64,      # rhs
-                          Cchar,        # sense
-                          Ptr{Cint},    # lind
-                          Ptr{Float64}, # lval
-                          Ptr{Cint},    # qrow
-                          Ptr{Cint},    # qcol
-                          Ptr{Float64}, # qval
-                          Ptr{Uint8}    # name
-                          ), 
-                          model.env.ptr, model.lp, lnnz, qnnz, rhs, rel, lind-1, lval, qr-1, qc-1, qv, C_NULL)
-            
-        if stat != 0
-            throw(CplexError(model.env, stat)
-        end 
-    end
-    nothing
-end
+#     if qnnz > 0
+#         stat = @grb_ccall(addqconstr, Cint, (
+#                           Ptr{Void},    # env
+#                           Ptr{Void},    # model
+#                           Cint,         # lnnz
+#                           Cint,         # qnnz
+#                           Float64,      # rhs
+#                           Cchar,        # sense
+#                           Ptr{Cint},    # lind
+#                           Ptr{Float64}, # lval
+#                           Ptr{Cint},    # qrow
+#                           Ptr{Cint},    # qcol
+#                           Ptr{Float64}, # qval
+#                           Ptr{Uint8}    # name
+#                           ), 
+#                           model.env.ptr, model.lp, lnnz, qnnz, rhs, rel, lind-1, lval, qr-1, qc-1, qv, C_NULL)
+#     if stat != 0
+#         throw(CplexError(model.env, stat))
+#     end 
+#     nothing
+# end
 
-function add_qconstr!(model::Model, lind::Vector, lval::Vector, qr::Vector, qc::Vector,
-    qv::Vector{Float64}, rel::GChars, rhs::Real)
-    const sensemap = ['=' => 'E', '<' => 'L', '>' => 'G']
-    add_qconstr!(model, ivec(lind), fvec(lval), ivec(qr), ivec(qc), fvec(qv), cchar(sensemap[rel]), float64(rhs))
-end
+# function add_qconstr!(model::Model, lind::Vector, lval::Vector, qr::Vector, qc::Vector, qv::Vector{Float64}, rel::GChars, rhs::Real)
+#     const sensemap = ['=' => 'E', '<' => 'L', '>' => 'G']
+#     add_qconstr!(model, ivec(lind), fvec(lval), ivec(qr), ivec(qc), fvec(qv), cchar(sensemap[rel]), float64(rhs))
+# end
 
