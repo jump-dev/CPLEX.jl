@@ -17,7 +17,6 @@ model = CPLEXLink.cplex_model(env;
 	A = -[1. 2. 3.; 1. 1. 0.], 
 	b = -[4., 1.])
 
-CPLEXLink.write_model(model, "out.lp")
 CPLEXLink.optimize!(model)
 
 println("sol = $(CPLEXLink.get_solution(model))")
