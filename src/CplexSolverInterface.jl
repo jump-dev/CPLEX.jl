@@ -59,7 +59,7 @@ function loadproblem!(m::CplexMathProgModel, A, collb, colub, obj, rowlb, rowub,
   set_sense!(m.inner, sense)
 end
 
-writeproblem(m::CplexMathProgModel, filename::String) = write_problem(m.inner, filename)
+writeproblem(m::CplexMathProgModel, filename::String) = write_model(m.inner, filename)
 
 getvarLB(m::CplexMathProgModel) = get_varLB(m.inner)
 setvarLB!(m::CplexMathProgModel, l) = set_varLB!(m.inner, l)

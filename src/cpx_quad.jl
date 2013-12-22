@@ -5,11 +5,6 @@ function add_qpterms!(model::Model, qr::IVec, qc::IVec, qv::FVec)
     nnz = length(qr)
     (nnz == length(qc) == length(qv)) || error("Inconsistent argument dimensions.")
     for k in 1:nnz
-        if qr[k] != qc[k] #Cplex adds half of value to (qr[k],qc[k]) and to (qc[k],qr[k])
-            val = qv[k]
-        else 
-            val = 2*qv[k]
-        end
         stat = @cpx_ccall(chgqpcoef, Cint, (
                           Ptr{Void},
                           Ptr{Void},
@@ -17,7 +12,7 @@ function add_qpterms!(model::Model, qr::IVec, qc::IVec, qv::FVec)
                           Cint,
                           Cdouble
                           ),
-                          model.env.ptr, model.lp, qr[k]-1, qc[k]-1, val)
+                          model.env.ptr, model.lp, qr[k]-1, qc[k]-1, qv[k])
         if stat != 0
             throw(CplexError(model.env, stat))
         end 
@@ -48,16 +43,11 @@ function add_qpterms!(model, H::SparseMatrixCSC{Float64}) # H must be symmetric
         for j = colptr[i]:(colptr[i+1]-1)
             qj = convert(Cint, H.rowval[j])
             
-            if qi < qj
+            if qi <= qj
                 k += 1
                 qr[k] = qi
                 qc[k] = qj
                 qv[k] = nzval[j]
-            elseif qi == qj
-                k += 1
-                qr[k] = qi
-                qc[k] = qj
-                qv[k] = nzval[j] * 0.5
             end
         end
     end
@@ -77,16 +67,7 @@ function add_qpterms!(model, H::Matrix{Float64}) # H must be symmetric
     
     for i = 1 : n
         qi = convert(Cint, i)
-        
-        v = H[i,i]
-        if v != 0.
-            k += 1
-            qr[k] = qi
-            qc[k] = qi
-            qv[k] = v * 0.5
-        end
-        
-        for j = i+1 : n
+        for j = i : n
             v = H[j, i]
             if v != 0.
                 k += 1

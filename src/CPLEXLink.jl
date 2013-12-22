@@ -43,4 +43,5 @@ module CPLEXLink
 
     include("CplexSolverInterface.jl")
     include("CplexSolverCallbacksInterface.jl")
+    include("CplexSolverQCQPInterface.jl")
 end
