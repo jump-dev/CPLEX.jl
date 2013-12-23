@@ -1,7 +1,7 @@
 using CPLEXLink
 
 include(joinpath(Pkg.dir("MathProgBase"),"test","linprog.jl"))
-linprogtest(CplexSolver())
+linprogtest(CplexSolver(CPX_PARAM_PREIND=0, CPX_PARAM_LPMETHOD=2))
 
 include(joinpath(Pkg.dir("MathProgBase"),"test","mixintprog.jl"))
 mixintprogtest(CplexSolver())

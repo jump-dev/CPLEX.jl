@@ -108,24 +108,30 @@ function get_infeasibility_ray(model::Model)
                     ),
                     model.env.ptr, model.lp, y, proof_p)
   if stat != 0
+    error("CPLEX is unable to grab infeasible ray; consider resolving with presolve turned off")
     throw(CplexError(model.env, stat))
   end
   return y
 end
 
 function get_unbounded_ray(model::Model)
-  n = num_var(model)
-  z = Array(Cdouble, n)
-  stat = @cpx_ccall(getray, Cint, (
-                    Ptr{Void},
-                    Ptr{Void},
-                    Ptr{Cdouble}
-                    ),
-                    model.env.ptr, model.lp, z)
-  if stat != 0
-    throw(CplexError(model.env, stat))
+  solve_stat = get_status(model)
+  if solve_stat == :CPX_STAT_UNBOUNDED
+    n = num_var(model)
+    z = Array(Cdouble, n)
+    stat = @cpx_ccall(getray, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Ptr{Cdouble}
+                      ),
+                      model.env.ptr, model.lp, z)
+    if stat != 0
+      throw(CplexError(model.env, stat))
+    end
+    return z
+  else
+    error("CPLEX is unable to grab unbounded ray; consider resolving with presolve turned off")
   end
-  return z
 end
 
 const status_symbols = [

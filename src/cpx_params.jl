@@ -1,5 +1,3 @@
-# strategy: take as input name of parameter. Map this to Int and query as to type of argument. Based on this answer (Int, Bool, Char, Num), call correct CPX function
-
 # const CPX_INFBOUND = 1e20
 # const CPX_STR_PARAM_MAX = 512
 
@@ -60,29 +58,35 @@ set_param!(env::Env, pname::ASCIIString, val) = set_param!(env, paramName2Indx[p
 
 function get_param(env::Env, pindx::Int, ptype::Symbol)
   if ptype == :Int
-    val = Array(Cint, 1)
-    stat = @cpx_ccall(getintparam, Cint, (Ptr{Void}, Cint, Cint), env.ptr, pindx, val)
-    ret = val[1]
+    val_int = Array(Cint, 1)
+    stat = @cpx_ccall(getintparam, Cint, (Ptr{Void}, Cint, Ptr{Cint}), env.ptr, convert(Cint,pindx), val_int)
+    if stat != 0
+      throw(CplexError(env, stat))
+    end
+    return val_int[1]
   elseif ptype == :Double
-    val = Array(Cdouble, 1)
-    stat = @cpx_ccall(getdblparam, Cint, (Ptr{Void}, Cint, Cdouble), env.ptr, pindx, val)
-    ret = val[1]
+    val_double = Array(Cdouble, 1)
+    stat = @cpx_ccall(getdblparam, Cint, (Ptr{Void}, Cint, Ptr{Cdouble}), env.ptr, convert(Cint,pindx), val_double)
+    if stat != 0
+      throw(CplexError(env, stat))
+    end
+    return val_double[1]
   elseif ptype == :String
     buf = Array(Cchar, CPX_STR_PARAM_MAX) # max str param length is 512 in Cplex 12.51
-    stat = @cpx_ccall(getstrparam, Cint, (Ptr{Void}, Cint, Ptr{Cchar}), env.ptr, pindx, buf)
-    ret = bytestring(pointer(buf))
+    stat = @cpx_ccall(getstrparam, Cint, (Ptr{Void}, Cint, Ptr{Cchar}), env.ptr, convert(Cint,pindx), buf)
+    if stat != 0
+      throw(CplexError(env, stat))
+    end
+    return bytestring(pointer(buf))
   elseif ptype == :None
     warn("Trying to set a parameter of type None; doing nothing")
   else
     error("Unrecognized parameter type")
   end
-  if stat != 0
-    throw(CplexError(env, stat))
-  end
-  return ret
+  nothing
 end
 
-get_param(env::Env, pindx::Int) = get_param(env, pindx, get_param_type(model, pindx))
+get_param(env::Env, pindx::Int) = get_param(env, pindx, get_param_type(env, pindx))
 
 get_param(env::Env, pname::ASCIIString) = get_param(env, paramName2Indx[pname])
 
