@@ -153,3 +153,6 @@ getrawsolver(m::CplexMathProgModel) = m.inner
 
 setvartype!(m::CplexMathProgModel, v::Vector{Char}) = set_vartype!(m.inner, v)
 getvartype(m::CplexMathProgModel) = get_vartype(m.inner)
+
+getinfeasibilityray(m::CplexMathProgModel) = get_infeasibility_ray(m.inner)
+getunboundedray(m::CplexMathProgModel) = get_unbounded_ray(m.inner)

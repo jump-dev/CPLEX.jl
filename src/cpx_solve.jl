@@ -96,6 +96,38 @@ function get_constr_solution(model::Model)
   return Ax
 end
 
+function get_infeasibility_ray(model::Model)
+  ncons = num_constr(model)
+  y = Array(Cdouble, ncons)
+  proof_p = Array(Cdouble, 1)
+  stat = @cpx_ccall(dualfarkas, Cint, (
+                    Ptr{Void},
+                    Ptr{Void},
+                    Ptr{Cdouble},
+                    Ptr{Cdouble}
+                    ),
+                    model.env.ptr, model.lp, y, proof_p)
+  if stat != 0
+    throw(CplexError(model.env, stat))
+  end
+  return y
+end
+
+function get_unbounded_ray(model::Model)
+  n = num_var(model)
+  z = Array(Cdouble, n)
+  stat = @cpx_ccall(getray, Cint, (
+                    Ptr{Void},
+                    Ptr{Void},
+                    Ptr{Cdouble}
+                    ),
+                    model.env.ptr, model.lp, z)
+  if stat != 0
+    throw(CplexError(model.env, stat))
+  end
+  return z
+end
+
 const status_symbols = [
     1   => :CPX_STAT_OPTIMAL,
     2   => :CPX_STAT_UNBOUNDED,
