@@ -7,7 +7,7 @@ function add_qpterms!(model::Model, qr::IVec, qc::IVec, qv::FVec)
     Q = sparse(qr, qc, qv)
     if istriu(Q) || istril(Q)
       Q = Q + Q' - spdiagm(diag(Q)) # reconstruct full matrix like CPLEX wants
-    elseif !sym(Q)
+    elseif !issym(Q)
       error("Matrix Q must be either symmetric or triangular")
     end
     if nnz(Q) > 0
