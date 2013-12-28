@@ -42,6 +42,4 @@ module CPLEXLink
     include("cpx_highlevel.jl")
 
     include("CplexSolverInterface.jl")
-    include("CplexSolverCallbacksInterface.jl")
-    include("CplexSolverQCQPInterface.jl")
 end
