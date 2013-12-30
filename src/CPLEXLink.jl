@@ -13,10 +13,8 @@ module CPLEXLink
     importall MathProgSolverInterface
 
     # exported functions
-    export Env,
-           is_valid,
+    export is_valid,
            get_error_msg,
-           Model,
            read_model,
            write_model,
            get_sense,
