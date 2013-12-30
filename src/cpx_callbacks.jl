@@ -32,8 +32,6 @@ cbcut(cbdata::CallbackData, where::Integer, ind::Vector{Cint}, val::Vector{Cdoub
 
 cblazy(cbdata::CallbackData, where::Integer, ind::Vector{Cint}, val::Vector{Cdouble}, sense::Char, rhs::Cdouble) = setcallbackcut(cbdata, where, ind, val, sense, rhs)
 
-export cbcut, cblazy
-
 # function cbdet_mipsol_objbst(d.cbdata, d.where) 
 
 # end
