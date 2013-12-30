@@ -157,6 +157,8 @@ getvartype(m::CplexMathProgModel) = get_vartype(m.inner)
 getinfeasibilityray(m::CplexMathProgModel) = get_infeasibility_ray(m.inner)
 getunboundedray(m::CplexMathProgModel) = get_unbounded_ray(m.inner)
 
+setwarmstart!(m::CplexMathProgModel, v) = set_warm_start(m.inner, v) 
+
 ######
 # QCQP
 ######

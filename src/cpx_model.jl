@@ -96,6 +96,32 @@ function set_obj!(model::Model, c::Vector)
     end
 end
 
+function set_warm_start(model::Model, x::Vector{Float64}) 
+    y = sparse(x)
+    set_warm_start(model, y.rowval, y.nzval)
+end
+
+set_warm_start(model::Model, x::Vector, indx::Vector, val::Vector) = set_warm_start(model, ivec(indx), fvec(val))
+    # int CPXaddmipstarts( CPXCENVptr env, CPXLPptr lp, int mcnt, int nzcnt, int const * beg, int const * varindices, double const * values, int const * effortlevel, char ** mipstartname )
+
+function set_warm_start(model::Model, indx::IVec, val::FVec)
+    stat = @cpx_ccall(addmipstarts, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Cint,
+                      Cint,
+                      Ptr{Cint},
+                      Ptr{Cint},
+                      Ptr{Cdouble},
+                      Ptr{Cint},
+                      Ptr{Ptr{Cchar}}
+                      ),
+                      model.env.ptr, model.lp, 1, length(indx), [0], indx, val, C_NULL, "warm_start")
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+end
+
 function free_problem(model::Model)
     stat = @cpx_ccall(freeprob, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
     if stat != 0
