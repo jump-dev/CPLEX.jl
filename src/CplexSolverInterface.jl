@@ -163,7 +163,6 @@ getunboundedray(m::CplexMathProgModel) = get_unbounded_ray(m.inner)
 addquadconstr!(m::CplexMathProgModel, linearidx, linearval, quadrowidx, quadcolidx, quadval, sense, rhs) = add_qconstr!(m.inner,linearidx,linearval,quadrowidx,quadcolidx,quadval,sense,rhs)
 setquadobj!(m::CplexMathProgModel,rowidx,colidx,quadval) = add_qpterms!(m.inner,rowidx,colidx,quadval)
 
-
 ###########
 # Callbacks
 ###########
@@ -221,7 +220,6 @@ cbgetstate(d::CplexCallbackData) = d.state
 
 cbaddsolution!(d::CplexCallbackData, x) = cbsolution(d.stat, x)
 
-# const sensemap = [:(==) => 'E', :(<=) => 'L', :(>=) => 'G']
 const sensemap = ['=' => 'E', '<' => 'L', '>' => 'G']
 function cbaddcut!(d::CplexCallbackData,varidx,varcoef,sense,rhs)
     @assert d.state == :MIPNode
