@@ -3,8 +3,9 @@
 
 function add_qpterms!(model::Model, qr::IVec, qc::IVec, qv::FVec)
     n = num_var(model)
-    (length(qr) == length(qc) == length(qv)) || error("Inconsistent argument dimensions.")
-    Q = sparse(qr, qc, qv)
+    ((m = length(qr)) == length(qc) == length(qv)) || error("Inconsistent argument dimensions.")
+    nqv = copy(qv)
+    Q = sparse(qr, qc, nqv)
     if istriu(Q) || istril(Q)
       Q = Q + Q' - spdiagm(diag(Q)) # reconstruct full matrix like CPLEX wants
     elseif !issym(Q)
