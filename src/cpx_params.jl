@@ -23,7 +23,6 @@ function get_param_type(env::Env, indx::Int)
   elseif ptype[1] == 4
     ret = :Long
   else
-    println("ptype = $(ptype[1])")
     error("Parameter type not recognized")
   end
 
