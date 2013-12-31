@@ -20,7 +20,10 @@ function get_param_type(env::Env, indx::Int)
     ret = :Double
   elseif ptype[1] == 3
     ret = :String
+  elseif ptype[1] == 4
+    ret = :Long
   else
+    println("ptype = $(ptype[1])")
     error("Parameter type not recognized")
   end
 
@@ -36,6 +39,8 @@ function set_param!(env::Env, pindx::Int, val, ptype::Symbol)
     stat = @cpx_ccall(setdblparam, Cint, (Ptr{Void}, Cint, Cdouble), env.ptr, pindx, float(val))
   elseif ptype == :String
     stat = @cpx_ccall(setstrparam, Cint, (Ptr{Void}, Cint, Ptr{Cchar}), env.ptr, pindx, Cchar[val...])
+  elseif ptype == :Long
+    stat = @cpx_ccall(setlongparam, Cint, (Ptr{Void}, Cint, Clonglong), env.ptr, pindx, convert(Clonglong, val))
   elseif ptype == :None
     warn("Trying to set a parameter of type None; doing nothing")
   else
@@ -78,6 +83,13 @@ function get_param(env::Env, pindx::Int, ptype::Symbol)
       throw(CplexError(env, stat))
     end
     return bytestring(pointer(buf))
+  elseif ptype == :Long
+    val_long = Array(Clonglong, 1)
+    stat = @cpx_ccall(getlongparam, Cint, (Ptr{Void}, Cint, Ptr{Clonglong}), env.ptr, convert(Cint,pindx), val_long)
+    if stat != 0
+      throw(CplexError(env, stat))
+    end
+    return val_long[1]
   elseif ptype == :None
     warn("Trying to set a parameter of type None; doing nothing")
   else
