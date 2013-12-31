@@ -235,9 +235,41 @@ end
 
 # breaking abstraction, define our low-level callback to eliminate
 # a level of indirection
-function mastercallback(lp::Ptr{Void}, cbdata::Ptr{Void}, where::Cint, userdata::Ptr{Void})
+# function mastercallback(lp::Ptr{Void}, cbdata::Ptr{Void}, where::Cint, userdata::Ptr{Void})
+#     model = unsafe_pointer_to_objref(userdata)::CplexMathProgModel
+#     cpxrawcb = CallbackData(cbdata, model.inner)
+#     println("in master callback")
+#     if where == CPX_CALLBACK_MIP_CUT_FEAS || where == CPX_CALLBACK_MIP_CUT_UNBD
+#         state = :MIPSol
+#         cpxcb = CplexCallbackData(cpxrawcb, state, where)
+#         if model.lazycb != nothing
+#             stat = model.lazycb(cpxcb)
+#             if stat == :Exit
+#                 return convert(Cint, 1006)
+#             end
+#         end
+#     elseif where == CPX_CALLBACK_MIP_NODE
+#         state = :MIPNode
+#         cpxcb = CplexCallbackData(cpxrawcb, state, where)
+#         if model.cutcb != nothing
+#             stat = model.cutcb(cpxcb)
+#             if stat == :Exit
+#                 return convert(Cint, 1006)
+#             end
+#         end
+#         if model.heuristiccb != nothing
+#             stat = model.heuristiccb(cpxcb)
+#             if stat == :Exit
+#                 return convert(Cint, 1006)
+#             end
+#         end
+#     end
+#     return convert(Cint, 0)
+# end
+function mastercallback(env::Ptr{Void}, cbdata::Ptr{Void}, where::Cint, userdata::Ptr{Void}, userinteraction_p::Ptr{Cint})
     model = unsafe_pointer_to_objref(userdata)::CplexMathProgModel
     cpxrawcb = CallbackData(cbdata, model.inner)
+    println("in master callback")
     if where == CPX_CALLBACK_MIP_CUT_FEAS || where == CPX_CALLBACK_MIP_CUT_UNBD
         state = :MIPSol
         cpxcb = CplexCallbackData(cpxrawcb, state, where)
@@ -271,7 +303,7 @@ end
 # return :Exit to indicate an error
 
 function setmathproglazycallback!(model::CplexMathProgModel)
-    cpxcallback = cfunction(mastercallback, Cint, (Ptr{Void}, Ptr{Void}, Cint, Ptr{Void}))
+    cpxcallback = cfunction(mastercallback, Cint, (Ptr{Void}, Ptr{Void}, Cint, Ptr{Void}, Ptr{Cint}))
     stat = @cpx_ccall(setlazyconstraintcallbackfunc, Cint, (
                       Ptr{Void}, 
                       Ptr{Void},
@@ -285,7 +317,7 @@ function setmathproglazycallback!(model::CplexMathProgModel)
 end
 
 function setmathprogcutcallback!(model::CplexMathProgModel)
-    cpxcallback = cfunction(mastercallback, Cint, (Ptr{Void}, Ptr{Void}, Cint, Ptr{Void}))
+    cpxcallback = cfunction(mastercallback, Cint, (Ptr{Void}, Ptr{Void}, Cint, Ptr{Void}, Ptr{Cint}))
     stat = @cpx_ccall(setusercutcallbackfunc, Cint, (
                       Ptr{Void}, 
                       Ptr{Void},
@@ -299,7 +331,7 @@ function setmathprogcutcallback!(model::CplexMathProgModel)
 end
 
 function setmathprogheuristiccallback!(model::CplexMathProgModel)
-    cpxcallback = cfunction(mastercallback, Cint, (Ptr{Void}, Ptr{Void}, Cint, Ptr{Void}))
+    cpxcallback = cfunction(mastercallback, Cint, (Ptr{Void}, Ptr{Void}, Cint, Ptr{Void}, Ptr{Cint}))
     stat = @cpx_ccall(setheuristiccallbackfunc, Cint, (
                       Ptr{Void}, 
                       Ptr{Void},
