@@ -8,6 +8,7 @@ type Env
           error("CPLEX: Error creating environment")
       end
       env = new(tmp)
+      set_logfile(env, "CPLEXLink.log")
       env
     end
 end
@@ -16,6 +17,17 @@ convert(ty::Type{Ptr{Void}}, env::Env) = env.ptr::Ptr{Void}
 
 function is_valid(env::Env)
     env.ptr != C_NULL
+end
+
+function set_logfile(env::Env, filename::ASCIIString)
+  fp = @cpx_ccall(fopen, Ptr{Void}, (Ptr{Cchar}, Ptr{Cchar}), filename, "w")
+  if fp == C_NULL
+    error("CPLEX: Error setting logfile")
+  end
+  stat = @cpx_ccall(setlogfile, Cint, (Ptr{Void}, Ptr{Void}), env, fp) 
+  if stat != 0
+    throw(CplexError(env, stat))
+  end
 end
 
 function get_error_msg(env::Env, code::Number)

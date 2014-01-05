@@ -235,41 +235,9 @@ end
 
 # breaking abstraction, define our low-level callback to eliminate
 # a level of indirection
-# function mastercallback(lp::Ptr{Void}, cbdata::Ptr{Void}, where::Cint, userdata::Ptr{Void})
-#     model = unsafe_pointer_to_objref(userdata)::CplexMathProgModel
-#     cpxrawcb = CallbackData(cbdata, model.inner)
-#     println("in master callback")
-#     if where == CPX_CALLBACK_MIP_CUT_FEAS || where == CPX_CALLBACK_MIP_CUT_UNBD
-#         state = :MIPSol
-#         cpxcb = CplexCallbackData(cpxrawcb, state, where)
-#         if model.lazycb != nothing
-#             stat = model.lazycb(cpxcb)
-#             if stat == :Exit
-#                 return convert(Cint, 1006)
-#             end
-#         end
-#     elseif where == CPX_CALLBACK_MIP_NODE
-#         state = :MIPNode
-#         cpxcb = CplexCallbackData(cpxrawcb, state, where)
-#         if model.cutcb != nothing
-#             stat = model.cutcb(cpxcb)
-#             if stat == :Exit
-#                 return convert(Cint, 1006)
-#             end
-#         end
-#         if model.heuristiccb != nothing
-#             stat = model.heuristiccb(cpxcb)
-#             if stat == :Exit
-#                 return convert(Cint, 1006)
-#             end
-#         end
-#     end
-#     return convert(Cint, 0)
-# end
 function mastercallback(env::Ptr{Void}, cbdata::Ptr{Void}, where::Cint, userdata::Ptr{Void}, userinteraction_p::Ptr{Cint})
     model = unsafe_pointer_to_objref(userdata)::CplexMathProgModel
     cpxrawcb = CallbackData(cbdata, model.inner)
-    println("in master callback")
     if where == CPX_CALLBACK_MIP_CUT_FEAS || where == CPX_CALLBACK_MIP_CUT_UNBD
         state = :MIPSol
         cpxcb = CplexCallbackData(cpxrawcb, state, where)
@@ -343,4 +311,3 @@ function setmathprogheuristiccallback!(model::CplexMathProgModel)
     end
     nothing
 end
-

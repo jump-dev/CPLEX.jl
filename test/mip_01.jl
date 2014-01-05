@@ -16,6 +16,8 @@ env = CPLEXLink.Env()
 
 model = CPLEXLink.Model(env, "mip_01")
 CPLEXLink.set_sense!(model, :Max)
+CPLEXLink.set_param!(env, "CPX_PARAM_MIPDISPLAY",1)
+CPLEXLink.set_param!(env, "CPX_PARAM_MIPINTERVAL",1)
 
 CPLEXLink.add_var!(model, 1., 0., 5.)  # x
 CPLEXLink.add_var!(model, 2., 0, 10)   # y

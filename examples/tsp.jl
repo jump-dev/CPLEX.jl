@@ -3,7 +3,7 @@
 using JuMP
 using CPLEXLink
 
-m = Model(solver=CplexSolver())
+m = Model(solver=CplexSolver(CPX_PARAM_MIPDISPLAY=1, CPX_PARAM_MIPINTERVAL=1))
 
 n = 6
 cities = [ 50 200;

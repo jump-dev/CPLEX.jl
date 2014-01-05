@@ -14,6 +14,7 @@ module CPLEXLink
 
     # exported functions
     export is_valid,
+           set_logfile,
            get_error_msg,
            read_model,
            write_model,
