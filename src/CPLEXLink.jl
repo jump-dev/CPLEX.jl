@@ -22,7 +22,7 @@ module CPLEXLink
            set_sense!,
            get_obj,
            set_obj!,
-           set_warm_start,
+           set_warm_start!,
            free_problem,
            close_CPLEX,
            get_param_type,
