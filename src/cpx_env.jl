@@ -7,9 +7,7 @@ type Env
       if tmp == C_NULL
           error("CPLEX: Error creating environment")
       end
-      env = new(tmp)
-      set_logfile(env, "CPLEXLink.log")
-      env
+      new(tmp)
     end
 end
 
