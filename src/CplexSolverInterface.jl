@@ -26,7 +26,7 @@ end
 CplexSolver(;kwargs...) = CplexSolver(kwargs)
 model(s::CplexSolver) = CplexMathProgModel(;s.options...)
 
-loadproblem!(m::CplexMathProgModel, filename::String) = read_file!(m.inner, filename)
+loadproblem!(m::CplexMathProgModel, filename::String) = read_model(m.inner, filename)
 
 function loadproblem!(m::CplexMathProgModel, A, collb, colub, obj, rowlb, rowub, sense)
   add_vars!(m.inner, float(obj), float(collb), float(colub))
@@ -101,6 +101,8 @@ function addconstr!(m::CplexMathProgModel, varidx, coef, lb, ub)
     add_constrs!(m.inner, ivec([1]), ivec(varidx), fvec(coef), Cchar[rel...], fvec([rhs...]))
   end
 end
+
+getconstrmatrix(m::CplexMathProgModel) = get_constr_matrix(m.inner)
 
 updatemodel!(m::CplexMathProgModel) = Base.warn_once("Model update not necessary for Cplex.")
 

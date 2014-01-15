@@ -50,6 +50,8 @@ module CPLEXLink
            get_constrUB,
            set_constrLB!,
            set_constrUB!,
+           get_nnz,
+           get_constr_matrix,
            add_qpterms!,
            add_diag_qpterms!,
            add_qconstr!,

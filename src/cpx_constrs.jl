@@ -278,3 +278,38 @@ function set_constrUB!(model::Model, lb)
     end
     set_rhs!(model, lb)
 end
+
+function get_nnz(model::Model)
+  ret = @cpx_ccall(getnumnz, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
+  ret == 0 && throw(error("Could not query number of nonzeros in model"))
+  return ret
+end
+
+function get_constr_matrix(model::Model)
+  nzcnt_p = Array(Cint, 1)
+  m = num_constr(model)
+  n = num_var(model)
+  nnz = get_nnz(model)
+  cmatbeg = Array(Cint, n+1)
+  cmatind = Array(Cint, nnz)
+  cmatval = Array(Cdouble, nnz)
+  surplus_p = Array(Cint, 1)
+  stat = @cpx_ccall(getcols, Cint, (
+                    Ptr{Void},
+                    Ptr{Void},
+                    Ptr{Cint},
+                    Ptr{Cint},
+                    Ptr{Cint},
+                    Ptr{Cdouble},
+                    Cint,
+                    Ptr{Cint},
+                    Cint,
+                    Cint
+                    ),
+                    model.env.ptr, model.lp, nzcnt_p, cmatbeg, cmatind, cmatval, nnz, surplus_p, 0, n-1)
+  if stat != 0 || surplus_p[1] < 0
+    throw(CplexError(model.env, stat))
+  end
+  cmatbeg[end] = nnz # add the last entry that Julia wants
+  return SparseMatrixCSC(m, n, convert(Vector{Int64}, cmatbeg+1), convert(Vector{Int64}, cmatind), cmatval)
+end
