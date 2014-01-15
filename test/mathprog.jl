@@ -8,6 +8,7 @@ mixintprogtest(CplexSolver())
 
 include(joinpath(Pkg.dir("MathProgBase"),"test","quadprog.jl"))
 quadprogtest(CplexSolver())
+socptest(CplexSolver())
 
 include(joinpath(Pkg.dir("MathProgBase"),"test","linproginterface.jl"))
 linprogsolvertest(CplexSolver())
