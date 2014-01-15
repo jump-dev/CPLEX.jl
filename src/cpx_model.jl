@@ -108,9 +108,9 @@ function set_warm_start!(model::Model, indx::IVec, val::FVec)
                       Ptr{Cint},
                       Ptr{Cdouble},
                       Ptr{Cint},
-                      Ptr{Cchar}
+                      Ptr{Ptr{Cchar}}
                       ),
-                      model.env.ptr, model.lp, 1, length(indx), [0], indx, val, C_NULL, "1")
+                      model.env.ptr, model.lp, 1, length(indx), Cint[0], indx, val, Cint[0], "")
     if stat != 0
         throw(CplexError(model.env, stat))
     end
