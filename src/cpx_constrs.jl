@@ -311,5 +311,5 @@ function get_constr_matrix(model::Model)
     throw(CplexError(model.env, stat))
   end
   cmatbeg[end] = nnz # add the last entry that Julia wants
-  return SparseMatrixCSC(m, n, convert(Vector{Int64}, cmatbeg+1), convert(Vector{Int64}, cmatind), cmatval)
+  return SparseMatrixCSC(m, n, convert(Vector{Int64}, cmatbeg+1), convert(Vector{Int64}, cmatind+1), cmatval)
 end
