@@ -282,7 +282,7 @@ function setmathproglazycallback!(model::CplexMathProgModel)
                       ), 
                       model.inner.env, cpxcallback, model)
     if stat != 0
-        throw(CplexError(model.env, ret))
+        throw(CplexError(model.env, stat))
     end
     nothing
 end
@@ -296,7 +296,7 @@ function setmathprogcutcallback!(model::CplexMathProgModel)
                       ), 
                       model.inner.env, cpxcallback, model)
     if stat != 0
-        throw(CplexError(model.env, ret))
+        throw(CplexError(model.env, stat))
     end
     nothing
 end
@@ -310,7 +310,7 @@ function setmathprogheuristiccallback!(model::CplexMathProgModel)
                       ), 
                       model.inner.env, cpxcallback, model)
     if stat != 0
-        throw(CplexError(model.env, ret))
+        throw(CplexError(model.env, stat))
     end
     nothing
 end
