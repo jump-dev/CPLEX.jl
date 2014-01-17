@@ -23,7 +23,7 @@ function get_objval(model::Model)
   if stat != 0
     throw(CplexError(model.env, stat))
   end
-  return objval
+  return objval[1]
 end
 
 function get_solution(model::Model)
