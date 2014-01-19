@@ -2,8 +2,7 @@ module CPLEXLink
 
     @osx_only dlopen("libstdc++",RTLD_GLOBAL)
 
-    using BinDeps
-    @BinDeps.load_dependencies
+    include("../deps/deps.jl")
 
     ### imports
     import Base.convert, Base.show, Base.copy
