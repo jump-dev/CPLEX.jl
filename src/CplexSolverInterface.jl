@@ -131,7 +131,7 @@ end
 
 function status(m::CplexMathProgModel)
   ret = get_status(m.inner)
-  if ret in [:CPX_STAT_OPTIMAL, :CPXMIP_OPTIMAL]
+  if ret in [:CPX_STAT_OPTIMAL, :CPXMIP_OPTIMAL, :CPXMIP_OPTIMAL_TOL]
     stat = :Optimal
   elseif ret in [:CPX_STAT_UNBOUNDED, :CPXMIP_UNBOUNDED]
     stat = :Unbounded
