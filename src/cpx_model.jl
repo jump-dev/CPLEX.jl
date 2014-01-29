@@ -30,7 +30,14 @@ function read_model(model::Model, filename::ASCIIString)
 end
 
 function write_model(model::Model, filename::ASCIIString)
-    stat = @cpx_ccall(writeprob, Cint, (Ptr{Void}, Ptr{Void}, Ptr{Cchar}, Ptr{Cchar}), model.env.ptr, model.lp, filename, "LP")
+    if endswith(filename,".mps")
+        filetype = "MPS"
+    elseif endswith(filename,".lp")
+        filetype = "LP"
+    else
+        error("Unrecognized file extension: $filename (Only .mps and .lp are supported)")
+    end
+    stat = @cpx_ccall(writeprob, Cint, (Ptr{Void}, Ptr{Void}, Ptr{Cchar}, Ptr{Cchar}), model.env.ptr, model.lp, filename, filetype)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
