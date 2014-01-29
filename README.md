@@ -1,6 +1,8 @@
 CPLEXLink.jl
 ========
 
+The `CPLEX.jl` package provides an interface for using [IBM's CPLEX Optimizer™](http://www.ibm.com/software/commerce/optimization/cplex-optimizer/) from the [Julia language](http://julialang.org/). You cannot use `CPLEX.jl` without having purchased and installed a copy of CPLEX Optimizer™ from [IBM](http://www.ibm.com/). This package is available free of charge and in no way replaces or alters any functionality of IBM's CPLEX Optimizer product.
+
 CPLEXLink.jl is a Julia interface for the CPLEX optimization software. CPLEX functionality is extensive, so coverage is incomplete, but the basic functionality for solving linear and mixed-integer programs is provided.
 
 CPLEXLink.jl is intended for use with the [MathProgBase](https://github.com/JuliaOpt/MathProgBase.jl) solver interface; an internal API, while present, is not documented.
