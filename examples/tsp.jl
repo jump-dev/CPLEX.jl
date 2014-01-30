@@ -1,7 +1,7 @@
 # TSP
 
 using JuMP
-using CPLEXLink
+using CPLEX
 
 m = Model(solver=CplexSolver(CPX_PARAM_MIPDISPLAY=1, CPX_PARAM_MIPINTERVAL=1))
 

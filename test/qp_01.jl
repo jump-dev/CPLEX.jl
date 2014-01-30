@@ -8,18 +8,18 @@
 #    solution: (0.25, 0.75), objv = 1.875
 #
 
-using CPLEXLink 
+using CPLEX 
 
-env = CPLEXLink.Env()
+env = CPLEX.Env()
 
-model = CPLEXLink.Model(env, "qp_02")
+model = CPLEX.Model(env, "qp_02")
 
-CPLEXLink.add_vars!(model, [1., 1.], 0., Inf)
+CPLEX.add_vars!(model, [1., 1.], 0., Inf)
 
-CPLEXLink.add_qpterms!(model, [1, 1, 2], [1, 2, 2], [2., 1., 1.])
-CPLEXLink.add_constr!(model, [1., 1.], '=', 1.)
+CPLEX.add_qpterms!(model, [1, 1, 2], [1, 2, 2], [2., 1., 1.])
+CPLEX.add_constr!(model, [1., 1.], '=', 1.)
 
-CPLEXLink.optimize!(model)
+CPLEX.optimize!(model)
 
-println("sol = $(CPLEXLink.get_solution(model))")
-println("obj = $(CPLEXLink.get_objval(model))")
+println("sol = $(CPLEX.get_solution(model))")
+println("obj = $(CPLEX.get_objval(model))")

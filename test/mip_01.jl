@@ -10,24 +10,24 @@
 #         z is binary
 #
 
-using CPLEXLink
+using CPLEX
 
-env = CPLEXLink.Env()
+env = CPLEX.Env()
 
-model = CPLEXLink.Model(env, "mip_01")
-CPLEXLink.set_sense!(model, :Max)
-CPLEXLink.set_param!(env, "CPX_PARAM_MIPDISPLAY",1)
-CPLEXLink.set_param!(env, "CPX_PARAM_MIPINTERVAL",1)
+model = CPLEX.Model(env, "mip_01")
+CPLEX.set_sense!(model, :Max)
+CPLEX.set_param!(env, "CPX_PARAM_MIPDISPLAY",1)
+CPLEX.set_param!(env, "CPX_PARAM_MIPINTERVAL",1)
 
-CPLEXLink.add_var!(model, 1., 0., 5.)  # x
-CPLEXLink.add_var!(model, 2., 0, 10)   # y
-CPLEXLink.add_var!(model, 5., 0, 1)    # z
-CPLEXLink.set_vartype!(model, ['C', 'I', 'B'])
+CPLEX.add_var!(model, 1., 0., 5.)  # x
+CPLEX.add_var!(model, 2., 0, 10)   # y
+CPLEX.add_var!(model, 5., 0, 1)    # z
+CPLEX.set_vartype!(model, ['C', 'I', 'B'])
 
-CPLEXLink.add_constr!(model, ones(3), '<', 10.)
-CPLEXLink.add_constr!(model, [1., 2., 1.], '<', 15.)
+CPLEX.add_constr!(model, ones(3), '<', 10.)
+CPLEX.add_constr!(model, [1., 2., 1.], '<', 15.)
 
 optimize!(model)
 
-println("sol = $(CPLEXLink.get_solution(model))")
-println("objv = $(CPLEXLink.get_objval(model))")
+println("sol = $(CPLEX.get_solution(model))")
+println("objv = $(CPLEX.get_objval(model))")

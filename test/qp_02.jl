@@ -6,18 +6,18 @@
 #           x +   y       >= 1
 #
 
-using CPLEXLink
+using CPLEX
 
-env = CPLEXLink.Env()
+env = CPLEX.Env()
 
-model = CPLEXLink.cplex_model(env; 
+model = CPLEX.cplex_model(env; 
 	name = "qp_02", 
 	f = [0., 0., 0.],
 	H = [2. 1. 0.; 1. 2. 1.; 0. 1. 2.],
 	A = -[1. 2. 3.; 1. 1. 0.], 
 	b = -[4., 1.])
 
-CPLEXLink.optimize!(model)
+CPLEX.optimize!(model)
 
-println("sol = $(CPLEXLink.get_solution(model))")
-println("obj = $(CPLEXLink.get_objval(model))")
+println("sol = $(CPLEX.get_solution(model))")
+println("obj = $(CPLEX.get_objval(model))")

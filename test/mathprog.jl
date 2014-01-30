@@ -1,4 +1,4 @@
-using CPLEXLink
+using CPLEX
 
 include(joinpath(Pkg.dir("MathProgBase"),"test","linprog.jl"))
 linprogtest(CplexSolver(CPX_PARAM_PREIND=0, CPX_PARAM_LPMETHOD=2))

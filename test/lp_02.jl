@@ -12,11 +12,11 @@
 #
 
 using MathProgBase
-using CPLEXLink
+using CPLEX
 
-env = CPLEXLink.Env()
+env = CPLEX.Env()
 
-model = CPLEXLink.cplex_model(env; 
+model = CPLEX.cplex_model(env; 
 	name="lp_02", 
 	sense=:Max, 
 	f = [1000., 350.],
@@ -29,5 +29,5 @@ println(model)
 optimize!(model)
 
 println()
-println("soln = $(CPLEXLink.get_solution(model))")
-println("objv = $(CPLEXLink.get_objval(model))")
+println("soln = $(CPLEX.get_solution(model))")
+println("objv = $(CPLEX.get_objval(model))")
