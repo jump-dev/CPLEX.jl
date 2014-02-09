@@ -316,7 +316,7 @@ end
 
 # int CPXaddsos( CPXCENVptr env, CPXLPptr lp, int numsos, int numsosnz, char const * sostype, int const * sosbeg, int const * sosind, double const * soswt, char ** sosname )
 function add_sos!(model::Model, sostype::Symbol, idx::Vector{Int}, weight::Vector{Cdouble})
-    (nelem = length(idx) == length(weight)) || error("Index and weight vectors of unequal length")
+    ((nelem = length(idx)) == length(weight)) || error("Index and weight vectors of unequal length")
     sostype == :SOS1 ? typ = CPX_TYPE_SOS1 : (sostype == :SOS2 ? typ = CPX_TYPE_SOS2 : error("Invalid SOS constraint type"))
     stat = @cpx_ccall(addsos, Cint, (
                       Ptr{Void},
