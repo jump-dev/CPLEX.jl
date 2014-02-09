@@ -51,6 +51,7 @@ module CPLEX
            set_constrUB!,
            get_nnz,
            get_constr_matrix,
+           set_sos!,
            add_qpterms!,
            add_diag_qpterms!,
            add_qconstr!,

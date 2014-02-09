@@ -313,3 +313,24 @@ function get_constr_matrix(model::Model)
   cmatbeg[end] = nnz # add the last entry that Julia wants
   return SparseMatrixCSC(m, n, convert(Vector{Int64}, cmatbeg+1), convert(Vector{Int64}, cmatind+1), cmatval)
 end
+
+# int CPXaddsos( CPXCENVptr env, CPXLPptr lp, int numsos, int numsosnz, char const * sostype, int const * sosbeg, int const * sosind, double const * soswt, char ** sosname )
+function add_sos!(model::Model, sostype::Symbol, idx::Vector{Int}, weight::Vector{Cdouble})
+    (nelem = length(idx) == length(weight)) || error("Index and weight vectors of unequal length")
+    sostype == :SOS1 ? typ = CPX_TYPE_SOS1 : (sostype == :SOS2 ? typ = CPX_TYPE_SOS2 : error("Invalid SOS constraint type"))
+    stat = @cpx_ccall(addsos, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Cint,
+                      Cint,
+                      Ptr{Cchar},
+                      Ptr{Cint},
+                      Ptr{Cint},
+                      Ptr{Cdouble},
+                      Ptr{Ptr{Cchar}}
+                      ),
+                      model.env.ptr, model.lp, convert(Cint, 1), convert(Cint, nelem), [convert(Cchar, typ)], Cint[1], convert(Vector{Cint}, idx), weight, C_NULL)
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+end
