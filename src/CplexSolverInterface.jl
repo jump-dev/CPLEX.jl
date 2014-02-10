@@ -162,6 +162,9 @@ getunboundedray(m::CplexMathProgModel) = get_unbounded_ray(m.inner)
 
 setwarmstart!(m::CplexMathProgModel, v) = set_warm_start!(m.inner, v) 
 
+addsos1!(m::CplexMathProgModel, idx, weight) = add_sos!(m.inner, :SOS1, idx, weight)
+addsos2!(m::CplexMathProgModel, idx, weight) = add_sos!(m.inner, :SOS2, idx, weight)
+
 ######
 # QCQP
 ######
