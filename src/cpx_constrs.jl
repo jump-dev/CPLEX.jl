@@ -314,10 +314,12 @@ function get_constr_matrix(model::Model)
   return SparseMatrixCSC(m, n, convert(Vector{Int64}, cmatbeg+1), convert(Vector{Int64}, cmatind+1), cmatval)
 end
 
+get_num_sos(model::Model) = @cpx_ccall(getnumsos, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
+
 # int CPXaddsos( CPXCENVptr env, CPXLPptr lp, int numsos, int numsosnz, char const * sostype, int const * sosbeg, int const * sosind, double const * soswt, char ** sosname )
 function add_sos!(model::Model, sostype::Symbol, idx::Vector{Int}, weight::Vector{Cdouble})
     ((nelem = length(idx)) == length(weight)) || error("Index and weight vectors of unequal length")
-    sostype == :SOS1 ? typ = CPX_TYPE_SOS1 : (sostype == :SOS2 ? typ = CPX_TYPE_SOS2 : error("Invalid SOS constraint type"))
+    (sostype == :SOS1) ? (typ = CPX_TYPE_SOS1) : ((sostype == :SOS2) ? (typ = CPX_TYPE_SOS2) : error("Invalid SOS constraint type"))
     stat = @cpx_ccall(addsos, Cint, (
                       Ptr{Void},
                       Ptr{Void},
@@ -329,7 +331,7 @@ function add_sos!(model::Model, sostype::Symbol, idx::Vector{Int}, weight::Vecto
                       Ptr{Cdouble},
                       Ptr{Ptr{Cchar}}
                       ),
-                      model.env.ptr, model.lp, convert(Cint, 1), convert(Cint, nelem), [convert(Cchar, typ)], Cint[1], convert(Vector{Cint}, idx-1), weight, C_NULL)
+                      model.env.ptr, model.lp, convert(Cint, 1), convert(Cint, nelem), [convert(Cchar, typ)], Cint[0], convert(Vector{Cint}, idx-1), weight, C_NULL)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
