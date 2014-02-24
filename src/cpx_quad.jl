@@ -11,7 +11,7 @@ function add_qpterms!(model::Model, qr::IVec, qc::IVec, qv::FVec)
     else
         error("Matrix Q must be either symmetric or triangular")
     end
-    if nfilled(Q) > 0
+    if nnz(Q) > 0 #nfilled in 0.3
         qmatcnt = Array(Cint, n)
         for k = 1:n
           qmatcnt[k] = Q.colptr[k+1] - Q.colptr[k]
@@ -41,7 +41,7 @@ function add_qpterms!(model, H::SparseMatrixCSC{Float64}) # H must be symmetric
     n = num_var(model)
     (H.m == n && H.n == n) || error("H must be an n-by-n symmetric matrix.")
     
-    nnz_h = nfilled(H)
+    nnz_h = nnz(H) #nfilled in 0.3
     qr = Array(Cint, nnz_h)
     qc = Array(Cint, nnz_h)
     qv = Array(Float64, nnz_h)
