@@ -1,3 +1,13 @@
+function get_best_bound(m::Model)
+    objval_p = Array(Cdouble, 1)
+    stat = @cpx_ccall(getbestobjval, Cint, (Ptr{Void}, Ptr{Void}, Ptr{Cdouble}), m.env.ptr, m.lp, objval_p)
+    if stat != 0
+        throw(CplexError(m.env.ptr, stat))
+    end
+    return objval_p
+end
+
+
 type CallbackData
     cbdata::Ptr{Void}
     model::Model

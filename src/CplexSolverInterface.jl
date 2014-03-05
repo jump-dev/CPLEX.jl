@@ -147,7 +147,7 @@ function status(m::CplexMathProgModel)
 end
 
 getobjval(m::CplexMathProgModel)   = get_objval(m.inner)
-getobjbound(m::CplexMathProgModel) = get_solution(m.inner)
+getobjbound(m::CplexMathProgModel) = get_best_bound(m.inner)
 getsolution(m::CplexMathProgModel) = get_solution(m.inner)
 getconstrsolution(m::CplexMathProgModel) = get_constr_solution(m.inner)
 getreducedcosts(m::CplexMathProgModel) = get_reduced_costs(m.inner)
