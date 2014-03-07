@@ -151,20 +151,20 @@ end
 
 
 function set_vartype!(model::Model, vtype::Vector{Char})
+    nvars = num_var(model)
+    stat = @cpx_ccall(chgctype, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Cint,
+                      Ptr{Cint},
+                      Ptr{Cchar}
+                      ),
+                      model.env.ptr, model.lp, nvars, Cint[0:nvars-1], Cchar[vtype...])
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
     if !isempty(find(!(vtype.=='C')))
-      nvars = num_var(model)
-      stat = @cpx_ccall(chgctype, Cint, (
-                        Ptr{Void},
-                        Ptr{Void},
-                        Cint,
-                        Ptr{Cint},
-                        Ptr{Cchar}
-                        ),
-                        model.env.ptr, model.lp, nvars, Cint[0:nvars-1], Cchar[vtype...])
-      if stat != 0
-          throw(CplexError(model.env, stat))
-      end
-      model.has_int = true
+        model.has_int = true
     end
 end
 
