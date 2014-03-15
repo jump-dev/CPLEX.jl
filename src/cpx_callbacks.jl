@@ -7,7 +7,6 @@ function get_best_bound(m::Model)
     return objval_p
 end
 
-
 type CallbackData
     cbdata::Ptr{Void}
     model::Model
@@ -37,10 +36,6 @@ function setcallbackcut(cbdata::CallbackData, where::Cint, ind::Vector{Cint}, va
         throw(CplexError(cbdata.model.env.ptr, stat))
     end
 end
-
-# cbcut(cbdata::CallbackData, where::Integer, ind::Vector{Cint}, val::Vector{Cdouble}, sense::Char, rhs::Cdouble) = setcallbackcut(cbdata, where, ind, val, sense, rhs)
-
-# cblazy(cbdata::CallbackData, where::Integer, ind::Vector{Cint}, val::Vector{Cdouble}, sense::Char, rhs::Cdouble) = setcallbackcut(cbdata, where, ind, val, sense, rhs)
 
 for f in (:cbcut, :cblazy)
     @eval ($f)(cbdata::CallbackData, where::Integer, ind::Vector{Cint}, val::Vector{Cdouble}, sense::Char, rhs::Cdouble) = 

@@ -5,6 +5,7 @@ type CplexMathProgModel <: AbstractMathProgModel
   lazycb
   cutcb
   heuristiccb
+  branchcb
 end
 
 function CplexMathProgModel(;options...)
@@ -16,7 +17,7 @@ function CplexMathProgModel(;options...)
     set_param!(env, string(name), value)
   end
 
-  m = CplexMathProgModel(Model(env, "Cplex.jl"), nothing, nothing, nothing)
+  m = CplexMathProgModel(Model(env, "Cplex.jl"), nothing, nothing, nothing, nothing)
   return m
 end
 
@@ -178,8 +179,8 @@ type CplexCallbackData <: MathProgCallbackData
     cbdata::CallbackData
     state::Symbol
     where::Cint
-    sol::Vector{Float64}
-    # model::CplexMathProgModel # not needed?
+    sol::Ptr{Float64}
+    userinteraction_p::Ptr{Cint}
 end
 
 # set to nothing to clear callback
@@ -227,12 +228,11 @@ cbgetexplorednodes(d::CplexCallbackData) = cbget_nodcnt(d.cbdata, d.where)
 # returns :MIPNode :MIPSol :Other
 cbgetstate(d::CplexCallbackData) = d.state
 
-cbaddsolution!(d::CplexCallbackData, x) = cbsolution(d.stat, x)
-
 const sensemap = ['=' => 'E', '<' => 'L', '>' => 'G']
 function cbaddcut!(d::CplexCallbackData,varidx,varcoef,sense,rhs)
     @assert d.state == :MIPNode
     cbcut(d.cbdata, convert(Vector{Cint}, varidx), float(varcoef), sensemap[sense], float(rhs))
+    unsafe_store!(d.userinteraction_p, convert(Cint,CPX_CALLBACK_SET), 1)
 end
 
 function cbaddlazy!(d::CplexCallbackData,varidx,varcoef,sense,rhs)
@@ -240,9 +240,13 @@ function cbaddlazy!(d::CplexCallbackData,varidx,varcoef,sense,rhs)
     cblazy(d.cbdata, d.where, convert(Vector{Cint}, varidx), float(varcoef), sensemap[sense], float(rhs))
 end
 
-cbaddsolution!(d::CplexCallbackData) = nothing # CPLEX respects solution pointed to by d.sol I believe?
+cbaddsolution!(d::CplexCallbackData) = (unsafe_store!(d.userinteraction_p, convert(Cint,CPX_CALLBACK_SET), 1))
 
-cbsetsolutionvalue!(d::CplexCallbackData,varidx,value) = (d.sol[varidx] = value)
+function cbsetsolutionvalue!(d::CplexCallbackData,varidx,value) 
+    @assert 1 <= varidx <= num_var(d.cbdata.model)
+    unsafe_store!(d.sol, value, varidx)
+end
+    
 
 # breaking abstraction, define our low-level callback to eliminate
 # a level of indirection
@@ -251,7 +255,7 @@ function mastercallback(env::Ptr{Void}, cbdata::Ptr{Void}, wherefrom::Cint, user
     cpxrawcb = CallbackData(cbdata, model.inner)
     if wherefrom == CPX_CALLBACK_MIP_CUT_FEAS || wherefrom == CPX_CALLBACK_MIP_CUT_UNBD
         state = :MIPSol
-        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, [0.])
+        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, [0.], userinteraction_p)
         if model.lazycb != nothing
             stat = model.lazycb(cpxcb)
             if stat == :Exit
@@ -260,7 +264,7 @@ function mastercallback(env::Ptr{Void}, cbdata::Ptr{Void}, wherefrom::Cint, user
         end
     elseif wherefrom == CPX_CALLBACK_MIP_NODE
         state = :MIPNode
-        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, [0.])
+        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, [0.], userinteraction_p)
         if model.cutcb != nothing
             stat = model.cutcb(cpxcb)
             if stat == :Exit
@@ -277,11 +281,13 @@ function masterheuristiccallback(env::Ptr{Void},
                                  userdata::Ptr{Void}, 
                                  objval_p::Ptr{Cdouble}, 
                                  xx::Ptr{Cdouble}, 
-                                 checkfeas_p::Cint, 
+                                 checkfeas_p::Ptr{Cint},
                                  userinteraction_p::Ptr{Cint})
-    if wherefrom == CPX_CALLBACK_MIP_NODE
+    model = unsafe_pointer_to_objref(userdata)::CplexMathProgModel
+    cpxrawcb = CallbackData(cbdata, model.inner)
+    if wherefrom == CPX_CALLBACK_MIP_HEURISTIC
         state = :MIPNode
-        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, xx)
+        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, xx, userinteraction_p)
         if model.heuristiccb != nothing
             stat = model.heuristiccb(cpxcb)
             if stat == :Exit
@@ -289,6 +295,7 @@ function masterheuristiccallback(env::Ptr{Void},
             end
         end
     end
+    unsafe_store!(checkfeas_p, convert(Cint,CPX_OFF), 1)
     return convert(Cint, 0)
 end
 
@@ -325,7 +332,7 @@ function setmathprogcutcallback!(model::CplexMathProgModel)
 end
 
 function setmathprogheuristiccallback!(model::CplexMathProgModel)
-    cpxcallback = cfunction(masterheuristiccallback, Cint, (Ptr{Void}, Ptr{Void}, Cint, Ptr{Void}, Ptr{Cdouble}, Ptr{Cdouble}, Cint, Ptr{Cint}))
+    cpxcallback = cfunction(masterheuristiccallback, Cint, (Ptr{Void}, Ptr{Void}, Cint, Ptr{Void}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cint}, Ptr{Cint}))
     stat = @cpx_ccall(setheuristiccallbackfunc, Cint, (
                       Ptr{Void}, 
                       Ptr{Void},
@@ -337,3 +344,46 @@ function setmathprogheuristiccallback!(model::CplexMathProgModel)
     end
     nothing
 end
+
+# function masterbranchcallback(env::Ptr{Void},
+#                               userdata::Ptr{Void},
+#                               wherefrom::Cint,
+#                               cbhandle::Ptr{Void},
+#                               typ::Cint,
+#                               sos::Cint,
+#                               nodecnt::Cint,
+#                               bdcnt::Cint,
+#                               nodebeg::Ptr{Cint},
+#                               indices::Ptr{Cint},
+#                               lu::Ptr{Cchar},
+#                               bd::Ptr{Cdouble},
+#                               nodeest::Ptr{Cdouble},
+#                               useraction_p::Ptr{Cint});
+#     model = unsafe_pointer_to_objref(userdata)::CplexMathProgModel
+#     cpxrawcb = CallbackData(cbdata, model.inner)
+#     if wherefrom == CPX_CALLBACK_MIP_BRANCH
+#         state = :MIPBranch
+#         cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, [0.])
+#         if model.branchcb != nothing
+#             stat = model.branchcb(cpxcb)
+#             if stat == :Exit
+#                 return convert(Cint, 1006)
+#             end
+#         end
+#     end
+#     return convert(Cint, 0)
+# end
+
+# funtion setbranchcallbackmodel(model::CplexMathProgModel)
+#     cpxcallback = cfunction(masterbranchcallback, Cint, (Ptr{Void}, Ptr{Void}, Cint, Ptr{Void}, Cint, Cint, Cint, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cchar}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cint}))
+#     stat = @cpx_ccall(sethbranchcallbackfunc, Cint, (
+#                       Ptr{Void}, 
+#                       Ptr{Void},
+#                       Any,
+#                       ), 
+#                       model.env, cpxcallback, model)
+#     if stat != 0
+#         throw(CplexError(model.env, stat))
+#     end
+#     nothing
+# end
