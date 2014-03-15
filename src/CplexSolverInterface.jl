@@ -231,7 +231,7 @@ cbgetstate(d::CplexCallbackData) = d.state
 const sensemap = ['=' => 'E', '<' => 'L', '>' => 'G']
 function cbaddcut!(d::CplexCallbackData,varidx,varcoef,sense,rhs)
     @assert d.state == :MIPNode
-    cbcut(d.cbdata, convert(Vector{Cint}, varidx), float(varcoef), sensemap[sense], float(rhs))
+    cbcut(d.cbdata, d.where, convert(Vector{Cint}, varidx), float(varcoef), sensemap[sense], float(rhs))
     unsafe_store!(d.userinteraction_p, convert(Cint,CPX_CALLBACK_SET), 1)
 end
 
@@ -247,7 +247,6 @@ function cbsetsolutionvalue!(d::CplexCallbackData,varidx,value)
     unsafe_store!(d.sol, value, varidx)
 end
     
-
 # breaking abstraction, define our low-level callback to eliminate
 # a level of indirection
 function mastercallback(env::Ptr{Void}, cbdata::Ptr{Void}, wherefrom::Cint, userdata::Ptr{Void}, userinteraction_p::Ptr{Cint})
@@ -262,7 +261,7 @@ function mastercallback(env::Ptr{Void}, cbdata::Ptr{Void}, wherefrom::Cint, user
                 return convert(Cint, 1006)
             end
         end
-    elseif wherefrom == CPX_CALLBACK_MIP_NODE
+    elseif wherefrom == CPX_CALLBACK_MIP_CUT_LOOP || wherefrom == CPX_CALLBACK_MIP_CUT_LAST
         state = :MIPNode
         cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, [0.], userinteraction_p)
         if model.cutcb != nothing
