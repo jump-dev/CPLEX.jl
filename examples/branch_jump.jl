@@ -29,7 +29,7 @@ end
 @setObjective(mod, Min, sum{ c[i]*x[i], i=1:n })
 
 function callback(cb)
-    println("in callback!")
+    # println("in callback!")
     addBranch(cb, x[1] >= 1)
     addBranch(cb, x[1] <= 0)
 end

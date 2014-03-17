@@ -3,7 +3,7 @@
 typealias JuMPModel JuMP.Model
 
 function setBranchCallback(m::JuMPModel, f::Function) 
-    branchcallback(d::MathProgCallbackData) = m.branchcallback(d)
+    branchcallback(d::MathProgCallbackData) = f(d)
     setbranchcallback!(m.internalModel, branchcallback)
     println("setting branch callback")
 end

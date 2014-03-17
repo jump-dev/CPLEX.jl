@@ -191,12 +191,6 @@ end
 function set_rhs!(model::Model, rhs::Vector)
     ncons = num_constr(model)
     @assert ncons == length(rhs)
-    getrhs = get_rhs(model)
-    for i in 1:ncons
-        if rhs[i] != getrhs[i]
-            println("$i: $(rhs[i]), $(getrhs[i])")
-        end
-    end
     stat = @cpx_ccall(chgrhs, Cint, (
                       Ptr{Void},
                       Ptr{Void},

@@ -133,13 +133,16 @@ numconstr(m::CplexMathProgModel) = num_constr(m.inner)
 function optimize!(m::CplexMathProgModel)
     # set callbacks if present
     if m.lazycb != nothing
-      setmathproglazycallback!(m)
+        setmathproglazycallback!(m)
     end
     if m.cutcb != nothing
-      setmathprogcutcallback!(m)
+        setmathprogcutcallback!(m)
     end
     if m.heuristiccb != nothing
-      setmathprogheuristiccallback!(m)
+        setmathprogheuristiccallback!(m)
+    end
+    if m.branchcb != nothing
+        setmathprogbranchcallback!(m)
     end
     optimize!(m.inner)
 end
@@ -379,7 +382,7 @@ function setmathproglazycallback!(model::CplexMathProgModel)
                       Ptr{Void},
                       Any,
                       ), 
-                      model.inner.env, cpxcallback, model)
+                      model.inner.env.ptr, cpxcallback, model)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
@@ -393,7 +396,7 @@ function setmathprogcutcallback!(model::CplexMathProgModel)
                       Ptr{Void},
                       Any,
                       ), 
-                      model.inner.env, cpxcallback, model)
+                      model.inner.env.ptr, cpxcallback, model)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
@@ -407,7 +410,7 @@ function setmathprogheuristiccallback!(model::CplexMathProgModel)
                       Ptr{Void},
                       Any,
                       ), 
-                      model.inner.env, cpxcallback, model)
+                      model.inner.env.ptr, cpxcallback, model)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
@@ -415,9 +418,9 @@ function setmathprogheuristiccallback!(model::CplexMathProgModel)
 end
 
 function masterbranchcallback(env::Ptr{Void},
-                              userdata::Ptr{Void},
+                              cbdata::Ptr{Void},
                               wherefrom::Cint,
-                              cbhandle::Ptr{Void},
+                              userdata::Ptr{Void},
                               typ::Cint,
                               sos::Cint,
                               nodecnt::Cint,
@@ -427,7 +430,7 @@ function masterbranchcallback(env::Ptr{Void},
                               lu::Ptr{Cchar},
                               bd::Ptr{Cdouble},
                               nodeest::Ptr{Cdouble},
-                              useraction_p::Ptr{Cint});
+                              userinteraction_p::Ptr{Cint});
     model = unsafe_pointer_to_objref(userdata)::CplexMathProgModel
     cpxrawcb = CallbackData(cbdata, model.inner)
     if wherefrom == CPX_CALLBACK_MIP_BRANCH
@@ -445,12 +448,12 @@ end
 
 function setmathprogbranchcallback!(model::CplexMathProgModel)
     cpxcallback = cfunction(masterbranchcallback, Cint, (Ptr{Void}, Ptr{Void}, Cint, Ptr{Void}, Cint, Cint, Cint, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cchar}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cint}))
-    stat = @cpx_ccall(sethbranchcallbackfunc, Cint, (
+    stat = @cpx_ccall(setbranchcallbackfunc, Cint, (
                       Ptr{Void}, 
                       Ptr{Void},
                       Any,
                       ), 
-                      model.inner.env, cpxcallback, model)
+                      model.inner.env.ptr, cpxcallback, model)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
