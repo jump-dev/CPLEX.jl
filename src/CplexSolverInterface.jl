@@ -172,6 +172,19 @@ addsos2!(m::CplexMathProgModel, idx, weight) = add_sos!(m.inner, :SOS2, idx, wei
 addquadconstr!(m::CplexMathProgModel, linearidx, linearval, quadrowidx, quadcolidx, quadval, sense, rhs) = add_qconstr!(m.inner,linearidx,linearval,quadrowidx,quadcolidx,quadval,sense,rhs)
 setquadobj!(m::CplexMathProgModel,rowidx,colidx,quadval) = add_qpterms!(m.inner,rowidx,colidx,quadval)
 
+######
+# Data
+######
+getnodecnt(m::CplexMathProgModel) = @cpx_ccall(getnodecnt, Cint, (Ptr{Void},Ptr{Void}), m.inner.env.ptr, m.inner.lp)
+function getdettime(m::CplexMathProgModel)
+    tim = Array(Cdouble,1)
+    stat = @cpx_ccall(getdettime, Cint, (Ptr{Void},Ptr{Cdouble}), m.inner.env.ptr, tim)
+    if stat != 0
+        error(CplexError(m.inner.env, stat).msg)
+    end
+    return tim[1]
+end
+
 ###########
 # Callbacks
 ###########
@@ -187,44 +200,77 @@ end
 setlazycallback!(m::CplexMathProgModel,f) = (m.lazycb = f)
 setcutcallback!(m::CplexMathProgModel,f) = (m.cutcb = f)
 setheuristiccallback!(m::CplexMathProgModel,f) = (m.heuristiccb = f)
+setbranchcallback!(m::CplexMathProgModel,f) = (m.branchcb = f)
 
 function cbgetmipsolution(d::CplexCallbackData)
     @assert d.state == :MIPSol
-    return cbget_mipsol_sol(d.cbdata, d.where)
+    n = num_var(d.model)
+    sol = Array(Cdouble, n)
+    stat = @cpx_ccall(getcallbackincumbent, Cint, (Ptr{Void},Ptr{Void},Cint,Ptr{Cdouble},Cint,Cint),
+                      d.model.env.ptr, d.cbdata, d.where, sol, 0, n-1)
+    if stat != 0
+        error(CplexError(cbdata.model.env, stat).msg)
+    end
+    return sol
 end
 
-function cbgetmipsolution(d::CplexCallbackData, output)
+function cbgetmipsolution(d::CplexCallbackData, sol::Vector{Cdouble})
     @assert d.state == :MIPSol
-    return cbget_mipsol_sol(d.cbdata, d.where, output)
+    stat = @cpx_ccall(getcallbackincumbent, Cint, (Ptr{Void},Ptr{Void},Cint,Ptr{Cdouble},Cint,Cint),
+                      d.model.env.ptr, d.cbdata, d.where, sol, 0, length(sol)-1)
+    if stat != 0
+        error(CplexError(cbdata.model.env, stat).msg)
+    end
+    return nothing
 end
 
-function cbgetlpsolution(d::CplexCallbackData)
+function cbgetlpsolution(d::CplexCallbackData) 
     @assert d.state == :MIPNode
-    return cbget_mipnode_rel(d.cbdata, d.where)
+    n = num_var(d.model)
+    sol = Array(Cdouble, n)
+    stat = @cpx_ccall(getcallbacknodex, Cint, (Ptr{Void},Ptr{Void},Cint,Ptr{Cdouble},Cint,Cint),
+                      d.model.env.ptr, d.cbdata, d.where, sol, 0, n-1)
+    if stat != 0
+        error(CplexError(cbdata.model.env, stat).msg)
+    end
+    return sol
 end
 
-function cbgetobj(d::CplexCallbackData)
-    if d.state == :MIPNode
-        return cbget_mipnode_objbst(d.cbdata, d.where)
-    elseif d.state == :MIPSol
-        return cbdet_mipsol_objbst(d.cbdata, d.where)
-    else
-        error("Unrecognized callback state $(d.state)")
+function cbgetlpsolution(d::CplexCallbackData, sol::Vector{Cdouble})
+    @assert d.state == :MIPNode
+    stat = @cpx_ccall(getcallbacknodex, Cint, (Ptr{Void},Ptr{Void},Cint,Ptr{Cdouble},Cint,Cint),
+                      d.model.env.ptr, d.cbdata, d.where, sol, 0, length(sol)-1)
+    if stat != 0
+        error(CplexError(cbdata.model.env, stat).msg)
+    end
+    return nothing
+end
+
+for (func,param,typ) in ((:cbgetexplorednodes,CPX_CALLBACK_INFO_NODE_COUNT_LONG,:Int64),
+                         (:cbgetnodesleft,CPX_CALLBACK_INFO_NODES_LEFT_LONG,:Int64),
+                         (:cbgetmipiterations,CPX_CALLBACK_INFO_MIP_ITERATIONS_LONG,:Int64),
+                         (:cbgetobj,CPX_CALLBACK_INFO_BEST_INTEGER,:Cdouble),
+                         (:cbgetbestbound,CPX_CALLBACK_INFO_BEST_REMAINING,:Cdouble),
+                         (:cbgetobj,CPX_CALLBACK_INFO_BEST_INTEGER,:Cdouble),
+                         (:cbgetgap,CPX_CALLBACK_INFO_MIP_REL_GAP,:Cdouble),
+                         (:cbgetfeasibility,CPX_CALLBACK_INFO_MIP_FEAS,:Cint),
+                         (:cbgetstarttime,CPX_CALLBACK_INFO_STARTTIME,:Cdouble),
+                         (:cbgetdetstarttime,CPX_CALLBACK_INFO_STARTDETTIME,:Cdouble),
+                         (:cbgettimestamp,CPX_CALLBACK_INFO_ENDTIME,:Cdouble),
+                         (:cbgetdettimestamp,CPX_CALLBACK_INFO_ENDTIME,:Cdouble))
+    @eval begin
+        function $(func)(d::CplexCallbackData)
+            val = Array($(typ),1)
+            ret = @cpx_ccall(getcallbackinfo, Cint, (Ptr{Void},Ptr{Void},Cint,Cint,Ptr{Void}),
+                              d.model.env.ptr, d.cbdata, d.where, $(convert(Cint,param)), val)
+            if ret != 0
+                error(CplexError(cbdata.model.env, stat).msg)
+            end
+            return val[1]
+        end
     end
 end
 
-function cbgetbestbound(d::CplexCallbackData)
-    if d.state == :MIPNode
-        return cbget_mipnode_objbnd(d.cbdata, d.where)
-    elseif d.state == :MIPSol
-        return cbdet_mipsol_objbnd(d.cbdata, d.where)
-    else
-        error("Unrecognized callback state $(d.state)")
-    end
-end
-
-cbgetexplorednodes(d::CplexCallbackData) = cbget_nodcnt(d.cbdata, d.where)
-        
 # returns :MIPNode :MIPSol :Other
 cbgetstate(d::CplexCallbackData) = d.state
 
@@ -344,45 +390,77 @@ function setmathprogheuristiccallback!(model::CplexMathProgModel)
     nothing
 end
 
-# function masterbranchcallback(env::Ptr{Void},
-#                               userdata::Ptr{Void},
-#                               wherefrom::Cint,
-#                               cbhandle::Ptr{Void},
-#                               typ::Cint,
-#                               sos::Cint,
-#                               nodecnt::Cint,
-#                               bdcnt::Cint,
-#                               nodebeg::Ptr{Cint},
-#                               indices::Ptr{Cint},
-#                               lu::Ptr{Cchar},
-#                               bd::Ptr{Cdouble},
-#                               nodeest::Ptr{Cdouble},
-#                               useraction_p::Ptr{Cint});
-#     model = unsafe_pointer_to_objref(userdata)::CplexMathProgModel
-#     cpxrawcb = CallbackData(cbdata, model.inner)
-#     if wherefrom == CPX_CALLBACK_MIP_BRANCH
-#         state = :MIPBranch
-#         cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, [0.])
-#         if model.branchcb != nothing
-#             stat = model.branchcb(cpxcb)
-#             if stat == :Exit
-#                 return convert(Cint, 1006)
-#             end
-#         end
-#     end
-#     return convert(Cint, 0)
-# end
+function masterbranchcallback(env::Ptr{Void},
+                              userdata::Ptr{Void},
+                              wherefrom::Cint,
+                              cbhandle::Ptr{Void},
+                              typ::Cint,
+                              sos::Cint,
+                              nodecnt::Cint,
+                              bdcnt::Cint,
+                              nodebeg::Ptr{Cint},
+                              indices::Ptr{Cint},
+                              lu::Ptr{Cchar},
+                              bd::Ptr{Cdouble},
+                              nodeest::Ptr{Cdouble},
+                              useraction_p::Ptr{Cint});
+    model = unsafe_pointer_to_objref(userdata)::CplexMathProgModel
+    cpxrawcb = CallbackData(cbdata, model.inner)
+    if wherefrom == CPX_CALLBACK_MIP_BRANCH
+        state = :MIPBranch
+        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, [0.], userinteraction_p)
+        if model.branchcb != nothing
+            stat = model.branchcb(cpxcb)
+            if stat == :Exit
+                return convert(Cint, 1006)
+            end
+        end
+    end
+    return convert(Cint, 0)
+end
 
-# funtion setbranchcallbackmodel(model::CplexMathProgModel)
-#     cpxcallback = cfunction(masterbranchcallback, Cint, (Ptr{Void}, Ptr{Void}, Cint, Ptr{Void}, Cint, Cint, Cint, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cchar}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cint}))
-#     stat = @cpx_ccall(sethbranchcallbackfunc, Cint, (
-#                       Ptr{Void}, 
-#                       Ptr{Void},
-#                       Any,
-#                       ), 
-#                       model.env, cpxcallback, model)
-#     if stat != 0
-#         throw(CplexError(model.env, stat))
-#     end
-#     nothing
-# end
+function setbranchcallbackmodel(model::CplexMathProgModel)
+    cpxcallback = cfunction(masterbranchcallback, Cint, (Ptr{Void}, Ptr{Void}, Cint, Ptr{Void}, Cint, Cint, Cint, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cchar}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cint}))
+    stat = @cpx_ccall(sethbranchcallbackfunc, Cint, (
+                      Ptr{Void}, 
+                      Ptr{Void},
+                      Any,
+                      ), 
+                      model.inner.env, cpxcallback, model)
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+    nothing
+end
+
+function getnodelb(d::CplexCallbackData)
+    n = num_var(d.model)
+    lb = Array(Cdouble,n)
+    stat = @cpx_ccall(getcallbacknodelb, Cint, (Ptr{Void},Ptr{Void},Cint,Ptr{Cdouble},Cint,Cint),
+                      d.model.env.ptr, d.cbdata, d.where, lb, 0, n-1)
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+    return lb
+end
+
+function getnodeub(d::CplexCallbackData)
+    n = num_var(d.model)
+    ub = Array(Cdouble,n)
+    stat = @cpx_ccall(getcallbacknodeub, Cint, (Ptr{Void},Ptr{Void},Cint,Ptr{Cdouble},Cint,Cint),
+                      d.model.env.ptr, d.cbdata, d.where, ub, 0, n-1)
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+    return ub
+end
+
+function getnodeobjval(d::CplexCallbackData)
+    val = Array(Cdouble,1)
+    stat = @cpx_ccall(getcallbacknodeobjval, Cint, (Ptr{Void},Ptr{Void},Cint,Ptr{Cdouble}),
+                      d.model.env.ptr, d.cbdata, d.where, val)
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+    return val[1]
+end
