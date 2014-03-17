@@ -3,7 +3,7 @@ using CPLEX, JuMP, MathProgBase
 mod = Model(solver=CplexSolver(CPX_PARAM_PRELINEAR=0, CPX_PARAM_PREIND=0, CPX_PARAM_ADVIND=0, CPX_PARAM_MIPSEARCH=1,CPX_PARAM_MIPCBREDLP=0))
 m_internal = MathProgBase.model(CplexSolver())
 
-MathProgBase.loadproblem!(m_internal, "/Users/huchette/.julia/v0.3/JuMP/examples/data/bnatt350.mps")
+MathProgBase.loadproblem!(m_internal, "/Users/huchette/Applications/IBM/ILOG/CPLEX_Studio126/cplex/examples/data/location.lp")
 
 # grab MathProgBase data
 c = MathProgBase.getobj(m_internal)
@@ -30,8 +30,29 @@ end
 
 function callback(cb)
     # println("in callback!")
-    addBranch(cb, x[1] >= 1)
-    addBranch(cb, x[1] <= 0)
+    xval = MathProgBase.cbgetlpsolution(cb)
+    objval = cbgetnodeobjval(cb)
+    feas = cbgetintfeas(cb)
+
+    maxinf = maxobj = bestj = -Inf
+    for j in 1:getNumVars(mod)
+        if feas[j] == 1
+            xj_inf = xval[j] - floor(xval[j])
+            if xj_inf > 0.5
+                xj_inf = 1.0 - xj_inf
+            end
+            if (xj_inf >= maxinf) && (xj_inf > maxinf || abs(c[j]) >= maxobj)
+                bestj = j
+                maxinf = xj_inf
+                maxobj = abs(c[j])
+            end
+        end
+    end
+    if bestj >= 1
+        xj_lo = floor(xval[bestj])
+        addBranch(cb, x[bestj] >= xj_lo + 1, objval)
+        addBranch(cb, x[bestj] <= xj_lo,     objval)
+    end
 end
 
 solve(mod; load_model_only=true)

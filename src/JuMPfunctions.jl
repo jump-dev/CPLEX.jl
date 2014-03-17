@@ -10,6 +10,10 @@ end
 export setBranchCallback
 
 function addBranch(cbdata::MathProgCallbackData, aff::JuMP.LinearConstraint)
+    addBranch(cbdata, aff, cbgetnodeobjval(cbdata))
+end
+
+function addBranch(cbdata::MathProgCallbackData, aff::JuMP.LinearConstraint, nodeest)
     if length(aff.terms.vars) == 1 # branch on variable
         @assert (isinf(aff.lb) + isinf(aff.ub) == 1)
         up = isinf(aff.ub) ? true : false
