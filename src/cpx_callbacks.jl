@@ -31,74 +31,23 @@ function setcallbackcut(cbdata::CallbackData, where::Cint, ind::Vector{Cint}, va
                       Ptr{Cdouble},
                       Cint
                       ),
-                      cbdata.model.env, cbdata.cbdata, where, len, rhs, sns, ind-1, val, 0) # CPX_USECUT_FORCE = 0
+                      cbdata.model.env.ptr, cbdata.cbdata, where, len, rhs, sns, ind.-1, val, 0) # CPX_USECUT_FORCE = 0
     if stat != 0
         throw(CplexError(cbdata.model.env.ptr, stat))
     end
 end
 
 for f in (:cbcut, :cblazy)
-    @eval ($f)(cbdata::CallbackData, where::Integer, ind::Vector{Cint}, val::Vector{Cdouble}, sense::Char, rhs::Cdouble) = 
+    @eval ($f)(cbdata::CallbackData, where::Cint, ind::Vector{Cint}, val::Vector{Cdouble}, sense::Char, rhs::Cdouble) = 
         setcallbackcut(cbdata, where, ind, val, sense, rhs)
 end
 
-# function cbdet_mipsol_objbst(d.cbdata, d.where) 
-
-# end
-
-# function cbget_mipnode_objbst(d.cbdata, d.where)
-
-# end
-
-# TODO: think we want solution vector for this function, not obj. val
-function cbget_mipnode_rel(cbdata::CallbackData, where::Integer)
-  sol = Array(Cdouble, 1)
-  stat = @cpx_ccall(getcallbacknodeobjval, Cint, (
-                    Ptr{Void},
-                    Ptr{Void},
-                    Cint,
-                    Ptr{Cdouble}
-                    ),
-                    cbdata.model.env.ptr, cbdata.cbdata, where, sol)
-  if stat != 0
-    throw(CplexError(cbdata.model.env, stat))
-  end
-  return sol[1]
-end
-
-cbget_mipsol_sol(cbdata::CallbackData, where::Integer) = cbget_mipsol_sol(cbdata, where, Array(Cdouble, num_var(cbdata.model)))
-
-function cbget_mipsol_sol(cbdata::CallbackData, where::Integer, sol::Array{Cdouble})
-    nvar = num_var(cbdata.model)
-    # sol = Array(Cdouble, nvar)
-    stat = @cpx_ccall(getcallbacknodex, Cint, (
-                      Ptr{Void},
-                      Ptr{Void},
-                      Cint,
-                      Ptr{Cdouble},
-                      Cint,
-                      Cint
-                      ),
-                      cbdata.model.env, cbdata.cbdata, where, sol, 0, nvar-1)
+function cbbranch(cbdata::CallbackData, where::Cint, idx::Cint, LU::Cchar, bd::Cdouble, nodeest::Cdouble)
+    seqnum = Array(Cint,1)
+    stat = @cpx_ccall(branchcallbackbranchbds, Cint, (Ptr{Void},Ptr{Void},Cint,Cint,Ptr{Cint},Ptr{Cchar},Ptr{Cdouble},Cdouble,Ptr{Void},Ptr{Cint}),
+                      cbdata.model.env.ptr,cbdata.cbdata,where,convert(Cint,1),[idx],[LU],[bd],nodeest,C_NULL,seqnum)
     if stat != 0
-      # throw(CplexError(cbdata.model.env, stat))
-      error(CplexError(cbdata.model.env, stat).msg)
+        throw(CplexError(cbdata.model.env.ptr, stat))
     end
-    return sol
+    return seqnum[1]
 end
-
-# cbget_nodcnt(cbdata::CallbackData, where::Integer)
-#   stat = @cpx_ccall(getcallbacknodeinfo, Cint, (
-#                     Ptr{Void},
-#                     Ptr{Void},
-#                     Cint,
-#                     Cint,
-#                     Cint,
-#                     Ptr{Void}
-#                     ),
-#                     cbdata.model.env, cbdata.cbdata, where, nodeindex, whichinfo, result_p)
-#   if stat != 0
-#     throw(CplexError(cbdata.model.env, ret))
-#   end
-#   return result_p[1]
-# end

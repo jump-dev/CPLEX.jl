@@ -1,5 +1,19 @@
 export CplexSolver
 
+export cbaddboundbranchup,
+       cbaddboundbranchdown,
+       setmathprogbranchcallback!,
+       getnodelb,
+       getnodeubgetnodeobjval,
+       cbgetnodesleft,
+       cbgetmipiterations,
+       cbgetfeasibility,
+       cbgetgap,
+       cbgetstarttime,
+       cbgetdetstarttime,
+       cbgettimestamp,
+       cbgetdettimestamp
+
 type CplexMathProgModel <: AbstractMathProgModel
   inner::Model
   lazycb
@@ -207,9 +221,9 @@ function cbgetmipsolution(d::CplexCallbackData)
     n = num_var(d.model)
     sol = Array(Cdouble, n)
     stat = @cpx_ccall(getcallbackincumbent, Cint, (Ptr{Void},Ptr{Void},Cint,Ptr{Cdouble},Cint,Cint),
-                      d.model.env.ptr, d.cbdata, d.where, sol, 0, n-1)
+                      d.cbdata.model.env.ptr, d.cbdata.cbdata, d.where, sol, 0, n-1)
     if stat != 0
-        error(CplexError(cbdata.model.env, stat).msg)
+        error(CplexError(d.cbdata.model.env, stat).msg)
     end
     return sol
 end
@@ -217,9 +231,9 @@ end
 function cbgetmipsolution(d::CplexCallbackData, sol::Vector{Cdouble})
     @assert d.state == :MIPSol
     stat = @cpx_ccall(getcallbackincumbent, Cint, (Ptr{Void},Ptr{Void},Cint,Ptr{Cdouble},Cint,Cint),
-                      d.model.env.ptr, d.cbdata, d.where, sol, 0, length(sol)-1)
+                      d.cbdata.model.env.ptr, d.cbdata.cbdata, d.where, sol, 0, length(sol)-1)
     if stat != 0
-        error(CplexError(cbdata.model.env, stat).msg)
+        error(CplexError(d.cbdata.model.env, stat).msg)
     end
     return nothing
 end
@@ -229,9 +243,9 @@ function cbgetlpsolution(d::CplexCallbackData)
     n = num_var(d.model)
     sol = Array(Cdouble, n)
     stat = @cpx_ccall(getcallbacknodex, Cint, (Ptr{Void},Ptr{Void},Cint,Ptr{Cdouble},Cint,Cint),
-                      d.model.env.ptr, d.cbdata, d.where, sol, 0, n-1)
+                      d.cbdata.model.env.ptr, d.cbdata.cbdata, d.where, sol, 0, n-1)
     if stat != 0
-        error(CplexError(cbdata.model.env, stat).msg)
+        error(CplexError(d.cbdata.model.env, stat).msg)
     end
     return sol
 end
@@ -239,9 +253,9 @@ end
 function cbgetlpsolution(d::CplexCallbackData, sol::Vector{Cdouble})
     @assert d.state == :MIPNode
     stat = @cpx_ccall(getcallbacknodex, Cint, (Ptr{Void},Ptr{Void},Cint,Ptr{Cdouble},Cint,Cint),
-                      d.model.env.ptr, d.cbdata, d.where, sol, 0, length(sol)-1)
+                      d.cbdata.model.env.ptr, d.cbdata.cbdata, d.where, sol, 0, length(sol)-1)
     if stat != 0
-        error(CplexError(cbdata.model.env, stat).msg)
+        error(CplexError(d.cbdata.model.env, stat).msg)
     end
     return nothing
 end
@@ -262,9 +276,9 @@ for (func,param,typ) in ((:cbgetexplorednodes,CPX_CALLBACK_INFO_NODE_COUNT_LONG,
         function $(func)(d::CplexCallbackData)
             val = Array($(typ),1)
             ret = @cpx_ccall(getcallbackinfo, Cint, (Ptr{Void},Ptr{Void},Cint,Cint,Ptr{Void}),
-                              d.model.env.ptr, d.cbdata, d.where, $(convert(Cint,param)), val)
+                              d.cbdata.model.env.ptr, d.cbdata.cbdata, d.where, $(convert(Cint,param)), val)
             if ret != 0
-                error(CplexError(cbdata.model.env, stat).msg)
+                error(CplexError(d.cbdata.model.env, stat).msg)
             end
             return val[1]
         end
@@ -292,7 +306,17 @@ function cbsetsolutionvalue!(d::CplexCallbackData,varidx,value)
     @assert 1 <= varidx <= num_var(d.cbdata.model)
     unsafe_store!(d.sol, value, varidx)
 end
-    
+
+function cbaddboundbranchup(d::CplexCallbackData,idx,bd,nodeest)   
+    cbbranch(d.cbdata, d.where,convert(Cint,idx),convert(Cchar,'L'),bd,nodeest)
+    unsafe_store!(d.userinteraction_p, convert(Cint,CPX_CALLBACK_SET), 1)
+end
+
+function cbaddboundbranchdown(d::CplexCallbackData,idx,bd,nodeest) 
+    cbbranch(d.cbdata, d.where,convert(Cint,idx),convert(Cchar,'U'),bd,nodeest)
+    unsafe_store!(d.userinteraction_p, convert(Cint,CPX_CALLBACK_SET), 1)
+end
+
 # breaking abstraction, define our low-level callback to eliminate
 # a level of indirection
 function mastercallback(env::Ptr{Void}, cbdata::Ptr{Void}, wherefrom::Cint, userdata::Ptr{Void}, userinteraction_p::Ptr{Cint})
@@ -419,7 +443,7 @@ function masterbranchcallback(env::Ptr{Void},
     return convert(Cint, 0)
 end
 
-function setbranchcallbackmodel(model::CplexMathProgModel)
+function setmathprogbranchcallback!(model::CplexMathProgModel)
     cpxcallback = cfunction(masterbranchcallback, Cint, (Ptr{Void}, Ptr{Void}, Cint, Ptr{Void}, Cint, Cint, Cint, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cchar}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cint}))
     stat = @cpx_ccall(sethbranchcallbackfunc, Cint, (
                       Ptr{Void}, 

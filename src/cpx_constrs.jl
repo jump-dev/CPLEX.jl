@@ -28,7 +28,7 @@ function add_constrs!(model::Model, cbegins::IVec, inds::IVec, coeffs::FVec, rel
                           Ptr{Ptr{Cchar}},  # col names
                           Ptr{Ptr{Cchar}}   # row names
                           ), 
-                          model.env.ptr, model.lp, 0, ncons, nnz, rhs, rel, cbegins-1, inds-1, coeffs, C_NULL, C_NULL)
+                          model.env.ptr, model.lp, 0, ncons, nnz, rhs, rel, cbegins.-1, inds.-1, coeffs, C_NULL, C_NULL)
 
         if stat != 0   
            throw(CplexError(model.env, stat)) 
@@ -311,7 +311,7 @@ function get_constr_matrix(model::Model)
     throw(CplexError(model.env, stat))
   end
   cmatbeg[end] = nnz # add the last entry that Julia wants
-  return SparseMatrixCSC(m, n, convert(Vector{Int64}, cmatbeg+1), convert(Vector{Int64}, cmatind+1), cmatval)
+  return SparseMatrixCSC(m, n, convert(Vector{Int64}, cmatbeg.+1), convert(Vector{Int64}, cmatind.+1), cmatval)
 end
 
 get_num_sos(model::Model) = @cpx_ccall(getnumsos, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
