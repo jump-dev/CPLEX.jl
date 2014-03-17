@@ -190,6 +190,13 @@ end
 
 function set_rhs!(model::Model, rhs::Vector)
     ncons = num_constr(model)
+    @assert ncons == length(rhs)
+    getrhs = get_rhs(model)
+    for i in 1:ncons
+        if rhs[i] != getrhs[i]
+            println("$i: $(rhs[i]), $(getrhs[i])")
+        end
+    end
     stat = @cpx_ccall(chgrhs, Cint, (
                       Ptr{Void},
                       Ptr{Void},
@@ -238,14 +245,18 @@ function set_constrLB!(model::Model, lb)
     for i = 1:num_constr(model)
         if senses[i] == 'G' || senses[i] == 'E'
             # Do nothing
-        elseif senses[i] == 'L' && lb[i] != -Inf
-            # LEQ constraint with non-NegInf LB implies a range
-            if isapprox(lb[i], rhs[i])
-                # seems to be an equality
-                senses[i] = 'E'
-                sense_changed = true
+        elseif senses[i] == 'L' 
+            if lb[i] != -Inf
+                # LEQ constraint with non-NegInf LB implies a range
+                if isapprox(lb[i], rhs[i])
+                    # seems to be an equality
+                    senses[i] = 'E'
+                    sense_changed = true
+                else
+                    error("Tried to set LB != -Inf on a LEQ constraint (index $i)")
+                end
             else
-                error("Tried to set LB != -Inf on a LEQ constraint (index $i)")
+                lb[i] = rhs[i]
             end
         end
     end
@@ -255,28 +266,32 @@ function set_constrLB!(model::Model, lb)
     set_rhs!(model, lb)
 end
 
-function set_constrUB!(model::Model, lb)
+function set_constrUB!(model::Model, ub)
     senses = get_constr_senses(model)
     rhs    = get_rhs(model)
     sense_changed = false
     for i = 1:num_constr(model)
         if senses[i] == 'L' || senses[i] == 'E'
             # Do nothing
-        elseif senses[i] == 'L' && lb[i] != -Inf
-            # GEQ constraint with non-PosInf UB implies a range
-            if isapprox(ub[i], rhs[i])
-                # seems to be an equality
-                senses[i] = 'E'
-                sense_changed = true
+        elseif senses[i] == 'G' 
+            if ub[i] != Inf
+                # GEQ constraint with non-PosInf UB implies a range
+                if isapprox(ub[i], rhs[i])
+                    # seems to be an equality
+                    senses[i] = 'E'
+                    sense_changed = true
+                else
+                    error("Tried to set UB != +Inf on a GEQ constraint (index $i)")
+                end
             else
-                error("Tried to set LB != +Inf on a GEQ constraint (index $i)")
+              ub[i] = rhs[i]
             end
         end
     end
     if sense_changed
         set_constr_senses!(model, senses)
     end
-    set_rhs!(model, lb)
+    set_rhs!(model, ub)
 end
 
 function get_nnz(model::Model)

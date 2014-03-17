@@ -1,7 +1,7 @@
 export CplexSolver
 
-export cbaddboundbranchup,
-       cbaddboundbranchdown,
+export cbaddboundbranchup!,
+       cbaddboundbranchdown!,
        setmathprogbranchcallback!,
        getnodelb,
        getnodeubgetnodeobjval,
@@ -307,12 +307,12 @@ function cbsetsolutionvalue!(d::CplexCallbackData,varidx,value)
     unsafe_store!(d.sol, value, varidx)
 end
 
-function cbaddboundbranchup(d::CplexCallbackData,idx,bd,nodeest)   
+function cbaddboundbranchup!(d::CplexCallbackData,idx,bd,nodeest)   
     cbbranch(d.cbdata, d.where,convert(Cint,idx),convert(Cchar,'L'),bd,nodeest)
     unsafe_store!(d.userinteraction_p, convert(Cint,CPX_CALLBACK_SET), 1)
 end
 
-function cbaddboundbranchdown(d::CplexCallbackData,idx,bd,nodeest) 
+function cbaddboundbranchdown!(d::CplexCallbackData,idx,bd,nodeest) 
     cbbranch(d.cbdata, d.where,convert(Cint,idx),convert(Cchar,'U'),bd,nodeest)
     unsafe_store!(d.userinteraction_p, convert(Cint,CPX_CALLBACK_SET), 1)
 end
