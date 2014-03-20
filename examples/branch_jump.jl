@@ -32,29 +32,33 @@ function callback(cb)
     # println("in callback!")
     xval = MathProgBase.cbgetlpsolution(cb)
     objval = cbgetnodeobjval(cb)
+    best = MathProgBase.cbgetobj(cb)
     feas = cbgetintfeas(cb)
 
-    maxinf = maxobj = bestj = -Inf
-    for j in 1:getNumVars(mod)
-        if feas[j] == 1
-            xj_inf = xval[j] - floor(xval[j])
-            if xj_inf > 0.5
-                xj_inf = 1.0 - xj_inf
-            end
-            if (xj_inf >= maxinf) && (xj_inf > maxinf || abs(c[j]) >= maxobj)
-                bestj = j
-                maxinf = xj_inf
-                maxobj = abs(c[j])
+    if  MathProgBase.cbgetexplorednodes(cb) < 2
+        maxinf = maxobj = bestj = -Inf
+        for j in 1:getNumVars(mod)
+            if feas[j] == 1
+                xj_inf = xval[j] - floor(xval[j])
+                if xj_inf > 0.5
+                    xj_inf = 1.0 - xj_inf
+                end
+                if (xj_inf >= maxinf) && (xj_inf > maxinf || abs(c[j]) >= maxobj)
+                    bestj = j
+                    maxinf = xj_inf
+                    maxobj = abs(c[j])
+                end
             end
         end
-    end
-    if bestj >= 1
-        xj_lo = floor(xval[bestj])
-        addBranch(cb, x[bestj] >= xj_lo + 1, objval)
-        addBranch(cb, x[bestj] <= xj_lo,     objval)
+        if bestj >= 1
+            xj_lo = floor(xval[bestj])
+            addBranch(cb, x[bestj] >= xj_lo + 1, objval)
+            addBranch(cb, x[bestj] <= xj_lo,     objval)
+        end
     end
 end
 
 solve(mod; load_model_only=true)
 setBranchCallback(mod, callback)
 solve(mod)
+

@@ -222,10 +222,10 @@ setheuristiccallback!(m::CplexMathProgModel,f) = (m.heuristiccb = f)
 setbranchcallback!(m::CplexMathProgModel,f) = (m.branchcb = f)
 
 function cbgetmipsolution(d::CplexCallbackData)
-    # @assert d.state == :MIPSol
+    @assert d.state == :MIPSol
     n = num_var(d.cbdata.model)
     sol = Array(Cdouble, n)
-    stat = @cpx_ccall(getcallbackincumbent, Cint, (Ptr{Void},Ptr{Void},Cint,Ptr{Cdouble},Cint,Cint),
+    stat = @cpx_ccall(getcallbacknodex, Cint, (Ptr{Void},Ptr{Void},Cint,Ptr{Cdouble},Cint,Cint),
                       d.cbdata.model.env.ptr, d.cbdata.cbdata, d.where, sol, 0, n-1)
     if stat != 0
         error(CplexError(d.cbdata.model.env, stat).msg)
@@ -234,8 +234,8 @@ function cbgetmipsolution(d::CplexCallbackData)
 end
 
 function cbgetmipsolution(d::CplexCallbackData, sol::Vector{Cdouble})
-    # @assert d.state == :MIPSol
-    stat = @cpx_ccall(getcallbackincumbent, Cint, (Ptr{Void},Ptr{Void},Cint,Ptr{Cdouble},Cint,Cint),
+    @assert d.state == :MIPSol
+    stat = @cpx_ccall(getcallbacknodex, Cint, (Ptr{Void},Ptr{Void},Cint,Ptr{Cdouble},Cint,Cint),
                       d.cbdata.model.env.ptr, d.cbdata.cbdata, d.where, sol, 0, length(sol)-1)
     if stat != 0
         error(CplexError(d.cbdata.model.env, stat).msg)
@@ -244,7 +244,7 @@ function cbgetmipsolution(d::CplexCallbackData, sol::Vector{Cdouble})
 end
 
 function cbgetlpsolution(d::CplexCallbackData) 
-    # @assert d.state == :MIPNode
+    @assert d.state == :MIPNode
     n = num_var(d.cbdata.model)
     sol = Array(Cdouble, n)
     stat = @cpx_ccall(getcallbacknodex, Cint, (Ptr{Void},Ptr{Void},Cint,Ptr{Cdouble},Cint,Cint),
@@ -256,7 +256,7 @@ function cbgetlpsolution(d::CplexCallbackData)
 end
 
 function cbgetlpsolution(d::CplexCallbackData, sol::Vector{Cdouble})
-    # @assert d.state == :MIPNode
+    @assert d.state == :MIPNode
     stat = @cpx_ccall(getcallbacknodex, Cint, (Ptr{Void},Ptr{Void},Cint,Ptr{Cdouble},Cint,Cint),
                       d.cbdata.model.env.ptr, d.cbdata.cbdata, d.where, sol, 0, length(sol)-1)
     if stat != 0
@@ -268,7 +268,6 @@ end
 for (func,param,typ) in ((:cbgetexplorednodes,CPX_CALLBACK_INFO_NODE_COUNT_LONG,:Int64),
                          (:cbgetnodesleft,CPX_CALLBACK_INFO_NODES_LEFT_LONG,:Int64),
                          (:cbgetmipiterations,CPX_CALLBACK_INFO_MIP_ITERATIONS_LONG,:Int64),
-                         (:cbgetobj,CPX_CALLBACK_INFO_BEST_INTEGER,:Cdouble),
                          (:cbgetbestbound,CPX_CALLBACK_INFO_BEST_REMAINING,:Cdouble),
                          (:cbgetobj,CPX_CALLBACK_INFO_BEST_INTEGER,:Cdouble),
                          (:cbgetgap,CPX_CALLBACK_INFO_MIP_REL_GAP,:Cdouble),
@@ -372,10 +371,6 @@ function masterheuristiccallback(env::Ptr{Void},
     unsafe_store!(checkfeas_p, convert(Cint,CPX_OFF), 1)
     return convert(Cint, 0)
 end
-
-# User callback function should be of the form:
-# callback(cbdata::MathProgCallbackData)
-# return :Exit to indicate an error
 
 function setmathproglazycallback!(model::CplexMathProgModel)
     cpxcallback = cfunction(mastercallback, Cint, (Ptr{Void}, Ptr{Void}, Cint, Ptr{Void}, Ptr{Cint}))
