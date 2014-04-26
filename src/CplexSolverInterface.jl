@@ -158,8 +158,7 @@ function status(m::CplexMathProgModel)
   elseif ret in [:CPX_STAT_INFEASIBLE, :CPXMIP_INFEASIBLE]
     stat = :Infeasible
   elseif ret in [:CPX_STAT_INForUNBD, :CPXMIP_INForUNBD]
-    # this is an ugly hack that should be fixed at some point
-    stat = :Unbounded
+    stat = :InfeasibleOrUnbounded
   else
     stat = ret
   end
