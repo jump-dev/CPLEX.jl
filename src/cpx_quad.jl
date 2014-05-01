@@ -24,7 +24,7 @@ function add_qpterms!(model::Model, qr::IVec, qc::IVec, qv::FVec)
                           Ptr{Cint},
                           Ptr{Cdouble}
                           ),
-                          model.env.ptr, model.lp, convert(Array{Cint,1}, Q.colptr[1:end-1]-1), convert(Array{Cint,1},qmatcnt), convert(Array{Cint,1}, Q.rowval-1), Q.nzval)
+                          model.env.ptr, model.lp, convert(Array{Cint,1}, Q.colptr[1:end-1].-1), convert(Array{Cint,1},qmatcnt), convert(Array{Cint,1}, Q.rowval.-1), Q.nzval)
         if stat != 0
             throw(CplexError(model.env, stat))
         end 
@@ -131,7 +131,7 @@ function add_qconstr!(model::Model, lind::IVec, lval::FVec, qr::IVec, qc::IVec, 
                           Ptr{Float64}, # qval
                           Ptr{Uint8}    # name
                           ), 
-                          model.env.ptr, model.lp, lnnz, qnnz, rhs, rel, lind-1, lval, qr-1, qc-1, qv, C_NULL)
+                          model.env.ptr, model.lp, lnnz, qnnz, rhs, rel, lind.-1, lval, qr.-1, qc.-1, qv, C_NULL)
         if stat != 0
             throw(CplexError(model.env, stat))
         end 

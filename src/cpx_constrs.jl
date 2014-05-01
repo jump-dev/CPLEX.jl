@@ -340,7 +340,7 @@ function add_sos!(model::Model, sostype::Symbol, idx::Vector{Int}, weight::Vecto
                       Ptr{Cdouble},
                       Ptr{Ptr{Cchar}}
                       ),
-                      model.env.ptr, model.lp, convert(Cint, 1), convert(Cint, nelem), [convert(Cchar, typ)], Cint[0], convert(Vector{Cint}, idx-1), weight, C_NULL)
+                      model.env.ptr, model.lp, convert(Cint, 1), convert(Cint, nelem), [convert(Cchar, typ)], Cint[0], convert(Vector{Cint}, idx.-1), weight, C_NULL)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
