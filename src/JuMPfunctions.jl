@@ -10,8 +10,8 @@ export setBranchCallback,
        rejectIncumbent
 
 type CPLEXcb
-    branchcb
-    incumbentcb
+    branchcallback
+    incumbentcallback
 end
 
 function initcb(m::JuMPModel)
@@ -28,7 +28,36 @@ end
 
 function setBranchCallback(m::JuMPModel, f::Function)
     initcb(m)
-    m.ext[:cb].branchcb = f
+    m.ext[:cb].branchcallback = f
+
+    function registercb(m::JuMPModel)
+        if isa(m.ext[:cb].branchcallback, Function)
+            function branchcallback(d::MathProgCallbackData)
+                state = cbgetstate(d)
+                if state == :MIPSol
+                    cbgetmipsolution(d,m.colVal)
+                else
+                    cbgetlpsolution(d,m.colVal)
+                end
+                m.ext[:cb].branchcallback(d)
+            end
+            setbranchcallback!(m.internalModel, branchcallback)
+        end
+        if isa(m.ext[:cb].incumbentcallback, Function)
+            function incumbentcallback(d::MathProgCallbackData)
+                state = cbgetstate(d)
+                if state == :MIPSol
+                    cbgetmipsolution(d,m.colVal)
+                else
+                    cbgetlpsolution(d,m.colVal)
+                end
+                m.ext[:cb].incumbentcallback(d)
+            end
+            setbranchcallback!(m.internalModel, incumbentcallback)
+        end
+    end
+    m.presolve = registercb
+    nothing
 end
 
 function addBranch(cbdata::MathProgCallbackData, aff::JuMP.LinearConstraint)
@@ -58,13 +87,42 @@ end
 #     println("setting incumbent callback")
 # end
 
-function setBranchCallback(m::JuMPModel, f::Function)
+function setIncumbentCallback(m::JuMPModel, f::Function)
     initcb(m)
-    m.ext[:cb].incumbentcb = f
+    m.ext[:cb].incumbentcallback = f
+
+    function registercb(m::JuMPModel)
+        if isa(m.ext[:cb].branchcallback, Function)
+            function branchcallback(d::MathProgCallbackData)
+                state = cbgetstate(d)
+                if state == :MIPSol
+                    cbgetmipsolution(d,m.colVal)
+                else
+                    cbgetlpsolution(d,m.colVal)
+                end
+                m.ext[:cb].branchcallback(d)
+            end
+            setbranchcallback!(m.internalModel, branchcallback)
+        end
+        if isa(m.ext[:cb].incumbentcallback, Function)
+            function incumbentcallback(d::MathProgCallbackData)
+                state = cbgetstate(d)
+                if state == :MIPSol
+                    cbgetmipsolution(d,m.colVal)
+                else
+                    cbgetlpsolution(d,m.colVal)
+                end
+                m.ext[:cb].incumbentcallback(d)
+            end
+            setincumbentcallback!(m.internalModel, incumbentcallback)
+        end
+    end
+    m.presolve = registercb
+    nothing
 end
 
 getIncumbent(cbdata::MathProgCallbackData) = 
-    unsafe_pointer_to_objref(cbdata.sol)::Array{Float64}
+    pointer_to_array(cbdata.sol,1)::Vector{Float64}
 
 acceptIncumbent(cbdata::MathProgCallbackData) = 
     cbprocessincumbent!(cbdata, true)

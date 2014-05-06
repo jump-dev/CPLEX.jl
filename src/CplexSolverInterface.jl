@@ -264,7 +264,7 @@ function cbgetlpsolution(d::CplexCallbackData)
 end
 
 function cbgetlpsolution(d::CplexCallbackData, sol::Vector{Cdouble})
-    @assert d.state == :MIPNode
+    @assert d.state == :MIPNode || d.state == :MIPIncumbent
     stat = @cpx_ccall(getcallbacknodex, Cint, (Ptr{Void},Ptr{Void},Cint,Ptr{Cdouble},Cint,Cint),
                       d.cbdata.model.env.ptr, d.cbdata.cbdata, d.where, sol, 0, length(sol)-1)
     if stat != 0
@@ -331,9 +331,9 @@ end
 
 function cbprocessincumbent!(d::CplexCallbackData,acc::Bool)
     if acc
-        unsafe_store!(d.infeas_p, convert(Cint, 1), 1)
+        unsafe_store!(d.isfeas_p, convert(Cint, 1), 1)
     else
-        unsafe_store!(d.infeas_p, convert(Cint, 0), 1)
+        unsafe_store!(d.isfeas_p, convert(Cint, 0), 1)
     end
     nothing
 end
@@ -371,7 +371,7 @@ function masterheuristiccallback(env::Ptr{Void},
                                  userdata::Ptr{Void}, 
                                  objval_p::Ptr{Cdouble}, 
                                  xx::Ptr{Cdouble}, 
-                                 checkfeas_p::Ptr{Cint},
+                                 isfeas_p::Ptr{Cint},
                                  userinteraction_p::Ptr{Cint})
     model = unsafe_pointer_to_objref(userdata)::CplexMathProgModel
     cpxrawcb = CallbackData(cbdata, model.inner)
@@ -385,7 +385,7 @@ function masterheuristiccallback(env::Ptr{Void},
             end
         end
     end
-    unsafe_store!(checkfeas_p, convert(Cint,CPX_OFF), 1)
+    unsafe_store!(isfeas_p, convert(Cint,CPX_OFF), 1)
     return convert(Cint, 0)
 end
 
@@ -501,7 +501,7 @@ function masterincumbentcallback(env::Ptr{Void},
        wherefrom == CPX_CALLBACK_MIP_INCUMBENT_HEURSOLN || 
        wherefrom == CPX_CALLBACK_MIP_INCUMBENT_USERSOLN
         state = :MIPIncumbent
-        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, xx, isfeas_p, userinteraction_p)
+        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, xx, isfeas_p, useraction_p)
         if model.incumbentcb != nothing
             stat = model.incumbentcb(cpxcb)
             if stat == :Exit
@@ -512,7 +512,14 @@ function masterincumbentcallback(env::Ptr{Void},
     return convert(Cint, 0)
 end
 function setmathprogincumbentcallback!(model::CplexMathProgModel)
-    cpxcallback = cfunction(masterincumbentcallback, Cint, (Ptr{Void}, Ptr{Void}, Cint, Ptr{Void}, Cint, Cint, Cint, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cchar}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cint}))
+    cpxcallback = cfunction(masterincumbentcallback, Cint, (Ptr{Void}, 
+                                                            Ptr{Void}, 
+                                                            Cint, 
+                                                            Ptr{Void}, 
+                                                            Cdouble,
+                                                            Ptr{Cdouble},
+                                                            Ptr{Cint},
+                                                            Ptr{Cint}))
     stat = @cpx_ccall(setincumbentcallbackfunc, Cint, (
                       Ptr{Void}, 
                       Ptr{Void},
