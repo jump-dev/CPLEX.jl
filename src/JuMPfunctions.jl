@@ -5,7 +5,6 @@ typealias JuMPModel JuMP.Model
 export setBranchCallback,
        addBranch,
        setIncumbentCallback,
-       getIncumbent,
        acceptIncumbent,
        rejectIncumbent
 
@@ -107,11 +106,8 @@ function setIncumbentCallback(m::JuMPModel, f::Function)
         if isa(m.ext[:cb].incumbentcallback, Function)
             function incumbentcallback(d::MathProgCallbackData)
                 state = cbgetstate(d)
-                if state == :MIPSol
-                    cbgetmipsolution(d,m.colVal)
-                else
-                    cbgetlpsolution(d,m.colVal)
-                end
+                @assert state == :MIPIncumbent
+                m.colVal = pointer_to_array(d.sol,1)::Vector{Float64} # This will only work for CPLEX!
                 m.ext[:cb].incumbentcallback(d)
             end
             setincumbentcallback!(m.internalModel, incumbentcallback)
@@ -120,9 +116,6 @@ function setIncumbentCallback(m::JuMPModel, f::Function)
     m.presolve = registercb
     nothing
 end
-
-getIncumbent(cbdata::MathProgCallbackData) = 
-    pointer_to_array(cbdata.sol,1)::Vector{Float64}
 
 acceptIncumbent(cbdata::MathProgCallbackData) = 
     cbprocessincumbent!(cbdata, true)
