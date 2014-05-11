@@ -17,29 +17,29 @@ export cbaddboundbranchup!,
        cbgetintfeas
 
 type CplexMathProgModel <: AbstractMathProgModel
-  inner::Model
-  lazycb
-  cutcb
-  heuristiccb
-  branchcb
-  incumbentcb
+    inner::Model
+    lazycb
+    cutcb
+    heuristiccb
+    branchcb
+    incumbentcb
 end
 
 function CplexMathProgModel(;options...)
-  env = Env()
-  set_param!(env, "CPX_PARAM_MIPCBREDLP", 0) # access variables in original problem, not presolved
-  set_param!(env, "CPX_PARAM_PRELINEAR", 0) # MAY NOT BE NECESSARY, only performs linear presolving so can recover original variables
-  set_param!(env, "CPX_PARAM_SCRIND", 1) # output logs to stdout by default
-  for (name,value) in options
-    set_param!(env, string(name), value)
-  end
-
-  m = CplexMathProgModel(Model(env, "Cplex.jl"), nothing, nothing, nothing, nothing, nothing)
-  return m
+    env = Env()
+    # set_param!(env, "CPX_PARAM_MIPCBREDLP", 0) # access variables in original problem, not presolved
+    # set_param!(env, "CPX_PARAM_PRELINEAR", 0) # MAY NOT BE NECESSARY, only performs linear presolving so can recover original variables
+    set_param!(env, "CPX_PARAM_SCRIND", 1) # output logs to stdout by default
+    for (name,value) in options
+        set_param!(env, string(name), value)
+    end
+    
+    m = CplexMathProgModel(Model(env, "Cplex.jl"), nothing, nothing, nothing, nothing, nothing)
+    return m
 end
 
 immutable CplexSolver <: AbstractMathProgSolver
-  options
+    options
 end
 CplexSolver(;kwargs...) = CplexSolver(kwargs)
 model(s::CplexSolver) = CplexMathProgModel(;s.options...)
@@ -264,7 +264,7 @@ function cbgetlpsolution(d::CplexCallbackData)
 end
 
 function cbgetlpsolution(d::CplexCallbackData, sol::Vector{Cdouble})
-    @assert d.state == :MIPNode || d.state == :MIPIncumbent
+    @assert d.state == :MIPNode || d.state == :MIPIncumbent || d.state == :MIPBranch
     stat = @cpx_ccall(getcallbacknodex, Cint, (Ptr{Void},Ptr{Void},Cint,Ptr{Cdouble},Cint,Cint),
                       d.cbdata.model.env.ptr, d.cbdata.cbdata, d.where, sol, 0, length(sol)-1)
     if stat != 0
@@ -390,6 +390,8 @@ function masterheuristiccallback(env::Ptr{Void},
 end
 
 function setmathproglazycallback!(model::CplexMathProgModel)
+    set_param!(model.inner.env, "CPX_PARAM_MIPCBREDLP", 0)
+    set_param!(model.inner.env, "CPX_PARAM_PRELINEAR", 0)
     cpxcallback = cfunction(mastercallback, Cint, (Ptr{Void}, Ptr{Void}, Cint, Ptr{Void}, Ptr{Cint}))
     stat = @cpx_ccall(setlazyconstraintcallbackfunc, Cint, (
                       Ptr{Void}, 
@@ -404,6 +406,8 @@ function setmathproglazycallback!(model::CplexMathProgModel)
 end
 
 function setmathprogcutcallback!(model::CplexMathProgModel)
+    set_param!(model.inner.env, "CPX_PARAM_MIPCBREDLP", 0)
+    set_param!(model.inner.env, "CPX_PARAM_PRELINEAR", 0)
     cpxcallback = cfunction(mastercallback, Cint, (Ptr{Void}, Ptr{Void}, Cint, Ptr{Void}, Ptr{Cint}))
     stat = @cpx_ccall(setusercutcallbackfunc, Cint, (
                       Ptr{Void}, 
@@ -418,6 +422,8 @@ function setmathprogcutcallback!(model::CplexMathProgModel)
 end
 
 function setmathprogheuristiccallback!(model::CplexMathProgModel)
+    set_param!(model.inner.env, "CPX_PARAM_MIPCBREDLP", 0)
+    set_param!(model.inner.env, "CPX_PARAM_PRELINEAR", 0)
     cpxcallback = cfunction(masterheuristiccallback, Cint, (Ptr{Void}, Ptr{Void}, Cint, Ptr{Void}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cint}, Ptr{Cint}))
     stat = @cpx_ccall(setheuristiccallbackfunc, Cint, (
                       Ptr{Void}, 
@@ -444,7 +450,7 @@ function masterbranchcallback(env::Ptr{Void},
                               lu::Ptr{Cchar},
                               bd::Ptr{Cdouble},
                               nodeest::Ptr{Cdouble},
-                              userinteraction_p::Ptr{Cint});
+                              userinteraction_p::Ptr{Cint})
     model = unsafe_pointer_to_objref(userdata)::CplexMathProgModel
     cpxrawcb = CallbackData(cbdata, model.inner)
     if wherefrom == CPX_CALLBACK_MIP_BRANCH
@@ -461,6 +467,8 @@ function masterbranchcallback(env::Ptr{Void},
 end
 
 function setmathprogbranchcallback!(model::CplexMathProgModel)
+    set_param!(model.inner.env, "CPX_PARAM_MIPCBREDLP", 0)
+    set_param!(model.inner.env, "CPX_PARAM_PRELINEAR", 0)
     cpxcallback = cfunction(masterbranchcallback, Cint, (Ptr{Void}, 
                                                          Ptr{Void}, 
                                                          Cint, 
@@ -512,6 +520,8 @@ function masterincumbentcallback(env::Ptr{Void},
     return convert(Cint, 0)
 end
 function setmathprogincumbentcallback!(model::CplexMathProgModel)
+    set_param!(model.inner.env, "CPX_PARAM_MIPCBREDLP", 0)
+    set_param!(model.inner.env, "CPX_PARAM_PRELINEAR", 0)
     cpxcallback = cfunction(masterincumbentcallback, Cint, (Ptr{Void}, 
                                                             Ptr{Void}, 
                                                             Cint, 

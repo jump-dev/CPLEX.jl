@@ -107,7 +107,7 @@ function setIncumbentCallback(m::JuMPModel, f::Function)
             function incumbentcallback(d::MathProgCallbackData)
                 state = cbgetstate(d)
                 @assert state == :MIPIncumbent
-                m.colVal = pointer_to_array(d.sol,1)::Vector{Float64} # This will only work for CPLEX!
+                m.colVal = pointer_to_array(d.sol,m.numCols) # This will only work for CPLEX!
                 m.ext[:cb].incumbentcallback(d)
             end
             setincumbentcallback!(m.internalModel, incumbentcallback)
