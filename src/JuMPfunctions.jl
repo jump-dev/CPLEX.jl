@@ -1,7 +1,5 @@
 # Import functions that act on JuMP Models
 
-typealias JuMPModel JuMP.Model
-
 export setBranchCallback,
        addBranch,
        setIncumbentCallback,
@@ -13,23 +11,23 @@ type CPLEXcb
     incumbentcallback
 end
 
-function initcb(m::JuMPModel)
+function initcb(m::JuMP.Model)
     if !haskey(m.ext, :cb)
         m.ext[:cb] = CPLEXcb(nothing,nothing)
     end
 end
 
-# function setBranchCallback(m::JuMPModel, f::Function) 
+# function setBranchCallback(m::JuMP.Model, f::Function) 
 #     branchcallback(d::MathProgCallbackData) = f(d)
 #     setbranchcallback!(m.internalModel, branchcallback)
 #     println("setting branch callback")
 # end
 
-function setBranchCallback(m::JuMPModel, f::Function)
+function setBranchCallback(m::JuMP.Model, f::Function)
     initcb(m)
     m.ext[:cb].branchcallback = f
 
-    function registercb(m::JuMPModel)
+    function registercb(m::JuMP.Model)
         if isa(m.ext[:cb].branchcallback, Function)
             function branchcallback(d::MathProgCallbackData)
                 state = cbgetstate(d)
@@ -77,17 +75,17 @@ function addBranch(cbdata::MathProgCallbackData, aff::JuMP.LinearConstraint, nod
     end
 end
 
-# function setIncumbentCallback(m::JuMPModel, f::Function)
+# function setIncumbentCallback(m::JuMP.Model, f::Function)
 #     incumbentcallback(d::MathProgCallbackData) = f(d)
 #     setincumbentcallback!(m.internalModel, incumbentcallback)
 #     println("setting incumbent callback")
 # end
 
-function setIncumbentCallback(m::JuMPModel, f::Function)
+function setIncumbentCallback(m::JuMP.Model, f::Function)
     initcb(m)
     m.ext[:cb].incumbentcallback = f
 
-    function registercb(m::JuMPModel)
+    function registercb(m::JuMP.Model)
         if isa(m.ext[:cb].branchcallback, Function)
             function branchcallback(d::MathProgCallbackData)
                 state = cbgetstate(d)
