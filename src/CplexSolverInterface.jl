@@ -384,6 +384,8 @@ function masterheuristiccallback(env::Ptr{Void},
             if stat == :Exit
                 return convert(Cint, 1006)
             end
+            xvect = pointer_to_array(cpxcb.sol,convert(Int64,numvar(model)))::Vector{Float64}
+            unsafe_store!(objval_p, dot(get_obj(model.inner),xvect), 1)
         end
     end
     unsafe_store!(isfeas_p, convert(Cint,CPX_OFF), 1)
@@ -393,6 +395,7 @@ end
 function setmathproglazycallback!(model::CplexMathProgModel)
     set_param!(model.inner.env, "CPX_PARAM_MIPCBREDLP", 0)
     set_param!(model.inner.env, "CPX_PARAM_PRELINEAR", 0)
+    set_param!(model.inner.env, "CPX_PARAM_REDUCE", CPX_PREREDUCE_PRIMALONLY)
     cpxcallback = cfunction(mastercallback, Cint, (Ptr{Void}, Ptr{Void}, Cint, Ptr{Void}, Ptr{Cint}))
     stat = @cpx_ccall(setlazyconstraintcallbackfunc, Cint, (
                       Ptr{Void}, 
@@ -470,6 +473,7 @@ end
 function setmathprogbranchcallback!(model::CplexMathProgModel)
     set_param!(model.inner.env, "CPX_PARAM_MIPCBREDLP", 0)
     set_param!(model.inner.env, "CPX_PARAM_PRELINEAR", 0)
+    set_param!(model.inner.env, "CPX_PARAM_REDUCE", CPX_PREREDUCE_PRIMALONLY)
     cpxcallback = cfunction(masterbranchcallback, Cint, (Ptr{Void}, 
                                                          Ptr{Void}, 
                                                          Cint, 
@@ -523,6 +527,7 @@ end
 function setmathprogincumbentcallback!(model::CplexMathProgModel)
     set_param!(model.inner.env, "CPX_PARAM_MIPCBREDLP", 0)
     set_param!(model.inner.env, "CPX_PARAM_PRELINEAR", 0)
+    set_param!(model.inner.env, "CPX_PARAM_REDUCE", CPX_PREREDUCE_PRIMALONLY)
     cpxcallback = cfunction(masterincumbentcallback, Cint, (Ptr{Void}, 
                                                             Ptr{Void}, 
                                                             Cint, 

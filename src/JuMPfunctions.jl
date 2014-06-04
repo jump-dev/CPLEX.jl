@@ -45,14 +45,11 @@ function setBranchCallback(m::JuMPModel, f::Function)
         if isa(m.ext[:cb].incumbentcallback, Function)
             function incumbentcallback(d::MathProgCallbackData)
                 state = cbgetstate(d)
-                if state == :MIPSol
-                    cbgetmipsolution(d,m.colVal)
-                else
-                    cbgetlpsolution(d,m.colVal)
-                end
+                @assert state == :MIPIncumbent
+                m.colVal = pointer_to_array(d.sol,m.numCols)
                 m.ext[:cb].incumbentcallback(d)
             end
-            setbranchcallback!(m.internalModel, incumbentcallback)
+            setincumbentcallback!(m.internalModel, incumbentcallback)
         end
     end
     m.presolve = registercb
