@@ -84,7 +84,7 @@ module CPLEX
     include("cpx_callbacks.jl")
     include("cpx_highlevel.jl")
 
-    if Pkg.installed("JuMP") != nothing
+    if isdir(Pkg.dir("JuMP"))
         try 
             eval(Expr(:import,:JuMP))
             include("JuMPfunctions.jl")
