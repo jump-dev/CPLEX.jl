@@ -1,21 +1,5 @@
 export CplexSolver
 
-export cbaddboundbranchup!,
-       cbaddboundbranchdown!,
-       setmathprogbranchcallback!,
-       cbgetnodelb,
-       cbgetnodeub,
-       cbgetnodeobjval,
-       cbgetnodesleft,
-       cbgetmipiterations,
-       cbgetfeasibility,
-       cbgetgap,
-       cbgetstarttime,
-       cbgetdetstarttime,
-       cbgettimestamp,
-       cbgetdettimestamp,
-       cbgetintfeas
-
 type CplexMathProgModel <: AbstractMathProgModel
     inner::Model
     lazycb
@@ -213,6 +197,22 @@ end
 ###########
 # Callbacks
 ###########
+export cbaddboundbranchup!,
+       cbaddboundbranchdown!,
+       setmathprogbranchcallback!,
+       cbgetnodelb,
+       cbgetnodeub,
+       cbgetnodeobjval,
+       cbgetnodesleft,
+       cbgetmipiterations,
+       cbgetfeasibility,
+       cbgetgap,
+       cbgetstarttime,
+       cbgetdetstarttime,
+       cbgettimestamp,
+       cbgetdettimestamp,
+       cbgetintfeas
+
 type CplexCallbackData <: MathProgCallbackData
     cbdata::CallbackData
     state::Symbol
@@ -304,7 +304,7 @@ const sensemap = ['=' => 'E', '<' => 'L', '>' => 'G']
 function cbaddcut!(d::CplexCallbackData,varidx,varcoef,sense,rhs)
     @assert d.state == :MIPNode
     cbcut(d.cbdata, d.where, convert(Vector{Cint}, varidx), float(varcoef), sensemap[sense], float(rhs))
-    unsafe_store!(d.userinteraction_p, convert(Cint,CPX_CALLBACK_SET), 1)
+    unsafe_store!(d.userinteraction_p, convert(Cint,CPX_CALLBACK_ABORT_CUT_LOOP), 1)
 end
 
 function cbaddlazy!(d::CplexCallbackData,varidx,varcoef,sense,rhs)
@@ -329,8 +329,8 @@ function cbaddboundbranchdown!(d::CplexCallbackData,idx,bd,nodeest)
     unsafe_store!(d.userinteraction_p, convert(Cint,CPX_CALLBACK_SET), 1)
 end
 
-function cbprocessincumbent!(d::CplexCallbackData,acc::Bool)
-    if acc
+function cbprocessincumbent!(d::CplexCallbackData,accept::Bool)
+    if accept
         unsafe_store!(d.isfeas_p, convert(Cint, 1), 1)
     else
         unsafe_store!(d.isfeas_p, convert(Cint, 0), 1)
@@ -352,7 +352,8 @@ function mastercallback(env::Ptr{Void}, cbdata::Ptr{Void}, wherefrom::Cint, user
                 return convert(Cint, 1006)
             end
         end
-    elseif wherefrom == CPX_CALLBACK_MIP_CUT_LOOP || wherefrom == CPX_CALLBACK_MIP_CUT_LAST
+    # elseif wherefrom == CPX_CALLBACK_MIP_CUT_LOOP || wherefrom == CPX_CALLBACK_MIP_CUT_LAST
+      elseif wherefrom == CPX_CALLBACK_MIP_CUT_LAST
         state = :MIPNode
         cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, [0.0], Cint[0], userinteraction_p)
         if model.cutcb != nothing

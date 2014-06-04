@@ -134,6 +134,12 @@ function get_unbounded_ray(model::Model)
   end
 end
 
+function get_node_count(model::Model)
+  ret = @cpx_ccall(getnodecnt, Cint, (Ptr{Void},Ptr{Void}), model.env.ptr, model.lp)
+  ret == 0 && error("Error getting node count")
+  return ret
+end
+
 const status_symbols = [
     1   => :CPX_STAT_OPTIMAL,
     2   => :CPX_STAT_UNBOUNDED,
