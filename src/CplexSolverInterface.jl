@@ -459,7 +459,7 @@ function masterbranchcallback(env::Ptr{Void},
     cpxrawcb = CallbackData(cbdata, model.inner)
     if wherefrom == CPX_CALLBACK_MIP_BRANCH
         state = :MIPBranch
-        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, [0.0], Cint[0], userinteraction_p)
+        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, convert(Ptr{Float64},[0.0]), Cint[0], userinteraction_p)
         if model.branchcb != nothing
             stat = model.branchcb(cpxcb)
             if stat == :Exit
