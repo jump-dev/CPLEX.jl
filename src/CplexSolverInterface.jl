@@ -345,7 +345,7 @@ function mastercallback(env::Ptr{Void}, cbdata::Ptr{Void}, wherefrom::Cint, user
     cpxrawcb = CallbackData(cbdata, model.inner)
     if wherefrom == CPX_CALLBACK_MIP_CUT_FEAS || wherefrom == CPX_CALLBACK_MIP_CUT_UNBD
         state = :MIPSol
-        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, [0.0], Cint[0], userinteraction_p)
+        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, convert(Ptr{Float64},[0.0]), Cint[0], userinteraction_p)
         if model.lazycb != nothing
             stat = model.lazycb(cpxcb)
             if stat == :Exit
@@ -355,7 +355,7 @@ function mastercallback(env::Ptr{Void}, cbdata::Ptr{Void}, wherefrom::Cint, user
     # elseif wherefrom == CPX_CALLBACK_MIP_CUT_LOOP || wherefrom == CPX_CALLBACK_MIP_CUT_LAST
       elseif wherefrom == CPX_CALLBACK_MIP_CUT_LAST
         state = :MIPNode
-        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, [0.0], Cint[0], userinteraction_p)
+        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, convert(Ptr{Float64},[0.0]), Cint[0], userinteraction_p)
         if model.cutcb != nothing
             stat = model.cutcb(cpxcb)
             if stat == :Exit
