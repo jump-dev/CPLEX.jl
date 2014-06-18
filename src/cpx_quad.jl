@@ -5,13 +5,13 @@ function add_qpterms!(model::Model, qr::IVec, qc::IVec, qv::FVec)
     n = num_var(model)
     ((m = length(qr)) == length(qc) == length(qv)) || error("Inconsistent argument dimensions.")
     nqv = copy(qv)
-    Q = sparse(qr, qc, nqv)
+    Q = sparse(qr, qc, nqv, n, n)
     if istriu(Q) || istril(Q) || issym(Q)
         Q = Q + Q' - spdiagm(diag(Q)) # reconstruct full matrix like CPLEX wants
     else
         error("Matrix Q must be either symmetric or triangular")
     end
-    if nnz(Q) > 0 #nfilled in 0.3
+    if nnz(Q) > 0
         qmatcnt = Array(Cint, n)
         for k = 1:n
           qmatcnt[k] = Q.colptr[k+1] - Q.colptr[k]
@@ -41,7 +41,7 @@ function add_qpterms!(model, H::SparseMatrixCSC{Float64}) # H must be symmetric
     n = num_var(model)
     (H.m == n && H.n == n) || error("H must be an n-by-n symmetric matrix.")
     
-    nnz_h = nnz(H) #nfilled in 0.3
+    nnz_h = nnz(H)
     qr = Array(Cint, nnz_h)
     qc = Array(Cint, nnz_h)
     qv = Array(Float64, nnz_h)
