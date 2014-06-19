@@ -78,6 +78,7 @@ setconstrUB!(m::CplexMathProgModel, ub) = set_constrUB!(m.inner, ub)
 getobj(m::CplexMathProgModel) = get_obj(m.inner)
 setobj!(m::CplexMathProgModel, c) = set_obj!(m.inner, c)
 
+addvar!(m::CplexMathProgModel, l, u, coeff) = add_var!(m.inner, [], [], l, u, coeff)
 addvar!(m::CplexMathProgModel, constridx, constrcoef, l, u, coeff) = add_var!(m.inner, constridx, constrcoef, l, u, coeff)
 
 function addconstr!(m::CplexMathProgModel, varidx, coef, lb, ub) 
