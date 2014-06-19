@@ -27,7 +27,7 @@ CPLEX.set_vartype!(model, ['C', 'I', 'B'])
 CPLEX.add_constr!(model, ones(3), '<', 10.)
 CPLEX.add_constr!(model, [1., 2., 1.], '<', 15.)
 
-optimize!(model)
+CPLEX.optimize!(model)
 
 println("sol = $(CPLEX.get_solution(model))")
 println("objv = $(CPLEX.get_objval(model))")

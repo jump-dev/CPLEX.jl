@@ -26,7 +26,7 @@ model = CPLEX.cplex_model(env;
 
 println(model)
 
-optimize!(model)
+CPLEX.optimize!(model)
 
 println()
 println("soln = $(CPLEX.get_solution(model))")
