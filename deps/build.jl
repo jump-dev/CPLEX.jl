@@ -11,6 +11,7 @@ libcplex = library_dependency("libcplex",aliases=["libcplex124.so","cplex124","l
         env = "CPLEX_STUDIO_BINARIES$v"
         if haskey(ENV,env)
             for d in split(ENV[env],';')
+                contains(d,"cplex") || continue
                 provides(Binaries, d, libcplex)
             end
         end
