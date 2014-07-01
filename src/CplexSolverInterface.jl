@@ -164,7 +164,17 @@ getreducedcosts(m::CplexMathProgModel) = get_reduced_costs(m.inner)
 getconstrduals(m::CplexMathProgModel) = get_constr_duals(m.inner)
 getrawsolver(m::CplexMathProgModel) = m.inner
 
-setvartype!(m::CplexMathProgModel, v::Vector{Char}) = set_vartype!(m.inner, v)
+function setvartype!(m::CplexMathProgModel, v::Vector{Char})
+  target_int = all(x->isequal(x,'C'), v)
+  prob_type = get_prob_type(m.inner)
+  if target_int && prob_type in [:LP,:QP,:QCP]
+    return nothing
+  else
+    set_vartype!(m.inner, v)
+    return nothing
+  end
+end
+
 function getvartype(m::CplexMathProgModel)
   if m.has_int
     return get_vartype(m.inner)

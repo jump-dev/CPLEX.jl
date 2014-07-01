@@ -88,6 +88,18 @@ function get_obj(model::Model)
     return obj
 end
 
+const type_map = Dict{Cint,Symbol}([  0,    1,    3,  5,    7,    8,  10,    11],
+                                   [:LP,:MILP,:MILP,:QP,:MIQP,:MIQP,:QCP,:MIQCP])
+
+function get_prob_type(model::Model)
+  ret = @cpx_ccall(getprobtype, Cint, (
+                   Ptr{Void},
+                   Ptr{Void}),
+                   model.env.ptr, model.lp)
+  ret == -1 && error("No problem of environment")
+  return type_map[ret]
+end
+
 function set_obj!(model::Model, c::Vector)
     nvars = num_var(model)
     stat = @cpx_ccall(chgobj, Cint, (
