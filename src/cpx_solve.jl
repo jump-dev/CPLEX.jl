@@ -151,8 +151,8 @@ function get_basis(model::Model)
     end
     for it in 1:num_constr(model)
         rbasis[it] = conmap[rbasis[it]]
-        if (rbasis[it] == 1) && (csense[it] == 'G')
-            rbasis[it] = -1
+        if (rbasis[it] == -1) && (csense[it] == convert(Cchar,'L'))
+            rbasis[it] = 1
         end
     end
     return cbasis, rbasis
