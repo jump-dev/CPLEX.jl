@@ -134,6 +134,30 @@ function get_unbounded_ray(model::Model)
   end
 end
 
+const varmap = Dict(Cint[ 0,1,2,3],
+                    Cint[-1,0,1,2])
+const conmap = Dict(Cint[ 0,1,2],
+                    Cint[-1,0,1])
+function get_basis(model::Model)
+    cbasis = Array(Cint, num_var(model))
+    vbasis = Array(Cint, num_constr(model))
+    stat = @cpx_ccall(getbase, Cint, (Ptr{Void},Ptr{Void},Ptr{Cint},Ptr{Cint}),
+                      model.env.ptr, model.lp, cbasis, rbasis)
+    stat != 0 && throw(CplexError(model.env, stat))
+
+    csense = get_constr_senses(model)
+    for it in 1:num_var(model)
+        cbasis[it] = varmap(cbasis[it])
+    end
+    for it in 1:num_constr(model)
+        vbasis[it] = conmap(vbasis[it])
+        if (vbasis[it] == 1) && (csense[it] == 'G')
+            vbasis[it] = -1
+        end
+    end
+    return cbasis, rbasis
+end
+
 function get_node_count(model::Model)
   ret = @cpx_ccall(getnodecnt, Cint, (Ptr{Void},Ptr{Void}), model.env.ptr, model.lp)
   ret == 0 && error("Error getting node count")

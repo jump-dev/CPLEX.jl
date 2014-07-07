@@ -186,6 +186,8 @@ end
 getinfeasibilityray(m::CplexMathProgModel) = get_infeasibility_ray(m.inner)
 getunboundedray(m::CplexMathProgModel) = get_unbounded_ray(m.inner)
 
+getbasis(m::CplexMathProgModel) = get_basis(m.inner)
+
 setwarmstart!(m::CplexMathProgModel, v) = set_warm_start!(m.inner, v) 
 
 addsos1!(m::CplexMathProgModel, idx, weight) = add_sos!(m.inner, :SOS1, idx, weight)
