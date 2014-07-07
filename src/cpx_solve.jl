@@ -134,25 +134,27 @@ function get_unbounded_ray(model::Model)
   end
 end
 
-const varmap = Dict(Cint[ 0,1,2,3],
-                    Cint[-1,0,1,2])
-const conmap = Dict(Cint[ 0,1,2],
-                    Cint[-1,0,1])
+const varmap = Dict([  0,     1,  2,    3],
+                    [:lb,:basic,:ub,:free])
+const conmap = Dict([  0,     1,  2],
+                    [:lb,:basic,:ub])
 function get_basis(model::Model)
-    cbasis = Array(Cint, num_var(model))
-    rbasis = Array(Cint, num_constr(model))
+    cval = Array(Cint, num_var(model))
+    rval = Array(Cint, num_constr(model))
     stat = @cpx_ccall(getbase, Cint, (Ptr{Void},Ptr{Void},Ptr{Cint},Ptr{Cint}),
-                      model.env.ptr, model.lp, cbasis, rbasis)
+                      model.env.ptr, model.lp, cval, rval)
     stat != 0 && throw(CplexError(model.env, stat))
 
     csense = get_constr_senses(model)
+    cbasis = Array(Symbol, num_var(model))
+    rbasis = Array(Symbol, num_constr(model))
     for it in 1:num_var(model)
-        cbasis[it] = varmap[cbasis[it]]
+        cbasis[it] = varmap[cval[it]]
     end
     for it in 1:num_constr(model)
-        rbasis[it] = conmap[rbasis[it]]
-        if (rbasis[it] == -1) && (csense[it] == convert(Cchar,'L'))
-            rbasis[it] = 1
+        rbasis[it] = conmap[rval[it]]
+        if (rbasis[it] == :lb) && (csense[it] == convert(Cchar,'L'))
+            rbasis[it] = :ub
         end
     end
     return cbasis, rbasis
