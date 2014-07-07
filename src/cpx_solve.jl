@@ -134,10 +134,10 @@ function get_unbounded_ray(model::Model)
   end
 end
 
-const varmap = Dict([  0,     1,  2,    3],
-                    [:lb,:basic,:ub,:free])
-const conmap = Dict([  0,     1,  2],
-                    [:lb,:basic,:ub])
+const varmap = Dict([               0,     1,               2,    3],
+                    [:NonbasicAtLower,:Basic,:NonbasicAtUpper,:Free])
+const conmap = Dict([               0,     1,               2],
+                    [:NonbasicAtLower,:Basic,:NonbasicAtUpper])
 function get_basis(model::Model)
     cval = Array(Cint, num_var(model))
     rval = Array(Cint, num_constr(model))
@@ -153,8 +153,8 @@ function get_basis(model::Model)
     end
     for it in 1:num_constr(model)
         rbasis[it] = conmap[rval[it]]
-        if (rbasis[it] == :lb) && (csense[it] == convert(Cchar,'L'))
-            rbasis[it] = :ub
+        if (rbasis[it] == :NonbasicAtLower) && (csense[it] == convert(Cchar,'L'))
+            rbasis[it] = :NonbasicAtUpper
         end
     end
     return cbasis, rbasis
