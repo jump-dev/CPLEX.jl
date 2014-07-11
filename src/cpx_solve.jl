@@ -12,6 +12,30 @@ function optimize!(model::Model)
   end
 end
 
+set_branching_priority(model::Model, priority) = 
+    set_branching_priority(model, Cint[1:num_var(model)], priority)
+
+set_branching_priority(model::Model, indices, priority) = 
+    set_branching_priority(model, indices, priority, C_NULL)
+
+set_branching_priority(model, indices, priority, direction) = 
+    set_branching_priority(model, convert(Vector{Cint},indices), convert(Vector{Cint},priority), direction)
+
+function set_branching_priority(model::Model, indices::Vector{Cint}, priority::Vector{Cint}, direction)
+    @assert (cnt = length(indices)) == length(priority)
+    isa(direction,Vector) && @assert cnt == length(direction)
+    stat = @cpx_ccall(copyorder, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Cint,
+                      Ptr{Cint},
+                      Ptr{Cint},
+                      Ptr{Cint}),
+                      model.env.ptr, model.lp, cnt, indices.-1, priority, direction)
+    stat == 0 || throw(CplexError(model.env, stat))
+    return nothing
+end
+
 function get_objval(model::Model)
   objval = Array(Cdouble, 1)
   stat = @cpx_ccall(getobjval, Cint, (
