@@ -347,3 +347,27 @@ function add_sos!(model::Model, sostype::Symbol, idx::Vector{Int}, weight::Vecto
     nelem > 0 && (model.has_int = true)
     return nothing
 end
+
+add_indicator_constraint(model::Model, idx, coeff, sense, rhs, indicator) = 
+    add_indicator_constraint(model, convert(Vector{Cint},idx), convert(Vector{Cdouble},coeff), 
+                             convert(Cchar,sense), convert(Cdouble,rhs), convert(Cint,indicator), convert(Cint,0))
+function add_indicator_constraint(model::Model, idx::Vector{Cint}, coeff::Vector{Cdouble}, sense::Cchar, rhs::Cdouble, indicator::Cint, comp::Cint)
+    (nzcnt = length(idx)) == length(coeff) || error("Incompatible lengths in constraint specification")
+    stat = @cpx_ccall(addindconstr, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Cint,
+                      Cint,
+                      Cint,
+                      Cdouble,
+                      Cchar,
+                      Ptr{Cint},
+                      Ptr{Cdouble},
+                      Ptr{Cchar}),
+                      model.env.ptr, model.lp, convert(Cint,indicator), convert(Cint,comp), 
+                      nzcnt, rhs, sense, idx, coeff, C_NULL)
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+    return nothing
+end
