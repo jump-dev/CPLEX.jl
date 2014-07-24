@@ -176,10 +176,10 @@ function setvartype!(m::CplexMathProgModel, v::Vector{Char})
 end
 
 function getvartype(m::CplexMathProgModel)
-  if m.has_int
+  if m.inner.has_int
     return get_vartype(m.inner)
   else
-    return fill('C', num_var(m))
+    return fill('C', num_var(m.inner))
   end
 end
 
