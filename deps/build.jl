@@ -3,11 +3,20 @@ using BinDeps
 
 @osx_only dlopen("libstdc++",RTLD_GLOBAL)
 
-libcplex = library_dependency("libcplex",aliases=["libcplex124.so","cplex124","libcplex125.so","cplex125","cplex1251","libcplex1251.so", "libcplex125.dylib","libcplex1251.dylib","libcplex1251.jnilib","cplex1260","libcplex1260.dylib"])
+cpxvers = ["124","125","1251","1260"]
+
+libnames = {}
+for v in cpxvers
+    push!(libnames, "cplex$v")
+    push!(libnames, "libcplex$v.so")
+    push!(libnames, "libcplex$v.dylib")
+end
+
+libcplex = library_dependency("libcplex",aliases=libnames)
 
 @windows_only begin
-    cpxvers = ["126"]
-    for v in cpxvers
+    wincpxvers = ["126"]
+    for v in wincpxvers
         env = "CPLEX_STUDIO_BINARIES$v"
         if haskey(ENV,env)
             for d in split(ENV[env],';')
