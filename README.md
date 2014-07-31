@@ -22,11 +22,8 @@ NOTE: CPLEX [does not officially support linking to their dynamic C library](htt
   ```
 (or manually clone this module to your ``.julia`` directory).
 
-4. Check that your version is included in in ``deps/build.jl`` in the aliases for the library dependency; if not, simply add the name of your CPLEX dynamic library.
+4. Check that your version is included in ``deps/build.jl`` in the aliases for the library dependency; if not, open an issue.
 
-5. Open a Julia prompt and run ``julia> Pkg.build("CPLEX")``. The module should now be ready for use!
-
-Troubleshooting
----------------
-* There is a potential conflict between the C++ library used by CPLEX and that which is used by newer Julia installs. If ``Pkg.build("CPLEX")`` fails, this might be to blame: you must enter ``dlopen("libstdc++",RTLD_GLOBAL)`` before loading the CPLEX module to avoid C++ linking issues (This statement is currently included for OS-X by default, as it's unclear the issue exists on other platforms). 
-* If you have any install problems, find any bugs, or want any features added, feel free to open an issue.
+Note for windows
+----------------
+There may be compatibility issues with 32 bit Windows and newer CPLEX releases. If you encounter problems, open an issue, but we may not be able to help.
