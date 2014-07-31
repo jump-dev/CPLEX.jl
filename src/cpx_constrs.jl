@@ -89,8 +89,8 @@ function add_rangeconstrs!(model::Model, cbegins::IVec, inds::IVec, coeffs::FVec
                           Ptr{Cint},        # matrix start
                           Ptr{Cint},        # matrix index
                           Ptr{Cdouble},     # matrix values
-                          Ptr{Ptr{Cchar}},  # col names
-                          Ptr{Ptr{Cchar}}   # row names
+                          Ptr{Void},        # col names
+                          Ptr{Void}         # row names
                           ), 
                           model.env.ptr, model.lp, 0, ncons, nnz, lb, sense, cbegins[1:end-1], inds, coeffs, C_NULL, C_NULL)
         if stat != 0   
@@ -104,7 +104,7 @@ function add_rangeconstrs!(model::Model, cbegins::IVec, inds::IVec, coeffs::FVec
                       Ptr{Cint},
                       Ptr{Cdouble}
                       ),
-                      model.env.ptr, model.lp, 1, [i-1], [ub[i]-lb[i]])
+                      model.env.ptr, model.lp, 1, Cint[i-1], [ub[i]-lb[i]])
             if stat != 0
                 throw(CplexError(model.env, stat))
             end
