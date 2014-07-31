@@ -7,8 +7,8 @@ CPLEX.jl is a Julia interface for the CPLEX optimization software. CPLEX functio
 
 CPLEX.jl is intended for use with the [MathProgBase](https://github.com/JuliaOpt/MathProgBase.jl) solver interface; an internal API, while present, is not documented.
 
-Setting up CPLEX
-----------------
+Setting up CPLEX on OS X and Linux
+----------------------------------
 
 NOTE: CPLEX [does not officially support linking to their dynamic C library](https://www.ibm.com/developerworks/community/forums/html/topic?id=ca96447c-fe2d-4e8a-900e-cfe358a9bcec&ps=25), which is necessary for use from Julia. However, the steps outlined below have worked for OS-X, Windows, and Linux machines. 
 
@@ -26,4 +26,5 @@ NOTE: CPLEX [does not officially support linking to their dynamic C library](htt
 
 Note for windows
 ----------------
-There may be compatibility issues with 32 bit Windows and newer CPLEX releases. If you encounter problems, open an issue, but we may not be able to help.
+
+Currently, CPLEX.jl is compatible only with 64-bit CPLEX and 64-bit Julia on Windows. CPLEX.jl attemps to automatically find the CPLEX library based on the ``CPLEX_STUDIO_BINARIES`` environmental variable set by the CPLEX installer.  
