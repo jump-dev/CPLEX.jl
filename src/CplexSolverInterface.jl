@@ -161,7 +161,7 @@ getobjbound(m::CplexMathProgModel) = get_best_bound(m.inner)
 getsolution(m::CplexMathProgModel) = get_solution(m.inner)
 getconstrsolution(m::CplexMathProgModel) = get_constr_solution(m.inner)
 getreducedcosts(m::CplexMathProgModel) = get_reduced_costs(m.inner)
-getconstrduals(m::CplexMathProgModel) = get_constr_duals(m.inner)
+getconstrduals(m::CplexMathProgModel) = -get_constr_duals(m.inner)
 getrawsolver(m::CplexMathProgModel) = m.inner
 
 function setvartype!(m::CplexMathProgModel, v::Vector{Char})
