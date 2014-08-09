@@ -88,7 +88,7 @@ function get_obj(model::Model)
     return obj
 end
 
-const type_map = Dict{Cint,Symbol}([  0,    1,    3,  5,    7,    8,  10,    11],
+const type_map = Dict{Int,Symbol}([  0,    1,    3,  5,    7,    8,  10,    11],
                                    [:LP,:MILP,:MILP,:QP,:MIQP,:MIQP,:QCP,:MIQCP])
 
 function get_prob_type(model::Model)
@@ -97,7 +97,7 @@ function get_prob_type(model::Model)
                    Ptr{Void}),
                    model.env.ptr, model.lp)
   ret == -1 && error("No problem of environment")
-  return type_map[ret]
+  return type_map[int(ret)]
 end
 
 function set_obj!(model::Model, c::Vector)

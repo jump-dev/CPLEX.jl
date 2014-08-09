@@ -164,22 +164,38 @@ getreducedcosts(m::CplexMathProgModel) = get_reduced_costs(m.inner)
 getconstrduals(m::CplexMathProgModel) = -get_constr_duals(m.inner)
 getrawsolver(m::CplexMathProgModel) = m.inner
 
-function setvartype!(m::CplexMathProgModel, v::Vector{Char})
-  target_int = all(x->isequal(x,'C'), v)
+const var_type_map = [
+  'C' => :Cont,
+  'B' => :Bin,
+  'I' => :Int,
+  'S' => :SemiCont,
+  'N' => :SemiInt
+]
+
+const rev_var_type_map = [
+  :Cont => 'C',
+  :Bin => 'B',
+  :Int => 'I',
+  :SemiCont => 'S',
+  :SemiInt => 'N'
+]
+
+function setvartype!(m::CplexMathProgModel, v::Vector{Symbol})
+  target_int = all(x->isequal(x,:Cont), v)
   prob_type = get_prob_type(m.inner)
   if target_int && prob_type in [:LP,:QP,:QCP]
     return nothing
   else
-    set_vartype!(m.inner, v)
+    set_vartype!(m.inner, map(x->rev_var_type_map[x], v))
     return nothing
   end
 end
 
 function getvartype(m::CplexMathProgModel)
   if m.inner.has_int
-    return get_vartype(m.inner)
+    return map(x->var_type_map[x], get_vartype(m.inner))
   else
-    return fill('C', num_var(m.inner))
+    return fill(:Cont, num_var(m.inner))
   end
 end
 
