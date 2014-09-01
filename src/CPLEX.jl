@@ -8,8 +8,7 @@ module CPLEX
     import Base.convert, Base.show, Base.copy
 
     # Standard LP interface
-    require(joinpath(Pkg.dir("MathProgBase"),"src","MathProgSolverInterface.jl"))
-    importall MathProgSolverInterface
+    importall MathProgBase.SolverInterface
 
     # exported functions
     # export is_valid,
