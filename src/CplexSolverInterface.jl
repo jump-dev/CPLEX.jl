@@ -423,7 +423,7 @@ function masterheuristiccallback(env::Ptr{Void},
             unsafe_store!(objval_p, dot(get_obj(model.inner),xvect), 1)
         end
     end
-    unsafe_store!(isfeas_p, convert(Cint,CPX_OFF), 1)
+    unsafe_store!(isfeas_p, convert(Cint,CPX_ON), 1)
     return convert(Cint, 0)
 end
 
