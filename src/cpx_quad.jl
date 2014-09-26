@@ -29,6 +29,7 @@ function add_qpterms!(model::Model, qr::IVec, qc::IVec, qv::FVec)
             throw(CplexError(model.env, stat))
         end 
     end
+    model.has_qc = true
     nothing
 end
 
