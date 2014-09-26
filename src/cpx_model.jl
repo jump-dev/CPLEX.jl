@@ -4,12 +4,12 @@ type Model
     has_int::Bool # problem has integer variables?
     has_qc::Bool # problem has quadratic constraints?
     callback::Any
+end
 
-    function Model(env::Env, lp::Ptr{Void})
-        model = new(env, lp, false, false, nothing)
-        finalizer(model, free_problem)
-        model
-    end
+function Model(env::Env, lp::Ptr{Void})
+    model = Model(env, lp, false, false, nothing)
+    finalizer(model, free_problem)
+    model
 end
 
 function Model(env::Env, name::ASCIIString)
@@ -20,6 +20,25 @@ function Model(env::Env, name::ASCIIString)
         throw(CplexError(model.env, stat))
     end
     return Model(env, tmp)
+end
+
+# internal function that wraps finalizer for model and environment together
+function _Model(env::Env)
+    @assert is_valid(env)
+    stat = Array(Cint, 1)
+    tmp = @cpx_ccall(createprob, Ptr{Void}, (Ptr{Void}, Ptr{Cint}, Ptr{Cchar}), env.ptr, stat, "CPLEX.jl")
+    if tmp == C_NULL
+        throw(CplexError(model.env, stat))
+    end
+    model = Model(env, tmp, false, false, nothing)
+    finalizer(model, model::Model -> begin
+            tmp = model.env
+            #@cpx_ccall(freeprob, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
+            free_problem(model)
+            #@cpx_ccall(closeCPLEX, Cint, (Ptr{Void},), tmp.ptr)
+            close_CPLEX(tmp)
+        end)
+    return model
 end
 
 function read_model(model::Model, filename::ASCIIString)
@@ -136,15 +155,17 @@ function set_warm_start!(model::Model, indx::IVec, val::FVec)
 end
 
 function free_problem(model::Model)
-    stat = @cpx_ccall(freeprob, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
+    tmp = Ptr{Void}[model.lp]
+    stat = @cpx_ccall(freeprob, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, tmp)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
 end
 
 function close_CPLEX(env::Env)
-    stat = @cpx_ccall(closeCPLEX, Cint, (Ptr{Void},), env.ptr)
+    tmp = Ptr{Void}[env.ptr]
+    stat = @cpx_ccall(closeCPLEX, Cint, (Ptr{Void},), tmp)
     if stat != 0
-        throw(CplexError(model.env, stat))
+        throw(CplexError(env, stat))
     end
 end
