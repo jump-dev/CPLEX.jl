@@ -17,7 +17,7 @@ function Model(env::Env, name::ASCIIString)
     stat = Array(Cint, 1)
     tmp = @cpx_ccall(createprob, Ptr{Void}, (Ptr{Void}, Ptr{Cint}, Ptr{Cchar}), env.ptr, stat, name)
     if tmp == C_NULL
-        throw(CplexError(model.env, stat))
+        throw(CplexError(env, stat))
     end
     return Model(env, tmp)
 end
@@ -33,9 +33,7 @@ function _Model(env::Env)
     model = Model(env, tmp, false, false, nothing)
     finalizer(model, model::Model -> begin
             tmp = model.env
-            #@cpx_ccall(freeprob, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
             free_problem(model)
-            #@cpx_ccall(closeCPLEX, Cint, (Ptr{Void},), tmp.ptr)
             close_CPLEX(tmp)
         end)
     return model
