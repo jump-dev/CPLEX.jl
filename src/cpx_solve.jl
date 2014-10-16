@@ -193,7 +193,7 @@ end
 function get_num_cuts(model::Model,cuttype)
     cutcount = Array(Cint,1)
 
-    stat = @cpx_ccall(getnumcuts, Cint, (Ptr{Void},Ptr{Void},Cint,Ptr{Void}), model.inner.env.ptr , model.inner.lp, cuttype, cutcount)
+    stat = @cpx_ccall(getnumcuts, Cint, (Ptr{Void},Ptr{Void},Cint,Ptr{Void}), model.env.ptr , model.lp, cuttype, cutcount)
     if stat != 0
         error(CplexError(model.inner.env, stat).msg)
     end
