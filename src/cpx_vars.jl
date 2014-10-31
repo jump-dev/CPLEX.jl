@@ -1,8 +1,8 @@
-function add_vars!(model::Model, obj::Vector, l::Bounds, u::Bounds)
+function add_vars!(model::Model, obj::Vector, l_in::Bounds, u_in::Bounds)
     nvars = length(obj)
     obj = fvec(obj)
-    l = fvecx(l, nvars)
-    u = fvecx(u, nvars)
+    l = fvecx(copy(l_in), nvars)
+    u = fvecx(copy(u_in), nvars)
     for i = 1:nvars
         if l[i] == -Inf
             l[i] = -CPX_INFBOUND
