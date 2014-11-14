@@ -12,3 +12,7 @@ socptest(CplexSolver())
 
 include(joinpath(Pkg.dir("MathProgBase"),"test","linproginterface.jl"))
 linprogsolvertest(CplexSolver())
+
+include(joinpath(Pkg.dir("MathProgBase"),"test","conicinterface.jl"))
+coniclineartest(CplexSolver())
+conicSOCtest(CplexSolver())
