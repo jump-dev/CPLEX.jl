@@ -146,3 +146,11 @@ function add_qconstr!(model::Model, lind::Vector, lval::Vector, qr::Vector, qc::
     add_qconstr!(model, ivec(lind), fvec(lval), ivec(qr), ivec(qc), fvec(qv), cchar(sensemap[rel]), float64(rhs))
 end
 
+function num_qconstr(model::Model)
+    ncons = @cpx_ccall(getnumqconstrs, Cint, (
+                       Ptr{Void},
+                       Ptr{Void}
+                       ),
+                       model.env.ptr, model.lp)
+    return ncons
+end

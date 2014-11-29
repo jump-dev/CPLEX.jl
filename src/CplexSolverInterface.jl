@@ -114,7 +114,9 @@ setsense!(m::CplexMathProgModel, sense) = set_sense!(m.inner, sense)
 getsense(m::CplexMathProgModel) = get_sense(m.inner)
 
 numvar(m::CplexMathProgModel) = num_var(m.inner)
-numconstr(m::CplexMathProgModel) = num_constr(m.inner)
+numconstr(m::CplexMathProgModel) = num_constr(m.inner) + num_qconstr(m.inner)
+numlinconstr(m::CplexMathProgModel) = num_constr(m.inner)
+numquadconstr(m::CplexMathProgModel) = num_qconstr(m.inner)
 
 # optimize!(m::CplexMathProgModel) = optimize!(m.inner)
 
