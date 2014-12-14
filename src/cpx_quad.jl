@@ -141,8 +141,8 @@ function add_qconstr!(model::Model, lind::IVec, lval::FVec, qr::IVec, qc::IVec, 
     nothing
 end
 
+const sensemap = Compat.@compat Dict('=' => 'E', '<' => 'L', '>' => 'G')
 function add_qconstr!(model::Model, lind::Vector, lval::Vector, qr::Vector, qc::Vector, qv::Vector{Float64}, rel::GChars, rhs::Real)
-    const sensemap = ['=' => 'E', '<' => 'L', '>' => 'G']
     add_qconstr!(model, ivec(lind), fvec(lval), ivec(qr), ivec(qc), fvec(qv), cchar(sensemap[rel]), float64(rhs))
 end
 

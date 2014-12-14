@@ -105,8 +105,16 @@ function get_obj(model::Model)
     return obj
 end
 
-const type_map = Dict{Int,Symbol}(zip([  0,    1,    3,  5,    7,    8,  10,    11],
-                                      [:LP,:MILP,:MILP,:QP,:MIQP,:MIQP,:QCP,:MIQCP]))
+const type_map = Compat.@compat Dict(
+     0 => :LP,
+     1 => :MILP,
+     3 => :MILP,
+     5 => :QP,
+     7 => :MIQP,
+     8 => :MIQP,
+    10 => :QCP,
+    11 => :MIQCP
+)
 
 function get_prob_type(model::Model)
   ret = @cpx_ccall(getprobtype, Cint, (

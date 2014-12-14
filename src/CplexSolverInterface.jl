@@ -166,21 +166,21 @@ getreducedcosts(m::CplexMathProgModel) = get_reduced_costs(m.inner)
 getconstrduals(m::CplexMathProgModel) = get_constr_duals(m.inner)
 getrawsolver(m::CplexMathProgModel) = m.inner
 
-const var_type_map = [
+const var_type_map = Compat.@compat Dict(
   'C' => :Cont,
   'B' => :Bin,
   'I' => :Int,
   'S' => :SemiCont,
   'N' => :SemiInt
-]
+)
 
-const rev_var_type_map = [
+const rev_var_type_map = Compat.@compat Dict(
   :Cont => 'C',
   :Bin => 'B',
   :Int => 'I',
   :SemiCont => 'S',
   :SemiInt => 'N'
-]
+)
 
 function setvartype!(m::CplexMathProgModel, v::Vector{Symbol})
   target_int = all(x->isequal(x,:Cont), v)
@@ -337,7 +337,7 @@ end
 # returns :MIPNode :MIPSol :Other
 cbgetstate(d::CplexCallbackData) = d.state
 
-const sensemap = ['=' => 'E', '<' => 'L', '>' => 'G']
+#const sensemap = Compat.@compat Dict('=' => 'E', '<' => 'L', '>' => 'G')
 function cbaddcut!(d::CplexCallbackData,varidx,varcoef,sense,rhs)
     @assert d.state == :MIPNode
     cbcut(d.cbdata, d.where, convert(Vector{Cint}, varidx), float(varcoef), sensemap[sense], float(rhs))

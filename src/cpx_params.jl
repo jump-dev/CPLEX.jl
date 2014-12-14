@@ -102,7 +102,7 @@ get_param(env::Env, pindx::Int) = get_param(env, pindx, get_param_type(env, pind
 get_param(env::Env, pname::ASCIIString) = get_param(env, paramName2Indx[pname])
 
 # grep "#define" cpxconst.h | grep "CPX_PARAM_" | awk '{ printf("\"%s\" => %s,\n",$2,$3) }'
-const paramName2Indx = [
+const paramName2Indx = Compat.@compat Dict(
 "CPX_PARAM_ADVIND" => 1001,
 "CPX_PARAM_AGGFILL" => 1002,
 "CPX_PARAM_AGGIND" => 1003,
@@ -276,4 +276,4 @@ const paramName2Indx = [
 "CPX_PARAM_QPNZREADLIM" => 4001,
 "CPX_PARAM_CALCQCPDUALS" => 4003,
 "CPX_PARAM_QPMAKEPSDIND" => 4010
-]
+)

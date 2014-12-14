@@ -158,10 +158,19 @@ function get_unbounded_ray(model::Model)
   end
 end
 
-const varmap = Dict([               0,     1,               2,    3],
-                    [:NonbasicAtLower,:Basic,:NonbasicAtUpper,:Free])
-const conmap = Dict([               0,     1,               2],
-                    [:NonbasicAtLower,:Basic,:NonbasicAtUpper])
+const varmap = Compat.@compat Dict(
+    0 => :NonbasicAtLower,
+    1 => :Basic,
+    2 => :NonbasicAtUpper,
+    3 => :Free
+)
+
+const conmap = Compat.@compat Dict(
+    0 => :NonbasicAtLower,
+    1 => :Basic,
+    2 => :NonbasicAtUpper
+)
+
 function get_basis(model::Model)
     cval = Array(Cint, num_var(model))
     rval = Array(Cint, num_constr(model))
@@ -200,7 +209,7 @@ function get_num_cuts(model::Model,cuttype)
     return cutcount[1]
 end
 
-const status_symbols = [
+const status_symbols = Compat.@compat Dict(
     1   => :CPX_STAT_OPTIMAL,
     2   => :CPX_STAT_UNBOUNDED,
     3   => :CPX_STAT_INFEASIBLE,
@@ -237,7 +246,7 @@ const status_symbols = [
     119 => :CPXMIP_INForUNBD,
     120 => :CPXMIP_FEASIBLE_RELAXED,
     121 => :CPXMIP_OPTIMAL_RELAXED
-]
+)
 
 get_status(model::Model) = status_symbols[int(get_status_code(model))]::Symbol
 get_status_code(model::Model) = @cpx_ccall(getstat, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)

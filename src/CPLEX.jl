@@ -9,6 +9,7 @@ module CPLEX
 
     # Standard LP interface
     importall MathProgBase.SolverInterface
+    import Compat
 
     # exported functions
     # export is_valid,
