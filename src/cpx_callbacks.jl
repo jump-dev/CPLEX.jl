@@ -4,7 +4,7 @@ function get_best_bound(m::Model)
     if stat != 0
         throw(CplexError(m.env.ptr, stat))
     end
-    return objval_p
+    return objval_p[1]
 end
 
 type CallbackData
