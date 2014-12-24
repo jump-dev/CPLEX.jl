@@ -3,7 +3,7 @@ using BinDeps
 
 @osx_only dlopen("libstdc++",RTLD_GLOBAL)
 
-cpxvers = ["124","125","1251","1260"]
+cpxvers = ["124","125","1251","1260","1261"]
 
 libnames = {}
 for v in cpxvers
