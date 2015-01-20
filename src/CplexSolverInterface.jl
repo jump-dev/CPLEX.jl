@@ -425,7 +425,10 @@ function masterheuristiccallback(env::Ptr{Void},
             unsafe_store!(objval_p, dot(get_obj(model.inner),xvect), 1)
         end
     end
-    unsafe_store!(isfeas_p, convert(Cint,CPX_ON), 1)
+    # setting this to CPX_OFF means that CPLEX won't check the solution for feasibility.
+    # In an ideal world this would probably be turned on, but it seems to cause perfectly
+    # fine solutions to be rejected, so I guess we just can't have nice things sometimes.
+    unsafe_store!(isfeas_p, convert(Cint,CPX_OFF), 1)
     return convert(Cint, 0)
 end
 
