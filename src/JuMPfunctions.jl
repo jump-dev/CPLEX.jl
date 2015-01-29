@@ -62,9 +62,9 @@ function addBranch(cbdata::MathProgCallbackData, aff::JuMP.LinearConstraint, nod
         bnd = (up ? aff.lb : aff.ub) / aff.terms.coeffs[1]
         nodeest = 0.0
         if up
-            cbaddboundbranchup!(cbdata, idx, bnd, nodeest)
+            cbaddboundbranchup!(  cbdata, idx-1, bnd, nodeest)
         else
-            cbaddboundbranchdown!(cbdata, idx, bnd, nodeest)
+            cbaddboundbranchdown!(cbdata, idx-1, bnd, nodeest)
         end
     else
         # TODO: add cbaddconstrbranch!
