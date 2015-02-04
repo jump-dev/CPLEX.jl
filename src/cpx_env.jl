@@ -39,7 +39,7 @@ function get_error_msg(env::Env, code::Number)
     end
 end
 
-type CplexError
+type CplexError <: Exception
   code::Int
   msg::ASCIIString
 
