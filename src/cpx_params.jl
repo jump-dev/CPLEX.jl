@@ -8,9 +8,9 @@ function get_param_type(env::Env, indx::Int)
                     Cint,
                     Ptr{Cint}
                     ),
-                    env.ptr, indx, ptype)
+                    env.ptr, convert(Cint,indx), ptype)
   if stat != 0
-    error("CPLEX: error grabbing parameter type")
+    throw(CplexError(env, stat))
   end
   if ptype[1] == 0
     ret = :None
@@ -31,9 +31,10 @@ end
 
 get_param_type(env::Env, name::ASCIIString) = get_param_type(env, paramName2Indx[name])
 
-function set_param!(env::Env, pindx::Int, val, ptype::Symbol)
+function set_param!(env::Env, _pindx::Int, val, ptype::Symbol)
+  pindx = convert(Cint, _pindx)
   if ptype == :Int
-    stat = @cpx_ccall(setintparam, Cint, (Ptr{Void}, Cint, Cint), env.ptr, pindx, int(val))
+    stat = @cpx_ccall(setintparam, Cint, (Ptr{Void}, Cint, Cint), env.ptr, pindx, convert(Cint,val))
   elseif ptype == :Double
     stat = @cpx_ccall(setdblparam, Cint, (Ptr{Void}, Cint, Cdouble), env.ptr, pindx, float(val))
   elseif ptype == :String
@@ -100,6 +101,48 @@ end
 get_param(env::Env, pindx::Int) = get_param(env, pindx, get_param_type(env, pindx))
 
 get_param(env::Env, pname::ASCIIString) = get_param(env, paramName2Indx[pname])
+
+tune_param(model::Model) = tune_param(model, Dict(), Dict(), Dict())
+
+function tune_param(model::Model, intfixed::Dict, dblfixed::Dict, strfixed::Dict)
+  intkeys = Cint[k for k in keys(intfixed)]
+  dblkeys = Cint[k for k in keys(dblfixed)]
+  strkeys = Cint[k for k in keys(strfixed)]
+  tune_stat = Array(Cint, 1)
+  stat = @cpx_ccall(tuneparam, Cint, (Ptr{Void},
+                         Ptr{Void},
+                         Cint,
+                         Ptr{Cint},
+                         Ptr{Cint},
+                         Cint,
+                         Ptr{Cint},
+                         Ptr{Cdouble},
+                         Cint,
+                         Ptr{Cint},
+                         Ptr{Ptr{Cchar}},
+                         Ptr{Cint}),
+                        model.env,
+                        model.lp,
+                        convert(Cint, length(intkeys)),
+                        intkeys,
+                        Cint[intfixed[int(k)] for k in intkeys],
+                        convert(Cint, length(dblkeys)),
+                        dblkeys,
+                        Cdouble[dblfixed[int(k)] for k in dblkeys],
+                        convert(Cint, length(strkeys)),
+                        strkeys,
+                        [strkeys[int(k)] for k in strkeys],
+                        tune_stat)
+  if stat != 0
+    throw(CplexError(model.env, stat))
+  end
+  for param in keys(paramName2Indx)
+    print(param * ": ")
+    val = get_param(model.env, param)
+    println(val)
+  end
+  return tune_stat[1]
+end
 
 # grep "#define" cpxconst.h | grep "CPX_PARAM_" | awk '{ printf("\"%s\" => %s,\n",$2,$3) }'
 const paramName2Indx = Compat.@compat Dict(
@@ -172,8 +215,8 @@ const paramName2Indx = Compat.@compat Dict(
 "CPX_PARAM_SOLUTIONTARGET" => 1131,
 "CPX_PARAM_CLONELOG" => 1132,
 "CPX_PARAM_TUNINGDETTILIM" => 1139,
-"CPX_PARAM_ALL_MIN" => 1000,
-"CPX_PARAM_ALL_MAX" => 6000,
+#"CPX_PARAM_ALL_MIN" => 1000,
+#"CPX_PARAM_ALL_MAX" => 6000,
 "CPX_PARAM_BARDSTART" => 3001,
 "CPX_PARAM_BAREPCOMP" => 3002,
 "CPX_PARAM_BARGROWTH" => 3003,

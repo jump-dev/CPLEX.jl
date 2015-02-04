@@ -17,7 +17,7 @@ function CplexMathProgModel(;options...)
     for (name,value) in options
         set_param!(env, string(name), value)
     end
-    
+
     m = CplexMathProgModel(_Model(env), nothing, nothing, nothing, nothing, nothing)
     return m
 end
@@ -81,7 +81,7 @@ setobj!(m::CplexMathProgModel, c) = set_obj!(m.inner, c)
 addvar!(m::CplexMathProgModel, l, u, coeff) = add_var!(m.inner, [], [], l, u, coeff)
 addvar!(m::CplexMathProgModel, constridx, constrcoef, l, u, coeff) = add_var!(m.inner, constridx, constrcoef, l, u, coeff)
 
-function addconstr!(m::CplexMathProgModel, varidx, coef, lb, ub) 
+function addconstr!(m::CplexMathProgModel, varidx, coef, lb, ub)
   neginf = typemin(eltype(lb))
   posinf = typemax(eltype(ub))
 
@@ -107,7 +107,7 @@ end
 
 getconstrmatrix(m::CplexMathProgModel) = get_constr_matrix(m.inner)
 
-updatemodel!(m::CplexMathProgModel) = Base.warn_once("Model update not necessary for Cplex.")
+# updatemodel!(m::CplexMathProgModel) = Base.warn_once("Model update not necessary for Cplex.")
 
 setsense!(m::CplexMathProgModel, sense) = set_sense!(m.inner, sense)
 
@@ -206,7 +206,7 @@ getunboundedray(m::CplexMathProgModel) = get_unbounded_ray(m.inner)
 
 getbasis(m::CplexMathProgModel) = get_basis(m.inner)
 
-setwarmstart!(m::CplexMathProgModel, v) = set_warm_start!(m.inner, v) 
+setwarmstart!(m::CplexMathProgModel, v) = set_warm_start!(m.inner, v)
 
 addsos1!(m::CplexMathProgModel, idx, weight) = add_sos!(m.inner, :SOS1, idx, weight)
 addsos2!(m::CplexMathProgModel, idx, weight) = add_sos!(m.inner, :SOS2, idx, weight)
@@ -214,7 +214,7 @@ addsos2!(m::CplexMathProgModel, idx, weight) = add_sos!(m.inner, :SOS2, idx, wei
 ######
 # QCQP
 ######
-addquadconstr!(m::CplexMathProgModel, linearidx, linearval, quadrowidx, quadcolidx, quadval, sense, rhs) = 
+addquadconstr!(m::CplexMathProgModel, linearidx, linearval, quadrowidx, quadcolidx, quadval, sense, rhs) =
     add_qconstr!(m.inner,linearidx,linearval,quadrowidx,quadcolidx,quadval,sense,rhs)
 setquadobj!(m::CplexMathProgModel,rowidx,colidx,quadval) = add_qpterms!(m.inner,rowidx,colidx,quadval)
 
@@ -288,7 +288,7 @@ function cbgetmipsolution(d::CplexCallbackData, sol::Vector{Cdouble})
     return nothing
 end
 
-function cbgetlpsolution(d::CplexCallbackData) 
+function cbgetlpsolution(d::CplexCallbackData)
     @assert d.state == :MIPNode
     n = num_var(d.cbdata.model)
     sol = Array(Cdouble, n)
@@ -351,17 +351,17 @@ end
 
 cbaddsolution!(d::CplexCallbackData) = (unsafe_store!(d.userinteraction_p, convert(Cint,CPX_CALLBACK_SET), 1))
 
-function cbsetsolutionvalue!(d::CplexCallbackData,varidx,value) 
+function cbsetsolutionvalue!(d::CplexCallbackData,varidx,value)
     @assert 1 <= varidx <= num_var(d.cbdata.model)
     unsafe_store!(d.sol, value, varidx)
 end
 
-function cbaddboundbranchup!(d::CplexCallbackData,idx,bd,nodeest)   
+function cbaddboundbranchup!(d::CplexCallbackData,idx,bd,nodeest)
     cbbranch(d.cbdata, d.where,convert(Cint,idx),convert(Cchar,'L'),bd,nodeest)
     unsafe_store!(d.userinteraction_p, convert(Cint,CPX_CALLBACK_SET), 1)
 end
 
-function cbaddboundbranchdown!(d::CplexCallbackData,idx,bd,nodeest) 
+function cbaddboundbranchdown!(d::CplexCallbackData,idx,bd,nodeest)
     cbbranch(d.cbdata, d.where,convert(Cint,idx),convert(Cchar,'U'),bd,nodeest)
     unsafe_store!(d.userinteraction_p, convert(Cint,CPX_CALLBACK_SET), 1)
 end
@@ -403,12 +403,12 @@ function mastercallback(env::Ptr{Void}, cbdata::Ptr{Void}, wherefrom::Cint, user
     return convert(Cint, 0)
 end
 
-function masterheuristiccallback(env::Ptr{Void}, 
-                                 cbdata::Ptr{Void}, 
-                                 wherefrom::Cint, 
-                                 userdata::Ptr{Void}, 
-                                 objval_p::Ptr{Cdouble}, 
-                                 xx::Ptr{Cdouble}, 
+function masterheuristiccallback(env::Ptr{Void},
+                                 cbdata::Ptr{Void},
+                                 wherefrom::Cint,
+                                 userdata::Ptr{Void},
+                                 objval_p::Ptr{Cdouble},
+                                 xx::Ptr{Cdouble},
                                  isfeas_p::Ptr{Cint},
                                  userinteraction_p::Ptr{Cint})
     model = unsafe_pointer_to_objref(userdata)::CplexMathProgModel
@@ -438,10 +438,10 @@ function setmathproglazycallback!(model::CplexMathProgModel)
     set_param!(model.inner.env, "CPX_PARAM_REDUCE", CPX_PREREDUCE_PRIMALONLY)
     cpxcallback = cfunction(mastercallback, Cint, (Ptr{Void}, Ptr{Void}, Cint, Ptr{Void}, Ptr{Cint}))
     stat = @cpx_ccall(setlazyconstraintcallbackfunc, Cint, (
-                      Ptr{Void}, 
+                      Ptr{Void},
                       Ptr{Void},
                       Any,
-                      ), 
+                      ),
                       model.inner.env.ptr, cpxcallback, model)
     if stat != 0
         throw(CplexError(model.env, stat))
@@ -454,10 +454,10 @@ function setmathprogcutcallback!(model::CplexMathProgModel)
     set_param!(model.inner.env, "CPX_PARAM_PRELINEAR", 0)
     cpxcallback = cfunction(mastercallback, Cint, (Ptr{Void}, Ptr{Void}, Cint, Ptr{Void}, Ptr{Cint}))
     stat = @cpx_ccall(setusercutcallbackfunc, Cint, (
-                      Ptr{Void}, 
+                      Ptr{Void},
                       Ptr{Void},
                       Any,
-                      ), 
+                      ),
                       model.inner.env.ptr, cpxcallback, model)
     if stat != 0
         throw(CplexError(model.env, stat))
@@ -470,10 +470,10 @@ function setmathprogheuristiccallback!(model::CplexMathProgModel)
     set_param!(model.inner.env, "CPX_PARAM_PRELINEAR", 0)
     cpxcallback = cfunction(masterheuristiccallback, Cint, (Ptr{Void}, Ptr{Void}, Cint, Ptr{Void}, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cint}, Ptr{Cint}))
     stat = @cpx_ccall(setheuristiccallbackfunc, Cint, (
-                      Ptr{Void}, 
+                      Ptr{Void},
                       Ptr{Void},
                       Any,
-                      ), 
+                      ),
                       model.inner.env.ptr, cpxcallback, model)
     if stat != 0
         throw(CplexError(model.env, stat))
@@ -514,25 +514,25 @@ function setmathprogbranchcallback!(model::CplexMathProgModel)
     set_param!(model.inner.env, "CPX_PARAM_MIPCBREDLP", 0)
     set_param!(model.inner.env, "CPX_PARAM_PRELINEAR", 0)
     set_param!(model.inner.env, "CPX_PARAM_REDUCE", CPX_PREREDUCE_PRIMALONLY)
-    cpxcallback = cfunction(masterbranchcallback, Cint, (Ptr{Void}, 
-                                                         Ptr{Void}, 
-                                                         Cint, 
-                                                         Ptr{Void}, 
-                                                         Cint, 
-                                                         Cint, 
-                                                         Cint, 
-                                                         Cint, 
-                                                         Ptr{Cint}, 
-                                                         Ptr{Cint}, 
-                                                         Ptr{Cchar}, 
-                                                         Ptr{Cdouble}, 
-                                                         Ptr{Cdouble}, 
+    cpxcallback = cfunction(masterbranchcallback, Cint, (Ptr{Void},
+                                                         Ptr{Void},
+                                                         Cint,
+                                                         Ptr{Void},
+                                                         Cint,
+                                                         Cint,
+                                                         Cint,
+                                                         Cint,
+                                                         Ptr{Cint},
+                                                         Ptr{Cint},
+                                                         Ptr{Cchar},
+                                                         Ptr{Cdouble},
+                                                         Ptr{Cdouble},
                                                          Ptr{Cint}))
     stat = @cpx_ccall(setbranchcallbackfunc, Cint, (
-                      Ptr{Void}, 
+                      Ptr{Void},
                       Ptr{Void},
                       Any,
-                      ), 
+                      ),
                       model.inner.env.ptr, cpxcallback, model)
     if stat != 0
         throw(CplexError(model.env, stat))
@@ -550,8 +550,8 @@ function masterincumbentcallback(env::Ptr{Void},
                                  useraction_p::Ptr{Cint})
     model = unsafe_pointer_to_objref(userdata)::CplexMathProgModel
     cpxrawcb = CallbackData(cbdata, model.inner)
-    if wherefrom == CPX_CALLBACK_MIP_INCUMBENT_NODESOLN || 
-       wherefrom == CPX_CALLBACK_MIP_INCUMBENT_HEURSOLN || 
+    if wherefrom == CPX_CALLBACK_MIP_INCUMBENT_NODESOLN ||
+       wherefrom == CPX_CALLBACK_MIP_INCUMBENT_HEURSOLN ||
        wherefrom == CPX_CALLBACK_MIP_INCUMBENT_USERSOLN
         state = :MIPIncumbent
         cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, xx, isfeas_p, useraction_p)
@@ -568,19 +568,19 @@ function setmathprogincumbentcallback!(model::CplexMathProgModel)
     set_param!(model.inner.env, "CPX_PARAM_MIPCBREDLP", 0)
     set_param!(model.inner.env, "CPX_PARAM_PRELINEAR", 0)
     set_param!(model.inner.env, "CPX_PARAM_REDUCE", CPX_PREREDUCE_PRIMALONLY)
-    cpxcallback = cfunction(masterincumbentcallback, Cint, (Ptr{Void}, 
-                                                            Ptr{Void}, 
-                                                            Cint, 
-                                                            Ptr{Void}, 
+    cpxcallback = cfunction(masterincumbentcallback, Cint, (Ptr{Void},
+                                                            Ptr{Void},
+                                                            Cint,
+                                                            Ptr{Void},
                                                             Cdouble,
                                                             Ptr{Cdouble},
                                                             Ptr{Cint},
                                                             Ptr{Cint}))
     stat = @cpx_ccall(setincumbentcallbackfunc, Cint, (
-                      Ptr{Void}, 
+                      Ptr{Void},
                       Ptr{Void},
                       Any,
-                      ), 
+                      ),
                       model.inner.env.ptr, cpxcallback, model)
     if stat != 0
         throw(CplexError(model.env, stat))
