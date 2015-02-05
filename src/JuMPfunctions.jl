@@ -20,7 +20,7 @@ end
 function solvehook(m::JuMP.Model; kwargs...)
     JuMP.buildInternalModel(m)
     if isa(m.ext[:cb].branchcallback, Function)
-        function branchcallback(d::MathProgCallbackData)
+        function branchcallback(d::CplexCallbackData)
             state = cbgetstate(d)
             if state == :MIPSol
                 cbgetmipsolution(d,m.colVal)
@@ -32,10 +32,10 @@ function solvehook(m::JuMP.Model; kwargs...)
         setbranchcallback!(m.internalModel, branchcallback)
     end
     if isa(m.ext[:cb].incumbentcallback, Function)
-        function incumbentcallback(d::MathProgCallbackData)
+        function incumbentcallback(d::CplexCallbackData)
             state = cbgetstate(d)
             @assert state == :MIPIncumbent
-            m.colVal = pointer_to_array(d.sol,m.numCols)
+            m.colVal = copy(d.sol)
             m.ext[:cb].incumbentcallback(d)
         end
         setincumbentcallback!(m.internalModel, incumbentcallback)
@@ -60,14 +60,28 @@ function addBranch(cbdata::MathProgCallbackData, aff::JuMP.LinearConstraint, nod
         up = isinf(aff.ub)
         idx = aff.terms.vars[1].col
         bnd = (up ? aff.lb : aff.ub) / aff.terms.coeffs[1]
-        nodeest = 0.0
+        #nodeest = 0.0
         if up
-            cbaddboundbranchup!(  cbdata, idx-1, bnd, nodeest)
+            cbaddboundbranchup!(  cbdata, idx, bnd, nodeest)
         else
-            cbaddboundbranchdown!(cbdata, idx-1, bnd, nodeest)
+            cbaddboundbranchdown!(cbdata, idx, bnd, nodeest)
         end
     else
-        # TODO: add cbaddconstrbranch!
+        indices = [x.col for x in aff.terms.vars]
+        coeffs  = [v for v in aff.terms.coeffs]
+        lb, ub = aff.lb, aff.ub
+        isinf(lb) || isinf(ub) || lb == ub || error("Cannot branch on ranged constraint $aff")
+        if isinf(lb)
+            sense = 'L'
+            rhs = ub
+        elseif isinf(ub)
+            sense = 'G'
+            rhs = lb
+        else
+            sense = 'E'
+            rhs = lb
+        end
+        cbaddconstrbranch!(cbdata, indices, coeffs, rhs, sense, nodeest)
     end
 end
 
@@ -78,8 +92,8 @@ function setIncumbentCallback(m::JuMP.Model, f::Function)
     nothing
 end
 
-acceptIncumbent(cbdata::MathProgCallbackData) = 
+acceptIncumbent(cbdata::MathProgCallbackData) =
     cbprocessincumbent!(cbdata, true)
 
-rejectIncumbent(cbdata::MathProgCallbackData) = 
+rejectIncumbent(cbdata::MathProgCallbackData) =
     cbprocessincumbent!(cbdata, false)

@@ -254,7 +254,8 @@ type CplexCallbackData <: MathProgCallbackData
     cbdata::CallbackData
     state::Symbol
     where::Cint
-    sol::Ptr{Float64}
+    sol::Vector{Float64}
+    heur_x::Vector{Float64}
     isfeas_p::Ptr{Cint}
     userinteraction_p::Ptr{Cint}
 end
@@ -353,16 +354,27 @@ cbaddsolution!(d::CplexCallbackData) = (unsafe_store!(d.userinteraction_p, conve
 
 function cbsetsolutionvalue!(d::CplexCallbackData,varidx,value)
     @assert 1 <= varidx <= num_var(d.cbdata.model)
-    unsafe_store!(d.sol, value, varidx)
+    d.heur_x[varidx] = value
 end
 
 function cbaddboundbranchup!(d::CplexCallbackData,idx,bd,nodeest)
-    cbbranch(d.cbdata, d.where,convert(Cint,idx),convert(Cchar,'L'),bd,nodeest)
+    cbbranch(d.cbdata, d.where,convert(Cint,idx-1),convert(Cchar,'L'),bd,nodeest)
     unsafe_store!(d.userinteraction_p, convert(Cint,CPX_CALLBACK_SET), 1)
 end
 
 function cbaddboundbranchdown!(d::CplexCallbackData,idx,bd,nodeest)
-    cbbranch(d.cbdata, d.where,convert(Cint,idx),convert(Cchar,'U'),bd,nodeest)
+    cbbranch(d.cbdata, d.where,convert(Cint,idx-1),convert(Cchar,'U'),bd,nodeest)
+    unsafe_store!(d.userinteraction_p, convert(Cint,CPX_CALLBACK_SET), 1)
+end
+
+function cbaddconstrbranch!(d::CplexCallbackData, indices, coeffs, rhs, sense, nodeest)
+    cbbranchconstr(d.cbdata,
+                   d.where,
+                   Cint[idx-1 for idx in indices],
+                   Cdouble[c for c in coeffs],
+                   convert(Cdouble, rhs),
+                   convert(Cchar, sense),
+                   nodeest)
     unsafe_store!(d.userinteraction_p, convert(Cint,CPX_CALLBACK_SET), 1)
 end
 
@@ -382,7 +394,7 @@ function mastercallback(env::Ptr{Void}, cbdata::Ptr{Void}, wherefrom::Cint, user
     cpxrawcb = CallbackData(cbdata, model.inner)
     if wherefrom == CPX_CALLBACK_MIP_CUT_FEAS || wherefrom == CPX_CALLBACK_MIP_CUT_UNBD
         state = :MIPSol
-        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, convert(Ptr{Float64},[0.0]), Cint[0], userinteraction_p)
+        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, Array(Float64,0), Array(Float64,0), Cint[0], userinteraction_p)
         if model.lazycb != nothing
             stat = model.lazycb(cpxcb)
             if stat == :Exit
@@ -392,7 +404,7 @@ function mastercallback(env::Ptr{Void}, cbdata::Ptr{Void}, wherefrom::Cint, user
     # elseif wherefrom == CPX_CALLBACK_MIP_CUT_LOOP || wherefrom == CPX_CALLBACK_MIP_CUT_LAST
       elseif wherefrom == CPX_CALLBACK_MIP_CUT_LAST
         state = :MIPNode
-        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, convert(Ptr{Float64},[0.0]), Cint[0], userinteraction_p)
+        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, Array(Float64,0), Array(Float64,0), Cint[0], userinteraction_p)
         if model.cutcb != nothing
             stat = model.cutcb(cpxcb)
             if stat == :Exit
@@ -415,20 +427,26 @@ function masterheuristiccallback(env::Ptr{Void},
     cpxrawcb = CallbackData(cbdata, model.inner)
     if wherefrom == CPX_CALLBACK_MIP_HEURISTIC
         state = :MIPNode
-        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, xx, isfeas_p, userinteraction_p)
+        sol = pointer_to_array(xx, numvar(model))
+        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, sol, fill(NaN, numvar(model)), isfeas_p, userinteraction_p)
         if model.heuristiccb != nothing
             stat = model.heuristiccb(cpxcb)
             if stat == :Exit
                 return convert(Cint, 1006)
             end
-            xvect = pointer_to_array(cpxcb.sol,convert(Int64,numvar(model)))::Vector{Float64}
-            unsafe_store!(objval_p, dot(get_obj(model.inner),xvect), 1)
+            if any(x->!isnan(x), cpxcb.heur_x) # we filled in some solution values
+                unsafe_store!(objval_p, dot(get_obj(model.inner), cpxcb.heur_x), 1)
+                for i in 1:numvar(model)
+                    unsafe_store!(xx, cpxcb.heur_x[i], i)
+                end
+                if any(x->isnan(x), cpxcb.heur_x) # we have a partial solution
+                    unsafe_store!(isfeas_p, convert(Cint,CPX_ON),  1)
+                else
+                    unsafe_store!(isfeas_p, convert(Cint,CPX_OFF), 1)
+                end
+            end
         end
     end
-    # setting this to CPX_OFF means that CPLEX won't check the solution for feasibility.
-    # In an ideal world this would probably be turned on, but it seems to cause perfectly
-    # fine solutions to be rejected, so I guess we just can't have nice things sometimes.
-    unsafe_store!(isfeas_p, convert(Cint,CPX_OFF), 1)
     return convert(Cint, 0)
 end
 
@@ -499,7 +517,7 @@ function masterbranchcallback(env::Ptr{Void},
     cpxrawcb = CallbackData(cbdata, model.inner)
     if wherefrom == CPX_CALLBACK_MIP_BRANCH
         state = :MIPBranch
-        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, convert(Ptr{Float64},[0.0]), Cint[0], userinteraction_p)
+        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, Array(Float64,0), Array(Float64,0), Cint[0], userinteraction_p)
         if model.branchcb != nothing
             stat = model.branchcb(cpxcb)
             if stat == :Exit
@@ -554,7 +572,8 @@ function masterincumbentcallback(env::Ptr{Void},
        wherefrom == CPX_CALLBACK_MIP_INCUMBENT_HEURSOLN ||
        wherefrom == CPX_CALLBACK_MIP_INCUMBENT_USERSOLN
         state = :MIPIncumbent
-        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, xx, isfeas_p, useraction_p)
+        sol = pointer_to_array(xx, numvar(model))
+        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, sol, Array(Float64,0), isfeas_p, useraction_p)
         if model.incumbentcb != nothing
             stat = model.incumbentcb(cpxcb)
             if stat == :Exit
