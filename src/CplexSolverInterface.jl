@@ -7,6 +7,7 @@ type CplexMathProgModel <: AbstractMathProgModel
     heuristiccb
     branchcb
     incumbentcb
+    infocb
 end
 
 function CplexMathProgModel(;options...)
@@ -18,7 +19,7 @@ function CplexMathProgModel(;options...)
         set_param!(env, string(name), value)
     end
 
-    m = CplexMathProgModel(_Model(env), nothing, nothing, nothing, nothing, nothing)
+    m = CplexMathProgModel(_Model(env), nothing, nothing, nothing, nothing, nothing, nothing)
     return m
 end
 
@@ -596,6 +597,37 @@ function setmathprogincumbentcallback!(model::CplexMathProgModel)
                                                             Ptr{Cint},
                                                             Ptr{Cint}))
     stat = @cpx_ccall(setincumbentcallbackfunc, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Any,
+                      ),
+                      model.inner.env.ptr, cpxcallback, model)
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+    nothing
+end
+
+function masterinfocallback(env::Ptr{Void},
+                            cbdata::Ptr{Void},
+                            wherefrom::Cint,
+                            userdata::Ptr{Void})
+    model = unsafe_pointer_to_objref(userdata)::CplexMathProgModel
+    cpxrawcb = CallbackData(cbdata, model.inner)
+    state = :Informational
+    cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, Array(Float64,0), Array(Float64,0), Ptr{Cint}(0), Ptr{Cint}(0))
+    if model.infocb != nothing
+        stat = model.infocb(cpxcb)
+        if stat == :Exit
+            return convert(Cint, 1006)
+        end
+    end
+    return convert(Cint, 0)
+end
+
+function setmathproginfocallback!(model::CplexMathProgModel)
+    cpxcallback = cfunction(masterinfocallback, Cint, (Ptr{Void}, Ptr{Void}, Cint, Ptr{Void}))
+    stat = @cpx_ccall(setinfocallbackfunc, Cint, (
                       Ptr{Void},
                       Ptr{Void},
                       Any,
