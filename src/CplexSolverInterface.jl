@@ -138,6 +138,9 @@ function optimize!(m::CplexMathProgModel)
     if m.incumbentcb != nothing
         setmathprogincumbentcallback!(m)
     end
+    if m.infocb != nothing
+        setmathproginfocallback!(m)
+    end
     optimize!(m.inner)
 end
 
@@ -267,6 +270,7 @@ setcutcallback!(m::CplexMathProgModel,f) = (m.cutcb = f)
 setheuristiccallback!(m::CplexMathProgModel,f) = (m.heuristiccb = f)
 setbranchcallback!(m::CplexMathProgModel,f) = (m.branchcb = f)
 setincumbentcallback!(m::CplexMathProgModel,f) = (m.incumbentcb = f)
+setinfocallback!(m::CplexMathProgModel,f) = (m.infocb = f)
 
 function cbgetmipsolution(d::CplexCallbackData)
     @assert d.state == :MIPSol
@@ -614,7 +618,7 @@ function masterinfocallback(env::Ptr{Void},
                             userdata::Ptr{Void})
     model = unsafe_pointer_to_objref(userdata)::CplexMathProgModel
     cpxrawcb = CallbackData(cbdata, model.inner)
-    state = :Informational
+    state = :MIPInfo
     cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, Array(Float64,0), Array(Float64,0), Ptr{Cint}(0), Ptr{Cint}(0))
     if model.infocb != nothing
         stat = model.infocb(cpxcb)
