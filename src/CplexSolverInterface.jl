@@ -267,6 +267,7 @@ setcutcallback!(m::CplexMathProgModel,f) = (m.cutcb = f)
 setheuristiccallback!(m::CplexMathProgModel,f) = (m.heuristiccb = f)
 setbranchcallback!(m::CplexMathProgModel,f) = (m.branchcb = f)
 setincumbentcallback!(m::CplexMathProgModel,f) = (m.incumbentcb = f)
+setinfocallback!(m::CplexMathProgModel,f) = (m.infocb = f)
 
 function cbgetmipsolution(d::CplexCallbackData)
     @assert d.state == :MIPSol
