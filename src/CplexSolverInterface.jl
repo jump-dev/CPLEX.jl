@@ -357,7 +357,6 @@ end
 
 function cbaddsolution!(d::CplexCallbackData)
     val = pointer_to_array(d.userinteraction_p, 1)
-    println("val = $val")
     if val[1] == CPX_CALLBACK_SET
         error("CPLEX only allows one heuristic solution for each call to the callback")
     end
