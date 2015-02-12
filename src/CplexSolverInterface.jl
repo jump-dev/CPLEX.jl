@@ -326,7 +326,7 @@ for (func,param,typ) in ((:cbgetexplorednodes,CPX_CALLBACK_INFO_NODE_COUNT_LONG,
                          (:cbgetstarttime,CPX_CALLBACK_INFO_STARTTIME,:Cdouble),
                          (:cbgetdetstarttime,CPX_CALLBACK_INFO_STARTDETTIME,:Cdouble),
                          (:cbgettimestamp,CPX_CALLBACK_INFO_ENDTIME,:Cdouble),
-                         (:cbgetdettimestamp,CPX_CALLBACK_INFO_ENDTIME,:Cdouble))
+                         (:cbgetdettimestamp,CPX_CALLBACK_INFO_ENDDETTIME,:Cdouble))
     @eval begin
         function $(func)(d::CplexCallbackData)
             val = Array($(typ),1)
@@ -355,7 +355,14 @@ function cbaddlazy!(d::CplexCallbackData,varidx,varcoef,sense,rhs)
     cblazy(d.cbdata, d.where, convert(Vector{Cint}, varidx), float(varcoef), sensemap[sense], float(rhs))
 end
 
-cbaddsolution!(d::CplexCallbackData) = (unsafe_store!(d.userinteraction_p, convert(Cint,CPX_CALLBACK_SET), 1))
+function cbaddsolution!(d::CplexCallbackData)
+    val = pointer_to_array(d.userinteraction_p, 1)
+    println("val = $val")
+    if val[1] == CPX_CALLBACK_SET
+        error("CPLEX only allows one heuristic solution for each call to the callback")
+    end
+    unsafe_store!(d.userinteraction_p, convert(Cint,CPX_CALLBACK_SET), 1)
+end
 
 function cbsetsolutionvalue!(d::CplexCallbackData,varidx,value)
     @assert 1 <= varidx <= num_var(d.cbdata.model)
