@@ -625,7 +625,7 @@ function masterinfocallback(env::Ptr{Void},
     model = unsafe_pointer_to_objref(userdata)::CplexMathProgModel
     cpxrawcb = CallbackData(cbdata, model.inner)
     state = :MIPInfo
-    cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, Array(Float64,0), Array(Float64,0), Ptr{Cint}(0), Ptr{Cint}(0))
+    cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, Array(Float64,0), Array(Float64,0), 0, 0)
     if model.infocb != nothing
         stat = model.infocb(cpxcb)
         if stat == :Exit
