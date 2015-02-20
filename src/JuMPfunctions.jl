@@ -1,8 +1,10 @@
 # Import functions that act on JuMP Models
 
 export setBranchCallback,
+       addBranchCallback,
        addBranch,
        setIncumbentCallback,
+       addIncumbentCallback,
        acceptIncumbent,
        rejectIncumbent
 
@@ -20,7 +22,7 @@ end
 function solvehook(m::JuMP.Model; kwargs...)
     JuMP.buildInternalModel(m)
     if isa(m.ext[:cb].branchcallback, Function)
-        function branchcallback(d::CplexCallbackData)
+        function branchcallback(d::MathProgCallbackData)
             state = cbgetstate(d)
             if state == :MIPSol
                 cbgetmipsolution(d,m.colVal)
@@ -32,7 +34,7 @@ function solvehook(m::JuMP.Model; kwargs...)
         setbranchcallback!(m.internalModel, branchcallback)
     end
     if isa(m.ext[:cb].incumbentcallback, Function)
-        function incumbentcallback(d::CplexCallbackData)
+        function incumbentcallback(d::MathProgCallbackData)
             state = cbgetstate(d)
             @assert state == :MIPIncumbent
             m.colVal = copy(d.sol)
@@ -43,6 +45,7 @@ function solvehook(m::JuMP.Model; kwargs...)
     JuMP.solve(m; ignore_solve_hook=true, kwargs...)
 end
 
+addBranchCallback(m::JuMP.Model, f::Function) = setBranchCallback(m, f)
 function setBranchCallback(m::JuMP.Model, f::Function)
     initcb(m)
     m.ext[:cb].branchcallback = f
@@ -85,6 +88,7 @@ function addBranch(cbdata::MathProgCallbackData, aff::JuMP.LinearConstraint, nod
     end
 end
 
+addIncumbentCallback(m::JuMP.Model, f::Function) = setIncumbentCallback(m, f)
 function setIncumbentCallback(m::JuMP.Model, f::Function)
     initcb(m)
     m.ext[:cb].incumbentcallback = f

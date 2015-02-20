@@ -254,7 +254,9 @@ export cbaddboundbranchup!,
        cbgetdettimestamp,
        cbgetintfeas
 
-type CplexCallbackData <: MathProgCallbackData
+abstract CplexCallbackData <: MathProgCallbackData
+
+type CplexRegularCallbackData <: CplexCallbackData
     cbdata::CallbackData
     state::Symbol
     where::Cint
@@ -262,6 +264,24 @@ type CplexCallbackData <: MathProgCallbackData
     heur_x::Vector{Float64}
     isfeas_p::Ptr{Cint}
     userinteraction_p::Ptr{Cint}
+end
+
+immutable BranchingChoice
+    indices::Vector{Cint}
+    bounds::Vector{Cdouble}
+    lu::Vector{Cchar}
+end
+export BranchingChoice
+
+type CplexBranchCallbackData <: CplexCallbackData
+    cbdata::CallbackData
+    state::Symbol
+    where::Cint
+    sol::Vector{Float64}
+    heur_x::Vector{Float64}
+    isfeas_p::Ptr{Cint}
+    userinteraction_p::Ptr{Cint}
+    nodes::Vector{BranchingChoice}
 end
 
 # set to nothing to clear callback
@@ -405,7 +425,7 @@ function mastercallback(env::Ptr{Void}, cbdata::Ptr{Void}, wherefrom::Cint, user
     cpxrawcb = CallbackData(cbdata, model.inner)
     if wherefrom == CPX_CALLBACK_MIP_CUT_FEAS || wherefrom == CPX_CALLBACK_MIP_CUT_UNBD
         state = :MIPSol
-        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, Array(Float64,0), Array(Float64,0), Cint[0], userinteraction_p)
+        cpxcb = CplexRegularCallbackData(cpxrawcb, state, wherefrom, Array(Float64,0), Array(Float64,0), Cint[0], userinteraction_p)
         if model.lazycb != nothing
             stat = model.lazycb(cpxcb)
             if stat == :Exit
@@ -415,7 +435,7 @@ function mastercallback(env::Ptr{Void}, cbdata::Ptr{Void}, wherefrom::Cint, user
     # elseif wherefrom == CPX_CALLBACK_MIP_CUT_LOOP || wherefrom == CPX_CALLBACK_MIP_CUT_LAST
       elseif wherefrom == CPX_CALLBACK_MIP_CUT_LAST
         state = :MIPNode
-        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, Array(Float64,0), Array(Float64,0), Cint[0], userinteraction_p)
+        cpxcb = CplexRegularCallbackData(cpxrawcb, state, wherefrom, Array(Float64,0), Array(Float64,0), Cint[0], userinteraction_p)
         if model.cutcb != nothing
             stat = model.cutcb(cpxcb)
             if stat == :Exit
@@ -439,7 +459,7 @@ function masterheuristiccallback(env::Ptr{Void},
     if wherefrom == CPX_CALLBACK_MIP_HEURISTIC
         state = :MIPNode
         sol = pointer_to_array(xx, numvar(model))
-        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, sol, fill(NaN, numvar(model)), isfeas_p, userinteraction_p)
+        cpxcb = CplexRegularCallbackData(cpxrawcb, state, wherefrom, sol, fill(NaN, numvar(model)), isfeas_p, userinteraction_p)
         if model.heuristiccb != nothing
             stat = model.heuristiccb(cpxcb)
             if stat == :Exit
@@ -527,8 +547,22 @@ function masterbranchcallback(env::Ptr{Void},
     model = unsafe_pointer_to_objref(userdata)::CplexMathProgModel
     cpxrawcb = CallbackData(cbdata, model.inner)
     if wherefrom == CPX_CALLBACK_MIP_BRANCH
+        @assert 0 <= nodecnt <= 2
         state = :MIPBranch
-        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, Array(Float64,0), Array(Float64,0), Cint[0], userinteraction_p)
+        numbranchingvars = pointer_to_array(nodebeg, convert(Cint,nodecnt))::Vector{Cint}
+        idxs = pointer_to_array(indices, sum(numbranchingvars))::Vector{Cint}
+        vals = pointer_to_array(bd, sum(numbranchingvars))::Vector{Cdouble}
+        dirs = pointer_to_array(bd, sum(numbranchingvars))::Vector{Cdouble}
+        nodes = Array(BranchingChoice, nodecnt)
+        if nodecnt >= 1
+            subidx = 1 : (numbranchingvars[1])
+            nodes[1] = BranchingChoice(idxs[subidx], vals[subidx], dirs[subidx])
+        end
+        if nodecnt == 2
+            subidx = (numbranchingvars[1]+1) : (numbranchingvars[2])
+            nodes[2] = BranchingChoice(idxs[subidx], vals[subidx], dirs[subidx])
+        end
+        cpxcb = CplexBranchCallbackData(cpxrawcb, state, wherefrom, Array(Float64,0), Array(Float64,0), Cint[0], userinteraction_p, nodes)
         if model.branchcb != nothing
             stat = model.branchcb(cpxcb)
             if stat == :Exit
@@ -584,7 +618,7 @@ function masterincumbentcallback(env::Ptr{Void},
        wherefrom == CPX_CALLBACK_MIP_INCUMBENT_USERSOLN
         state = :MIPIncumbent
         sol = pointer_to_array(xx, numvar(model))
-        cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, sol, Array(Float64,0), isfeas_p, useraction_p)
+        cpxcb = CplexRegularCallbackData(cpxrawcb, state, wherefrom, sol, Array(Float64,0), isfeas_p, useraction_p)
         if model.incumbentcb != nothing
             stat = model.incumbentcb(cpxcb)
             if stat == :Exit
@@ -625,7 +659,7 @@ function masterinfocallback(env::Ptr{Void},
     model = unsafe_pointer_to_objref(userdata)::CplexMathProgModel
     cpxrawcb = CallbackData(cbdata, model.inner)
     state = :MIPInfo
-    cpxcb = CplexCallbackData(cpxrawcb, state, wherefrom, Array(Float64,0), Array(Float64,0), 0, 0)
+    cpxcb = CplexRegularCallbackData(cpxrawcb, state, wherefrom, Array(Float64,0), Array(Float64,0), 0, 0)
     if model.infocb != nothing
         stat = model.infocb(cpxcb)
         if stat == :Exit
