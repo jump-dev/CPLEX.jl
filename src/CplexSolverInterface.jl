@@ -256,34 +256,6 @@ export cbaddboundbranchup!,
 
 abstract CplexCallbackData <: MathProgCallbackData
 
-type CplexRegularCallbackData <: CplexCallbackData
-    cbdata::CallbackData
-    state::Symbol
-    where::Cint
-    sol::Vector{Float64}
-    heur_x::Vector{Float64}
-    isfeas_p::Ptr{Cint}
-    userinteraction_p::Ptr{Cint}
-end
-
-immutable BranchingChoice
-    indices::Vector{Cint}
-    bounds::Vector{Cdouble}
-    lu::Vector{Cchar}
-end
-export BranchingChoice
-
-type CplexBranchCallbackData <: CplexCallbackData
-    cbdata::CallbackData
-    state::Symbol
-    where::Cint
-    sol::Vector{Float64}
-    heur_x::Vector{Float64}
-    isfeas_p::Ptr{Cint}
-    userinteraction_p::Ptr{Cint}
-    nodes::Vector{BranchingChoice}
-end
-
 # set to nothing to clear callback
 setlazycallback!(m::CplexMathProgModel,f) = (m.lazycb = f)
 setcutcallback!(m::CplexMathProgModel,f) = (m.cutcb = f)
@@ -418,6 +390,20 @@ function cbprocessincumbent!(d::CplexCallbackData,accept::Bool)
     nothing
 end
 
+type CplexLazyCallbackData <: CplexCallbackData
+    cbdata::CallbackData
+    state::Symbol
+    where::Cint
+    userinteraction_p::Ptr{Cint}
+end
+
+type CplexCutCallbackData <: CplexCallbackData
+    cbdata::CallbackData
+    state::Symbol
+    where::Cint
+    userinteraction_p::Ptr{Cint}
+end
+
 # breaking abstraction, define our low-level callback to eliminate
 # a level of indirection
 function mastercallback(env::Ptr{Void}, cbdata::Ptr{Void}, wherefrom::Cint, userdata::Ptr{Void}, userinteraction_p::Ptr{Cint})
@@ -425,7 +411,7 @@ function mastercallback(env::Ptr{Void}, cbdata::Ptr{Void}, wherefrom::Cint, user
     cpxrawcb = CallbackData(cbdata, model.inner)
     if wherefrom == CPX_CALLBACK_MIP_CUT_FEAS || wherefrom == CPX_CALLBACK_MIP_CUT_UNBD
         state = :MIPSol
-        cpxcb = CplexRegularCallbackData(cpxrawcb, state, wherefrom, Array(Float64,0), Array(Float64,0), Cint[0], userinteraction_p)
+        cpxcb = CplexLazyCallbackData(cpxrawcb, state, wherefrom, userinteraction_p)
         if model.lazycb != nothing
             stat = model.lazycb(cpxcb)
             if stat == :Exit
@@ -435,7 +421,7 @@ function mastercallback(env::Ptr{Void}, cbdata::Ptr{Void}, wherefrom::Cint, user
     # elseif wherefrom == CPX_CALLBACK_MIP_CUT_LOOP || wherefrom == CPX_CALLBACK_MIP_CUT_LAST
       elseif wherefrom == CPX_CALLBACK_MIP_CUT_LAST
         state = :MIPNode
-        cpxcb = CplexRegularCallbackData(cpxrawcb, state, wherefrom, Array(Float64,0), Array(Float64,0), Cint[0], userinteraction_p)
+        cpxcb = CplexCutCallbackData(cpxrawcb, state, wherefrom, userinteraction_p)
         if model.cutcb != nothing
             stat = model.cutcb(cpxcb)
             if stat == :Exit
@@ -444,6 +430,16 @@ function mastercallback(env::Ptr{Void}, cbdata::Ptr{Void}, wherefrom::Cint, user
         end
     end
     return convert(Cint, 0)
+end
+
+type CplexHeuristicCallbackData <: CplexCallbackData
+    cbdata::CallbackData
+    state::Symbol
+    where::Cint
+    sol::Vector{Float64}
+    heur_x::Vector{Float64}
+    isfeas_p::Ptr{Cint}
+    userinteraction_p::Ptr{Cint}
 end
 
 function masterheuristiccallback(env::Ptr{Void},
@@ -459,7 +455,7 @@ function masterheuristiccallback(env::Ptr{Void},
     if wherefrom == CPX_CALLBACK_MIP_HEURISTIC
         state = :MIPNode
         sol = pointer_to_array(xx, numvar(model))
-        cpxcb = CplexRegularCallbackData(cpxrawcb, state, wherefrom, sol, fill(NaN, numvar(model)), isfeas_p, userinteraction_p)
+        cpxcb = CplexHeuristicCallbackData(cpxrawcb, state, wherefrom, sol, fill(NaN, numvar(model)), isfeas_p, userinteraction_p)
         if model.heuristiccb != nothing
             stat = model.heuristiccb(cpxcb)
             if stat == :Exit
@@ -530,6 +526,21 @@ function setmathprogheuristiccallback!(model::CplexMathProgModel)
     nothing
 end
 
+immutable BranchingChoice
+    indices::Vector{Cint}
+    bounds::Vector{Cdouble}
+    lu::Vector{Cchar}
+end
+export BranchingChoice
+
+type CplexBranchCallbackData <: CplexCallbackData
+    cbdata::CallbackData
+    state::Symbol
+    where::Cint
+    userinteraction_p::Ptr{Cint}
+    nodes::Vector{BranchingChoice}
+end
+
 function masterbranchcallback(env::Ptr{Void},
                               cbdata::Ptr{Void},
                               wherefrom::Cint,
@@ -562,7 +573,7 @@ function masterbranchcallback(env::Ptr{Void},
             subidx = (numbranchingvars[1]+1) : (numbranchingvars[2])
             nodes[2] = BranchingChoice(idxs[subidx], vals[subidx], dirs[subidx])
         end
-        cpxcb = CplexBranchCallbackData(cpxrawcb, state, wherefrom, Array(Float64,0), Array(Float64,0), Cint[0], userinteraction_p, nodes)
+        cpxcb = CplexBranchCallbackData(cpxrawcb, state, wherefrom, userinteraction_p, nodes)
         if model.branchcb != nothing
             stat = model.branchcb(cpxcb)
             if stat == :Exit
@@ -603,6 +614,16 @@ function setmathprogbranchcallback!(model::CplexMathProgModel)
     nothing
 end
 
+type CplexIncumbentCallbackData <: CplexCallbackData
+    cbdata::CallbackData
+    state::Symbol
+    where::Cint
+    sol::Vector{Float64}
+    isfeas_p::Ptr{Cint}
+    userinteraction_p::Ptr{Cint}
+    nodes::Vector{BranchingChoice}
+end
+
 function masterincumbentcallback(env::Ptr{Void},
                                  cbdata::Ptr{Void},
                                  wherefrom::Cint,
@@ -618,7 +639,7 @@ function masterincumbentcallback(env::Ptr{Void},
        wherefrom == CPX_CALLBACK_MIP_INCUMBENT_USERSOLN
         state = :MIPIncumbent
         sol = pointer_to_array(xx, numvar(model))
-        cpxcb = CplexRegularCallbackData(cpxrawcb, state, wherefrom, sol, Array(Float64,0), isfeas_p, useraction_p)
+        cpxcb = CplexIncumbentCallbackData(cpxrawcb, state, wherefrom, sol, isfeas_p, useraction_p)
         if model.incumbentcb != nothing
             stat = model.incumbentcb(cpxcb)
             if stat == :Exit
@@ -652,6 +673,12 @@ function setmathprogincumbentcallback!(model::CplexMathProgModel)
     nothing
 end
 
+type CplexInfoCallbackData <: CplexCallbackData
+    cbdata::CallbackData
+    state::Symbol
+    where::Cint
+end
+
 function masterinfocallback(env::Ptr{Void},
                             cbdata::Ptr{Void},
                             wherefrom::Cint,
@@ -659,7 +686,7 @@ function masterinfocallback(env::Ptr{Void},
     model = unsafe_pointer_to_objref(userdata)::CplexMathProgModel
     cpxrawcb = CallbackData(cbdata, model.inner)
     state = :MIPInfo
-    cpxcb = CplexRegularCallbackData(cpxrawcb, state, wherefrom, Array(Float64,0), Array(Float64,0), 0, 0)
+    cpxcb = CplexInfoCallbackData(cpxrawcb, state, wherefrom)
     if model.infocb != nothing
         stat = model.infocb(cpxcb)
         if stat == :Exit

@@ -14,12 +14,10 @@ end
 
 export CallbackData
 
-function setcallbackcut(cbdata::CallbackData, where::Cint, ind::Vector{Cint}, val::Vector{Cdouble}, sense::Char, rhs::Cdouble)
+function setcallbackcut(cbdata::CallbackData, where::Cint, ind::Vector{Cint}, val::Vector{Cdouble}, sense::Char, rhs::Cdouble, purgeable::Cint)
     len = length(ind)
     @assert length(val) == len
     sns = convert(Cint, sense)
-    # the last argument, purgeable, describes Cplex's treatment of the cut, i.e. whether it has liberty to drop it later in the tree.
-    # should really have default and then allow user override
     stat = @cpx_ccall(cutcallbackadd, Cint, (
                       Ptr{Void},
                       Ptr{Void},
@@ -31,16 +29,17 @@ function setcallbackcut(cbdata::CallbackData, where::Cint, ind::Vector{Cint}, va
                       Ptr{Cdouble},
                       Cint
                       ),
-                      cbdata.model.env.ptr, cbdata.cbdata, where, len, rhs, sns, ind.-1, val, convert(Cint,CPX_USECUT_PURGE)) # CPX_USECUT_FORCE = 0
+                      cbdata.model.env.ptr, cbdata.cbdata, where, len, rhs, sns, ind.-1, val, purgeable)
     if stat != 0
         throw(CplexError(cbdata.model.env.ptr, stat))
     end
 end
 
-for f in (:cbcut, :cblazy)
-    @eval ($f)(cbdata::CallbackData, where::Cint, ind::Vector{Cint}, val::Vector{Cdouble}, sense::Char, rhs::Cdouble) =
-        setcallbackcut(cbdata, where, ind, val, sense, rhs)
-end
+cbcut(cbdata::CallbackData, where::Cint, ind::Vector{Cint}, val::Vector{Cdouble}, sense::Char, rhs::Cdouble) =
+        setcallbackcut(cbdata, where, ind, val, sense, rhs, convert(Cint,CPX_USECUT_PURGE))
+
+cblazy(cbdata::CallbackData, where::Cint, ind::Vector{Cint}, val::Vector{Cdouble}, sense::Char, rhs::Cdouble) =
+        setcallbackcut(cbdata, where, ind, val, sense, rhs, convert(Cint,CPX_USECUT_FORCE))
 
 function cbbranch(cbdata::CallbackData, where::Cint, idx::Cint, LU::Cchar, bd::Cdouble, nodeest::Cdouble)
     seqnum = Array(Cint,1)
