@@ -27,11 +27,11 @@ function add_constrs!(model::Model, cbegins::IVec, inds::IVec, coeffs::FVec, rel
                           Ptr{Cdouble},     # matrix values
                           Ptr{Ptr{Cchar}},  # col names
                           Ptr{Ptr{Cchar}}   # row names
-                          ), 
+                          ),
                           model.env.ptr, model.lp, 0, ncons, nnz, rhs, rel, cbegins.-1, inds.-1, coeffs, C_NULL, C_NULL)
 
-        if stat != 0   
-           throw(CplexError(model.env, stat)) 
+        if stat != 0
+           throw(CplexError(model.env, stat))
         end
     end
 end
@@ -91,9 +91,9 @@ function add_rangeconstrs!(model::Model, cbegins::IVec, inds::IVec, coeffs::FVec
                           Ptr{Cdouble},     # matrix values
                           Ptr{Void},        # col names
                           Ptr{Void}         # row names
-                          ), 
+                          ),
                           model.env.ptr, model.lp, 0, ncons, nnz, lb, sense, cbegins[1:end-1], inds, coeffs, C_NULL, C_NULL)
-        if stat != 0   
+        if stat != 0
             throw(CplexError(model.env, stat))
         end
         for i = 1:ncons
@@ -153,7 +153,7 @@ function get_constr_senses(model::Model)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
-    return senses 
+    return senses
 end
 
 function set_constr_senses!(model::Model, senses::Vector)
@@ -161,11 +161,11 @@ function set_constr_senses!(model::Model, senses::Vector)
     stat = @cpx_ccall(chgsense, Cint, (
                       Ptr{Void},
                       Ptr{Void},
-                      Cint, 
+                      Cint,
                       Ptr{Cint},
                       Ptr{Cchar}
                       ),
-                      model.env.ptr, model.lp, ncons, Cint[0:ncons-1], Cchar[senses...])
+                      model.env.ptr, model.lp, ncons, Cint[0:ncons-1;], convert(Vector{Cchar},senses))
     if stat != 0
         throw(CplexError(model.env, stat))
     end
@@ -198,7 +198,7 @@ function set_rhs!(model::Model, rhs::Vector)
                       Ptr{Cint},
                       Ptr{Cdouble}
                       ),
-                      model.env.ptr, model.lp, ncons, Cint[0:ncons-1], float(rhs))
+                      model.env.ptr, model.lp, ncons, Cint[0:ncons-1;], float(rhs))
     if stat != 0
         throw(CplexError(model.env, stat))
     end
@@ -239,7 +239,7 @@ function set_constrLB!(model::Model, lb)
     for i = 1:num_constr(model)
         if senses[i] == 'G' || senses[i] == 'E'
             # Do nothing
-        elseif senses[i] == 'L' 
+        elseif senses[i] == 'L'
             if lb[i] != -Inf
                 # LEQ constraint with non-NegInf LB implies a range
                 if isapprox(lb[i], rhs[i])
@@ -267,7 +267,7 @@ function set_constrUB!(model::Model, ub)
     for i = 1:num_constr(model)
         if senses[i] == 'L' || senses[i] == 'E'
             # Do nothing
-        elseif senses[i] == 'G' 
+        elseif senses[i] == 'G'
             if ub[i] != Inf
                 # GEQ constraint with non-PosInf UB implies a range
                 if isapprox(ub[i], rhs[i])
@@ -348,8 +348,8 @@ function add_sos!(model::Model, sostype::Symbol, idx::Vector{Int}, weight::Vecto
     return nothing
 end
 
-add_indicator_constraint(model::Model, idx, coeff, sense, rhs, indicator) = 
-    add_indicator_constraint(model, convert(Vector{Cint},idx), convert(Vector{Cdouble},coeff), 
+add_indicator_constraint(model::Model, idx, coeff, sense, rhs, indicator) =
+    add_indicator_constraint(model, convert(Vector{Cint},idx), convert(Vector{Cdouble},coeff),
                              convert(Cchar,sense), convert(Cdouble,rhs), convert(Cint,indicator), convert(Cint,0))
 function add_indicator_constraint(model::Model, idx::Vector{Cint}, coeff::Vector{Cdouble}, sense::Cchar, rhs::Cdouble, indicator::Cint, comp::Cint)
     (nzcnt = length(idx)) == length(coeff) || error("Incompatible lengths in constraint specification")

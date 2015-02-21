@@ -13,7 +13,7 @@ function Model(env::Env, lp::Ptr{Void})
 end
 
 function Model(env::Env, name::ASCIIString)
-    @assert is_valid(env) 
+    @assert is_valid(env)
     stat = Array(Cint, 1)
     tmp = @cpx_ccall(createprob, Ptr{Void}, (Ptr{Void}, Ptr{Cint}, Ptr{Cchar}), env.ptr, stat, name)
     if tmp == C_NULL
@@ -76,7 +76,7 @@ function get_sense(model::Model)
         error("CPLEX: problem object or environment does not exist")
     end
     return sense
-end      
+end
 
 function set_sense!(model::Model, sense)
     if sense == :Min
@@ -134,13 +134,13 @@ function set_obj!(model::Model, c::Vector)
                         Ptr{Cint},
                         Ptr{Cdouble}
                         ),
-                        model.env.ptr, model.lp, nvars, Cint[0:nvars-1], float(c))                    
+                        model.env.ptr, model.lp, nvars, Cint[0:nvars-1;], float(c))
     if stat != 0
         throw(CplexError(model.env, stat))
     end
 end
 
-set_warm_start!(model::Model, x::Vector{Float64}) = set_warm_start!(model, Cint[1:length(x)], x)
+set_warm_start!(model::Model, x::Vector{Float64}) = set_warm_start!(model, Cint[1:length(x);], x)
 
 function set_warm_start!(model::Model, indx::IVec, val::FVec)
     stat = @cpx_ccall(addmipstarts, Cint, (

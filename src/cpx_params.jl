@@ -38,7 +38,7 @@ function set_param!(env::Env, _pindx::Int, val, ptype::Symbol)
   elseif ptype == :Double
     stat = @cpx_ccall(setdblparam, Cint, (Ptr{Void}, Cint, Cdouble), env.ptr, pindx, float(val))
   elseif ptype == :String
-    stat = @cpx_ccall(setstrparam, Cint, (Ptr{Void}, Cint, Ptr{Cchar}), env.ptr, pindx, Cchar[val...])
+    stat = @cpx_ccall(setstrparam, Cint, (Ptr{Void}, Cint, Ptr{Cchar}), env.ptr, pindx, convert(Vector{Cchar},val))
   elseif ptype == :Long
     stat = @cpx_ccall(setlongparam, Cint, (Ptr{Void}, Cint, Clonglong), env.ptr, pindx, convert(Clonglong, val))
   elseif ptype == :None

@@ -13,13 +13,13 @@ function add_vars!(model::Model, obj::Vector, l_in::Bounds, u_in::Bounds)
     end
     if nvars > 0
         stat = @cpx_ccall(newcols, Cint, (
-                          Ptr{Void}, 
-                          Ptr{Void}, 
-                          Cint, 
-                          Ptr{Cdouble}, 
-                          Ptr{Cdouble}, 
-                          Ptr{Cdouble}, 
-                          Ptr{Cchar}, 
+                          Ptr{Void},
+                          Ptr{Void},
+                          Cint,
+                          Ptr{Cdouble},
+                          Ptr{Cdouble},
+                          Ptr{Cdouble},
+                          Ptr{Cchar},
                           Ptr{Ptr{Cchar}}
                           ),
                           model.env.ptr, model.lp, nvars, float(obj), float(l), float(u), C_NULL, C_NULL)
@@ -66,7 +66,12 @@ end
 add_var!(model::Model, obj, l, u) = add_vars!(model, Cdouble[obj], Cdouble[l], Cdouble[u])
 
 function add_var!(model::Model, constridx, constrcoef, l, u, objcoef)
-    return add_var!(model, Cint[constridx...], Cdouble[constrcoef...], Cdouble[l...], Cdouble[u...], Cdouble[objcoef...])
+    return add_var!(model,
+                    convert(Vector{Cint},   collect(constridx)),
+                    convert(Vector{Cdouble},collect(constrcoef)),
+                    convert(Vector{Cdouble},collect(l)),
+                    convert(Vector{Cdouble},collect(u)),
+                    convert(Vector{Cdouble},collect(objcoef)))
 end
 
 function add_var!(model::Model, constridx::Vector, constrcoef::Vector, l::Vector, u::Vector, objcoef::Vector)
@@ -105,7 +110,7 @@ function set_varLB!(model::Model, l::FVec)
                       Ptr{Cchar},
                       Ptr{Cdouble}
                       ),
-                      model.env.ptr, model.lp, nvars, Cint[0:nvars-1], fill(convert(Cchar, 'L'), nvars), l)
+                      model.env.ptr, model.lp, nvars, Cint[0:nvars-1;], fill(convert(Cchar, 'L'), nvars), l)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
@@ -143,7 +148,7 @@ function set_varUB!(model::Model, u::FVec)
                       Ptr{Cchar},
                       Ptr{Cdouble}
                       ),
-                      model.env.ptr, model.lp, nvars, Cint[0:nvars-1], fill(convert(Cchar, 'U'), nvars), u)
+                      model.env.ptr, model.lp, nvars, Cint[0:nvars-1;], fill(convert(Cchar, 'U'), nvars), u)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
@@ -159,7 +164,7 @@ function set_vartype!(model::Model, vtype::Vector{Char})
                       Ptr{Cint},
                       Ptr{Cchar}
                       ),
-                      model.env.ptr, model.lp, nvars, Cint[0:nvars-1], Cchar[vtype...])
+                      model.env.ptr, model.lp, nvars, Cint[0:nvars-1;], convert(Vector{Cchar},vtype))
     if stat != 0
         throw(CplexError(model.env, stat))
     end
