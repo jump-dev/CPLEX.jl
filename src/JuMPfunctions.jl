@@ -88,6 +88,13 @@ function addBranch(cbdata::MathProgCallbackData, aff::JuMP.LinearConstraint, nod
     end
 end
 
+# This tells CPLEX that the current node should spawn zero branches
+function noBranches(d::CplexBranchCallbackData)
+    unsafe_store!(d.userinteraction_p, convert(Cint,CPX_CALLBACK_SET), 1)
+    nothing
+end
+export noBranches
+
 addIncumbentCallback(m::JuMP.Model, f::Function) = setIncumbentCallback(m, f)
 function setIncumbentCallback(m::JuMP.Model, f::Function)
     initcb(m)

@@ -560,7 +560,7 @@ function masterbranchcallback(env::Ptr{Void},
     if wherefrom == CPX_CALLBACK_MIP_BRANCH
         @assert 0 <= nodecnt <= 2
         state = :MIPBranch
-        numbranchingvars = pointer_to_array(nodebeg, convert(Cint,nodecnt))::Vector{Cint}
+        numbranchingvars = pointer_to_array(nodebeg, convert(Cint,nodecnt))::Vector{Cint} + 1
         idxs = pointer_to_array(indices, sum(numbranchingvars))::Vector{Cint}
         vals = pointer_to_array(bd, sum(numbranchingvars))::Vector{Cdouble}
         dirs = pointer_to_array(bd, sum(numbranchingvars))::Vector{Cdouble}
