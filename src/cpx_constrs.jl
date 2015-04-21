@@ -13,7 +13,7 @@ function add_constrs!(model::Model, cbegins::IVec, inds::IVec, coeffs::FVec, rel
       end
     end
 
-    if ncons >
+    if ncons > 0
         stat = @cpx_ccall(addrows, Cint, (
                           Ptr{Void},        # environment
                           Ptr{Void},        # problem
