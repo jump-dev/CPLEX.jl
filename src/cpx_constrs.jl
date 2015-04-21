@@ -13,7 +13,7 @@ function add_constrs!(model::Model, cbegins::IVec, inds::IVec, coeffs::FVec, rel
       end
     end
 
-    if ncons > 0 && nnz > 0
+    if ncons >
         stat = @cpx_ccall(addrows, Cint, (
                           Ptr{Void},        # environment
                           Ptr{Void},        # problem
@@ -77,7 +77,7 @@ function add_rangeconstrs!(model::Model, cbegins::IVec, inds::IVec, coeffs::FVec
         end
     end
 
-    if ncons > 0 && nnz > 0
+    if ncons > 0
         stat = @cpx_ccall(addrows, Cint, (
                           Ptr{Void},        # environment
                           Ptr{Void},        # problem
