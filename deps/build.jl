@@ -1,7 +1,7 @@
 using BinDeps
 @BinDeps.setup
 
-@osx_only dlopen("libstdc++",RTLD_GLOBAL)
+@osx_only Libdl.dlopen("libstdc++",Libdl.RTLD_GLOBAL)
 
 cpxvers = ["124","125","1251","1260","1261"]
 
@@ -28,4 +28,4 @@ libcplex = library_dependency("libcplex",aliases=libnames)
 end
 
 
-@BinDeps.install [ :libcplex => :libcplex ]
+@BinDeps.install @Compat.Dict(:libcplex => :libcplex)

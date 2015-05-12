@@ -1,6 +1,6 @@
 module CPLEX
 
-    @osx_only dlopen("libstdc++",RTLD_GLOBAL)
+    @osx_only Libdl.dlopen("libstdc++",Libdl.RTLD_GLOBAL)
 
     include("../deps/deps.jl")
 
@@ -72,7 +72,7 @@ module CPLEX
     #        cbget_mipsol_sol,
     #        cplex_model
 
-    include("full_defines.jl") 
+    include("full_defines.jl")
     include("cpx_common.jl")
     include("cpx_env.jl")
     include("cpx_model.jl")
@@ -85,7 +85,7 @@ module CPLEX
     include("cpx_highlevel.jl")
 
     if isdir(Pkg.dir("JuMP"))
-        try 
+        try
             eval(Expr(:import,:JuMP))
             include("JuMPfunctions.jl")
         end
