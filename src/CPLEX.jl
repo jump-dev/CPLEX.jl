@@ -1,5 +1,9 @@
 module CPLEX
 
+    if VERSION < v"0.4-"
+        const Libdl = Base
+    end
+
     @osx_only Libdl.dlopen("libstdc++",Libdl.RTLD_GLOBAL)
 
     include("../deps/deps.jl")
