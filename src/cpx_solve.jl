@@ -193,11 +193,7 @@ function get_basis(model::Model)
     return cbasis, rbasis
 end
 
-function get_node_count(model::Model)
-  ret = @cpx_ccall(getnodecnt, Cint, (Ptr{Void},Ptr{Void}), model.env.ptr, model.lp)
-  ret == 0 && error("Error getting node count")
-  return ret
-end
+get_node_count(model::Model) = @cpx_ccall(getnodecnt, Cint, (Ptr{Void},Ptr{Void}), model.env.ptr, model.lp)
 
 function get_num_cuts(model::Model,cuttype)
     cutcount = Array(Cint,1)
