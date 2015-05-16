@@ -29,7 +29,16 @@ end
 CplexSolver(;kwargs...) = CplexSolver(kwargs)
 model(s::CplexSolver) = CplexMathProgModel(;s.options...)
 
-loadproblem!(m::CplexMathProgModel, filename::String) = read_model(m.inner, filename)
+function loadproblem!(m::CplexMathProgModel, filename::String)
+   read_model(m.inner, filename)
+   prob_type = get_prob_type(m.inner)
+   if prob_type in [:MILP,:MIQP, :MIQCP]
+      m.inner.has_int = true
+   end
+   if prob_type in [:QP, :MIQP, :QCP, :MIQCP]
+      m.inner.has_qc = true
+   end
+end
 
 function loadproblem!(m::CplexMathProgModel, A, collb, colub, obj, rowlb, rowub, sense)
   add_vars!(m.inner, float(obj), float(collb), float(colub))
