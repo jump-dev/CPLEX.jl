@@ -178,6 +178,7 @@ getconstrsolution(m::CplexMathProgModel) = get_constr_solution(m.inner)
 getreducedcosts(m::CplexMathProgModel) = get_reduced_costs(m.inner)
 getconstrduals(m::CplexMathProgModel) = get_constr_duals(m.inner)
 getrawsolver(m::CplexMathProgModel) = m.inner
+getnodecount(m::CplexMathProgModel) = get_node_count(m.inner)
 
 const var_type_map = Compat.@compat Dict(
   'C' => :Cont,
@@ -234,7 +235,6 @@ setquadobj!(m::CplexMathProgModel,rowidx,colidx,quadval) = add_qpterms!(m.inner,
 ######
 # Data
 ######
-getnodecnt(m::CplexMathProgModel) = @cpx_ccall(getnodecnt, Cint, (Ptr{Void},Ptr{Void}), m.inner.env.ptr, m.inner.lp)
 function getdettime(m::CplexMathProgModel)
     tim = Array(Cdouble,1)
     stat = @cpx_ccall(getdettime, Cint, (Ptr{Void},Ptr{Cdouble}), m.inner.env.ptr, tim)
