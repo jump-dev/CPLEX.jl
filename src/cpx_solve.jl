@@ -12,13 +12,13 @@ function optimize!(model::Model)
   end
 end
 
-set_branching_priority(model::Model, priority) = 
+set_branching_priority(model::Model, priority) =
     set_branching_priority(model, Cint[1:num_var(model)], priority)
 
-set_branching_priority(model::Model, indices, priority) = 
+set_branching_priority(model::Model, indices, priority) =
     set_branching_priority(model, indices, priority, C_NULL)
 
-set_branching_priority(model, indices, priority, direction) = 
+set_branching_priority(model, indices, priority, direction) =
     set_branching_priority(model, convert(Vector{Cint},indices), convert(Vector{Cint},priority), direction)
 
 function set_branching_priority(model::Model, indices::Vector{Cint}, priority::Vector{Cint}, direction)
@@ -72,10 +72,10 @@ function get_reduced_costs(model::Model)
     p = Array(Cdouble, nvars)
     status = Array(Cint, 1)
     stat = @cpx_ccall(getdj, Cint, (
-                      Ptr{Void}, 
-                      Ptr{Void}, 
-                      Ptr{Cdouble}, 
-                      Cint, 
+                      Ptr{Void},
+                      Ptr{Void},
+                      Ptr{Cdouble},
+                      Cint,
                       Cint
                       ),
                       model.env.ptr, model.lp, p, 0, nvars-1)
@@ -90,10 +90,10 @@ function get_constr_duals(model::Model)
     p = Array(Cdouble, ncons)
     status = Array(Cint, 1)
     stat = @cpx_ccall(getpi, Cint, (
-                      Ptr{Void}, 
-                      Ptr{Void}, 
-                      Ptr{Cdouble}, 
-                      Cint, 
+                      Ptr{Void},
+                      Ptr{Void},
+                      Ptr{Cdouble},
+                      Cint,
                       Cint
                       ),
                       model.env.ptr, model.lp, p, 0, ncons-1)
@@ -194,6 +194,16 @@ function get_basis(model::Model)
 end
 
 get_node_count(model::Model) = @cpx_ccall(getnodecnt, Cint, (Ptr{Void},Ptr{Void}), model.env.ptr, model.lp)
+
+function get_rel_gap(model::Model)
+  ret = Array(Cdouble,1)
+  stat = @cpx_ccall(getmiprelgap, Cint, (Ptr{Void},Ptr{Void},Ptr{Cdouble}), model.env.ptr, model.lp, ret)
+  if stat != 0
+    throw(CplexError(model.env, stat))
+  end
+  ret[1]
+end
+
 
 function get_num_cuts(model::Model,cuttype)
     cutcount = Array(Cint,1)

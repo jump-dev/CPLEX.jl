@@ -244,6 +244,8 @@ function getdettime(m::CplexMathProgModel)
     return tim[1]
 end
 
+getobjgap(m::CplexMathProgModel) = get_rel_gap(m.inner)
+
 ###########
 # Callbacks
 ###########
