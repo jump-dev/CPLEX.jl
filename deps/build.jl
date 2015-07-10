@@ -3,7 +3,7 @@ using BinDeps
 
 @osx_only Libdl.dlopen("libstdc++",Libdl.RTLD_GLOBAL)
 
-cpxvers = ["124","125","1251","1260","1261"]
+cpxvers = ["124","125","1251","1260","1261","1262"]
 
 libnames = String["cplex"]
 for v in cpxvers
