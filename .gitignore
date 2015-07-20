@@ -3,3 +3,4 @@
 *.swp
 *.sublime*
 *.log
+*.cov
