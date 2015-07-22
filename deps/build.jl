@@ -1,4 +1,4 @@
-using BinDeps
+using BinDeps, Compat
 @BinDeps.setup
 
 @osx_only Libdl.dlopen("libstdc++",Libdl.RTLD_GLOBAL)

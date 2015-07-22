@@ -1,8 +1,6 @@
 module CPLEX
 
-    if VERSION < v"0.4-"
-        const Libdl = Base
-    end
+    using Compat
 
     @osx_only Libdl.dlopen("libstdc++",Libdl.RTLD_GLOBAL)
 
@@ -13,7 +11,6 @@ module CPLEX
 
     # Standard LP interface
     importall MathProgBase.SolverInterface
-    import Compat
 
     # exported functions
     # export is_valid,
