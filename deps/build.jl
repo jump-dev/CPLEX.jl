@@ -9,7 +9,7 @@ libnames = String["cplex"]
 for v in cpxvers
     push!(libnames, "cplex$v")
     push!(libnames, "libcplex$v.so")
-    # push!(libnames, "libcplex$v.dylib")
+    push!(libnames, "libcplex$v.dylib")
 end
 
 libcplex = library_dependency("libcplex",aliases=libnames)
