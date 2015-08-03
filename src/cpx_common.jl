@@ -9,6 +9,36 @@ macro cpx_ccall(func, args...)
     end
 end
 
+macro cpx_ccall_intercept(func, args...)
+    f = "CPX$(func)"
+    @unix_only return quote
+        ccall(:jl_exit_on_sigint, Void, (Cint,), 0)
+        try
+            ccall(($f,libcplex), $(args...))
+        catch ex
+            if isa(ex, InterruptException)
+                sig = Cint[2]
+                @cpx_ccall(setterminate, Cint, (Ptr{Void},Ptr{Cint}), model.env.ptr, pointer(sig))
+            end
+            rethrow(ex)
+        end
+        ccall(:jl_exit_on_sigint, Void, (Cint,), 1)
+    end
+    @windows_only return quote
+        ccall(:jl_exit_on_sigint, Void, (Cint,), 0)
+        try
+            ccall(($f,libcplex), stdcall, $(args...))
+        catch ex
+            if isa(ex, InterruptException)
+                sig = Cint[2]
+                @cpx_ccall(setterminate, Cint, (Ptr{Void},Ptr{Cint}), model.env.ptr, pointer(sig))
+            end
+            rethrow(ex)
+        end
+    end
+    ccall(:jl_exit_on_sigint, Void, (Cint,), 1)
+end
+
 typealias GChars Union(Cchar, Char)
 typealias IVec Vector{Cint}
 typealias FVec Vector{Cdouble}
