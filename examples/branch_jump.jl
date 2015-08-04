@@ -14,13 +14,13 @@ xub = MathProgBase.getvarUB(m_internal)
 l = MathProgBase.getconstrLB(m_internal)
 u = MathProgBase.getconstrUB(m_internal)
 vtypes = MathProgBase.getvartype(m_internal)
-println(vtypes)
+
 # populate JuMP model with data from internal model
 @defVar(mod, x[1:n])
 for i in 1:n
     setLower(x[i], xlb[i])
     setUpper(x[i], xub[i])
-    (vtypes[i] == :Bin || vtypes[i] == :Int) ? mod.colCat[x[i].col] = :Bin : nothing # change vartype to integer when appropriate
+    (vtypes[i] == :Bin || vtypes[i] == :Int) ? mod.colCat[x[i].col] = :Int : nothing # change vartype to integer when appropriate
 end
 At = A' # transpose to get useful row-wise sparse representation
 for i in 1:At.n
@@ -51,13 +51,13 @@ function callback(cb)
         end
         if bestj >= 1
             xj_lo = floor(xval[bestj])
-            println("branching on $bestj")
+            #println("branching on $bestj")
             addBranch(cb, x[bestj] >= xj_lo + 1, objval)
             addBranch(cb, x[bestj] <= xj_lo,     objval)
         end
     end
 end
-println(x)
+
 solve(mod; load_model_only=true)
 setBranchCallback(mod, callback)
 solve(mod)
