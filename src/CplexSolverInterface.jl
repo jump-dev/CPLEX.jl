@@ -298,7 +298,7 @@ function cbgetmipsolution(d::CplexCallbackData, sol::Vector{Cdouble})
 end
 
 function cbgetlpsolution(d::CplexCallbackData)
-    @assert d.state == :MIPNode
+    @assert d.state == :MIPNode || d.state == :MIPBranch
     n = num_var(d.cbdata.model)
     sol = Array(Cdouble, n)
     stat = @cpx_ccall(getcallbacknodex, Cint, (Ptr{Void},Ptr{Void},Cint,Ptr{Cdouble},Cint,Cint),
@@ -372,17 +372,19 @@ function cbsetsolutionvalue!(d::CplexCallbackData,varidx,value)
 end
 
 function cbaddboundbranchup!(d::CplexCallbackData,idx,bd,nodeest)
-    cbbranch(d.cbdata, d.where,convert(Cint,idx-1),convert(Cchar,'L'),bd,nodeest)
+    seqnum = cbbranch(d.cbdata, d.where,convert(Cint,idx-1),convert(Cchar,'L'),bd,nodeest)
     unsafe_store!(d.userinteraction_p, convert(Cint,CPX_CALLBACK_SET), 1)
+    seqnum
 end
 
 function cbaddboundbranchdown!(d::CplexCallbackData,idx,bd,nodeest)
-    cbbranch(d.cbdata, d.where,convert(Cint,idx-1),convert(Cchar,'U'),bd,nodeest)
+    seqnum = cbbranch(d.cbdata, d.where,convert(Cint,idx-1),convert(Cchar,'U'),bd,nodeest)
     unsafe_store!(d.userinteraction_p, convert(Cint,CPX_CALLBACK_SET), 1)
+    seqnum
 end
 
 function cbaddconstrbranch!(d::CplexCallbackData, indices, coeffs, rhs, sense, nodeest)
-    cbbranchconstr(d.cbdata,
+    seqnum = cbbranchconstr(d.cbdata,
                    d.where,
                    Cint[idx-1 for idx in indices],
                    Cdouble[c for c in coeffs],
@@ -390,6 +392,7 @@ function cbaddconstrbranch!(d::CplexCallbackData, indices, coeffs, rhs, sense, n
                    convert(Cchar, sense),
                    nodeest)
     unsafe_store!(d.userinteraction_p, convert(Cint,CPX_CALLBACK_SET), 1)
+    seqnum
 end
 
 function cbprocessincumbent!(d::CplexCallbackData,accept::Bool)
