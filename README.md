@@ -24,6 +24,11 @@ NOTE: CPLEX [does not officially support linking to their dynamic C library](htt
 
 4. Check that your version is included in ``deps/build.jl`` in the aliases for the library dependency; if not, open an issue.
 
+Note on parameters
+------------------
+
+CPLEX has a large range of parameters that can be tuned to change the solvers behavior in many stages of the optimization process. CPLEX.jl includes an automatically generated list of parameters that are accessible for use. However, this list has last been generated with CPLEX version 12.6.2, and there are some differences with previous versions. For this reason, take care when setting solver parameters on earlier versions of CPLEX.
+
 Note for windows
 ----------------
 
