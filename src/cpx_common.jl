@@ -12,13 +12,13 @@ end
 macro cpx_ccall_intercept(model, func, args...)
     f = "CPX$(func)"
     quote
-        ccall(:jl_exit_on_sigint, Void, (Cint,), Cint(0))
+        ccall(:jl_exit_on_sigint, Void, (Cint,), convert(Cint,0))
         ret = try
             $(@windows? :(ccall(($f,libcplex), stdcall, $(args...))) : :(ccall(($f,libcplex), $(args...))) )
         catch ex
             println("Caught exception")
             if !isinteractive()
-                ccall(:jl_exit_on_sigint, Void, (Cint,), Cint(1))
+                ccall(:jl_exit_on_sigint, Void, (Cint,), convert(Cint,1))
             end
             if isa(ex, InterruptException)
                 model.env.sig[] = 2
@@ -26,7 +26,7 @@ macro cpx_ccall_intercept(model, func, args...)
             rethrow(ex)
         end
         if !isinteractive()
-            ccall(:jl_exit_on_sigint, Void, (Cint,), Cint(1))
+            ccall(:jl_exit_on_sigint, Void, (Cint,), convert(Cint,1))
         end
         ret
     end
