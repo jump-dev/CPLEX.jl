@@ -85,12 +85,11 @@ module CPLEX
     include("cpx_callbacks.jl")
     include("cpx_highlevel.jl")
 
+    include("CplexSolverInterface.jl")
     if isdir(Pkg.dir("JuMP"))
         try
             eval(Expr(:import,:JuMP))
             include("JuMPfunctions.jl")
         end
     end
-
-    include("CplexSolverInterface.jl")
 end
