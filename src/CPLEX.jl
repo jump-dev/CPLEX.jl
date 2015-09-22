@@ -1,5 +1,7 @@
 module CPLEX
 
+    isdefined(Base, :__precompile__) && __precompile__()
+
     using Compat
 
     @osx_only Libdl.dlopen("libstdc++",Libdl.RTLD_GLOBAL)
@@ -87,7 +89,7 @@ module CPLEX
 
     if isdir(Pkg.dir("JuMP"))
         try
-            eval(Expr(:import,:JuMP))
+            eval(current_module(), Expr(:import,:JuMP))
             include("JuMPfunctions.jl")
         end
     end
