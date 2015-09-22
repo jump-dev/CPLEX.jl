@@ -15,7 +15,7 @@ end
 libcplex = library_dependency("libcplex",aliases=libnames)
 
 @windows_only begin
-    wincpxvers = ["126"]
+    wincpxvers = ["126","1261","1262"]
     for v in wincpxvers
         env = "CPLEX_STUDIO_BINARIES$v"
         if haskey(ENV,env)
