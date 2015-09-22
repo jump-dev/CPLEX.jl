@@ -86,6 +86,7 @@ function addBranch(cbdata::MathProgCallbackData, aff::JuMP.LinearConstraint, nod
         end
         cbaddconstrbranch!(cbdata, indices, coeffs, rhs, sense, nodeest)
     end
+    nothing
 end
 
 # This tells CPLEX that the current node should spawn zero branches
