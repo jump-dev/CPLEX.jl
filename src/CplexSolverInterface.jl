@@ -653,7 +653,7 @@ function masterincumbentcallback(env::Ptr{Void},
        wherefrom == CPX_CALLBACK_MIP_INCUMBENT_USERSOLN
         state = :MIPIncumbent
         sol = pointer_to_array(xx, numvar(model))
-        cpxcb = CplexIncumbentCallbackData(cpxrawcb, state, wherefrom, sol, isfeas_p, useraction_p)
+        cpxcb = CplexIncumbentCallbackData(cpxrawcb, state, wherefrom, sol, isfeas_p, useraction_p, BranchingChoice[])
         if model.incumbentcb != nothing
             stat = model.incumbentcb(cpxcb)
             if stat == :Exit
