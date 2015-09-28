@@ -5,7 +5,7 @@ using BinDeps, Compat
 
 cpxvers = ["124","125","1251","1260","1261","1262"]
 
-libnames = String["cplex"]
+libnames = ASCIIString["cplex"]
 for v in cpxvers
     push!(libnames, "cplex$v")
     push!(libnames, "libcplex$v.so")

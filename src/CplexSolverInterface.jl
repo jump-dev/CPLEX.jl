@@ -29,7 +29,7 @@ end
 CplexSolver(;kwargs...) = CplexSolver(kwargs)
 model(s::CplexSolver) = CplexMathProgModel(;s.options...)
 
-function loadproblem!(m::CplexMathProgModel, filename::String)
+function loadproblem!(m::CplexMathProgModel, filename::AbstractString)
    read_model(m.inner, filename)
    prob_type = get_prob_type(m.inner)
    if prob_type in [:MILP,:MIQP, :MIQCP]
@@ -72,7 +72,7 @@ function loadproblem!(m::CplexMathProgModel, A, collb, colub, obj, rowlb, rowub,
   set_sense!(m.inner, sense)
 end
 
-writeproblem(m::CplexMathProgModel, filename::String) = write_model(m.inner, filename)
+writeproblem(m::CplexMathProgModel, filename::AbstractString) = write_model(m.inner, filename)
 
 getvarLB(m::CplexMathProgModel) = get_varLB(m.inner)
 setvarLB!(m::CplexMathProgModel, l) = set_varLB!(m.inner, l)
