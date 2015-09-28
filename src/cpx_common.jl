@@ -9,14 +9,14 @@ macro cpx_ccall(func, args...)
     end
 end
 
-typealias GChars Union{Cchar, Char}
+typealias GChars @compat(Union{Cchar, Char})
 typealias IVec Vector{Cint}
 typealias FVec Vector{Cdouble}
 typealias CVec Vector{Cchar}
-typealias CoeffMat Union{Matrix{Cdouble}, SparseMatrixCSC{Cdouble}}
-typealias Bounds{T<:Real} Union{T, Vector{T}}
+typealias CoeffMat @compat(Union{Matrix{Cdouble}, SparseMatrixCSC{Cdouble}})
+typealias Bounds{T<:Real} @compat(Union{T, Vector{T}})
 
-typealias GCharOrVec Union{Cchar, Char, Vector{Cchar}, Vector{Char}}
+typealias GCharOrVec @compat(Union{Cchar, Char, Vector{Cchar}, Vector{Char}})
 
 # empty vector & matrix (for the purpose of supplying default arguments)
 const emptyfvec = Array(Float64, 0)
