@@ -1,5 +1,6 @@
 type Env
     ptr::Ptr{Void}
+    sig::Vector{Cint}
 
     function Env()
       stat = Array(Cint, 1)
@@ -7,7 +8,12 @@ type Env
       if tmp == C_NULL
           error("CPLEX: Error creating environment")
       end
-      new(tmp)
+      sig = Cint[0]
+      stat = @cpx_ccall(setterminate, Cint, (Ptr{Void},Ptr{Cint}), tmp, sig)
+      if stat != 0
+          error("Cannot set termination signal")
+      end
+      new(tmp, sig)
     end
 end
 
@@ -22,7 +28,7 @@ function set_logfile(env::Env, filename::ASCIIString)
   if fp == C_NULL
     error("CPLEX: Error setting logfile")
   end
-  stat = @cpx_ccall(setlogfile, Cint, (Ptr{Void}, Ptr{Void}), env, fp) 
+  stat = @cpx_ccall(setlogfile, Cint, (Ptr{Void}, Ptr{Void}), env, fp)
   if stat != 0
     throw(CplexError(env, stat))
   end

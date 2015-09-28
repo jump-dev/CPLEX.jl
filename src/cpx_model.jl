@@ -19,7 +19,7 @@ function Model(env::Env, name::ASCIIString)
     if tmp == C_NULL
         throw(CplexError(env, stat))
     end
-    return Model(env, tmp)
+    return Model(env, tmp, false, false, nothing)
 end
 
 # internal function that wraps finalizer for model and environment together
@@ -161,6 +161,7 @@ function set_warm_start!(model::Model, indx::IVec, val::FVec)
 end
 
 function free_problem(model::Model)
+    println("in free_problem")
     tmp = Ptr{Void}[model.lp]
     stat = @cpx_ccall(freeprob, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, tmp)
     if stat != 0
@@ -169,6 +170,7 @@ function free_problem(model::Model)
 end
 
 function close_CPLEX(env::Env)
+    println("in close_CPLEX")
     tmp = Ptr{Void}[env.ptr]
     stat = @cpx_ccall(closeCPLEX, Cint, (Ptr{Void},), tmp)
     if stat != 0
