@@ -122,7 +122,7 @@ function get_prob_type(model::Model)
                    Ptr{Void}),
                    model.env.ptr, model.lp)
   ret == -1 && error("No problem of environment")
-  return type_map[int(ret)]
+  return type_map[@compat Int(ret)]
 end
 
 function set_obj!(model::Model, c::Vector)

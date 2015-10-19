@@ -254,5 +254,5 @@ const status_symbols = Compat.@compat Dict(
     121 => :CPXMIP_OPTIMAL_RELAXED
 )
 
-get_status(model::Model) = status_symbols[int(get_status_code(model))]::Symbol
+get_status(model::Model) = status_symbols[@compat Int(get_status_code(model))]::Symbol
 get_status_code(model::Model) = @cpx_ccall(getstat, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
