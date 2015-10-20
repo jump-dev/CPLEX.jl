@@ -1,6 +1,7 @@
+isdefined(Base, :__precompile__) && __precompile__()
+
 module CPLEX
 
-    isdefined(Base, :__precompile__) && __precompile__()
 
     using Compat
 
