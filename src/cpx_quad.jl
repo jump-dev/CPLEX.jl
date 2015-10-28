@@ -130,7 +130,7 @@ function add_qconstr!(model::Model, lind::IVec, lval::FVec, qr::IVec, qc::IVec, 
                           Ptr{Cint},    # qrow
                           Ptr{Cint},    # qcol
                           Ptr{Float64}, # qval
-                          Ptr{Uint8}    # name
+                          Ptr{UInt8}    # name
                           ), 
                           model.env.ptr, model.lp, lnnz, qnnz, rhs, rel, lind.-1, lval, qr.-1, qc.-1, qv, C_NULL)
         if stat != 0
