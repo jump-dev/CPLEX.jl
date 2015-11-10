@@ -164,7 +164,7 @@ function set_vartype!(model::Model, vtype::Vector{Char})
                       Ptr{Cint},
                       Ptr{Cchar}
                       ),
-                      model.env.ptr, model.lp, nvars, Cint[0:nvars-1;], convert(Vector{Cchar},vtype))
+                      model.env.ptr, model.lp, length(vtype), Cint[0:length(vtype)-1;], convert(Vector{Cchar},vtype))
     if stat != 0
         throw(CplexError(model.env, stat))
     end
