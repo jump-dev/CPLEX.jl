@@ -8,6 +8,7 @@ type CplexMathProgModel <: AbstractMathProgModel
     branchcb
     incumbentcb
     infocb
+    solvetime
 end
 
 function CplexMathProgModel(;options...)
@@ -150,7 +151,9 @@ function optimize!(m::CplexMathProgModel)
     if m.infocb != nothing
         setmathproginfocallback!(m)
     end
+    start = time()
     optimize!(m.inner)
+    m.solvetime = time() - start
 end
 
 function status(m::CplexMathProgModel)
@@ -213,6 +216,10 @@ function getvartype(m::CplexMathProgModel)
   else
     return fill(:Cont, num_var(m.inner))
   end
+end
+
+function getsolvetime(m::CplexMathProgModel)
+    return m.solvetime
 end
 
 getinfeasibilityray(m::CplexMathProgModel) = get_infeasibility_ray(m.inner)
