@@ -8,7 +8,7 @@ type CplexMathProgModel <: AbstractMathProgModel
     branchcb
     incumbentcb
     infocb
-    solvetime
+    solvetime::Float64
 end
 
 function CplexMathProgModel(;options...)
@@ -20,7 +20,7 @@ function CplexMathProgModel(;options...)
         set_param!(env, string(name), value)
     end
 
-    m = CplexMathProgModel(_Model(env), nothing, nothing, nothing, nothing, nothing, nothing, nothing)
+    m = CplexMathProgModel(_Model(env), nothing, nothing, nothing, nothing, nothing, nothing, NaN)
     return m
 end
 
