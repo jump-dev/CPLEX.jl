@@ -20,7 +20,7 @@ function CplexMathProgModel(;options...)
         set_param!(env, string(name), value)
     end
 
-    m = CplexMathProgModel(_Model(env), nothing, nothing, nothing, nothing, nothing, nothing)
+    m = CplexMathProgModel(_Model(env), nothing, nothing, nothing, nothing, nothing, nothing, nothing)
     return m
 end
 
