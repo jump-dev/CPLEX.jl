@@ -1,6 +1,6 @@
 export CplexSolver
 
-type CplexMathProgModel <: AbstractMathProgModel
+type CplexMathProgModel <: AbstractLinearQuadraticModel
     inner::Model
     lazycb
     cutcb
@@ -28,7 +28,10 @@ immutable CplexSolver <: AbstractMathProgSolver
     options
 end
 CplexSolver(;kwargs...) = CplexSolver(kwargs)
-model(s::CplexSolver) = CplexMathProgModel(;s.options...)
+LinearQuadraticModel(s::CplexSolver) = CplexMathProgModel(;s.options...)
+
+ConicModel(s::CplexSolver) = LPQPtoConicBridge(LinearQuadraticModel(s))
+supportedcones(::CplexSolver) = [:Free,:Zero,:NonNeg,:NonPos,:SOC]
 
 function loadproblem!(m::CplexMathProgModel, filename::AbstractString)
    read_model(m.inner, filename)
@@ -183,7 +186,7 @@ getconstrduals(m::CplexMathProgModel) = get_constr_duals(m.inner)
 getrawsolver(m::CplexMathProgModel) = m.inner
 getnodecount(m::CplexMathProgModel) = get_node_count(m.inner)
 
-const var_type_map = Compat.@compat Dict(
+const var_type_map = Dict(
   'C' => :Cont,
   'B' => :Bin,
   'I' => :Int,
@@ -191,7 +194,7 @@ const var_type_map = Compat.@compat Dict(
   'N' => :SemiInt
 )
 
-const rev_var_type_map = Compat.@compat Dict(
+const rev_var_type_map = Dict(
   :Cont => 'C',
   :Bin => 'B',
   :Int => 'I',
@@ -353,7 +356,7 @@ end
 # returns :MIPNode :MIPSol :Other
 cbgetstate(d::CplexCallbackData) = d.state
 
-#const sensemap = Compat.@compat Dict('=' => 'E', '<' => 'L', '>' => 'G')
+#const sensemap = Dict('=' => 'E', '<' => 'L', '>' => 'G')
 function cbaddcut!(d::CplexCallbackData,varidx,varcoef,sense,rhs)
     @assert d.state == :MIPNode
     cbcut(d.cbdata, d.where, convert(Vector{Cint}, varidx), float(varcoef), sensemap[sense], float(rhs))

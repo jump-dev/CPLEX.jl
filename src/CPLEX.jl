@@ -1,9 +1,7 @@
-isdefined(Base, :__precompile__) && __precompile__()
+__precompile__()
 
 module CPLEX
 
-
-    using Compat
 
     @osx_only Libdl.dlopen("libstdc++",Libdl.RTLD_GLOBAL)
 

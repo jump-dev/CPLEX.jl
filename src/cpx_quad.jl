@@ -72,7 +72,7 @@ function add_qpterms!(model, H::Matrix{Float64}) # H must be symmetric
     n = num_var(model)
     size(H) == (n, n) || error("H must be an n-by-n symmetric matrix.")
     
-    nmax = int(n * (n + 1) / 2)
+    nmax = div(n * (n + 1), 2)
     qr = Array(Cint, nmax)
     qc = Array(Cint, nmax)
     qv = Array(Float64, nmax)
@@ -141,7 +141,7 @@ function add_qconstr!(model::Model, lind::IVec, lval::FVec, qr::IVec, qc::IVec, 
     nothing
 end
 
-const sensemap = Compat.@compat Dict('=' => 'E', '<' => 'L', '>' => 'G')
+const sensemap = Dict('=' => 'E', '<' => 'L', '>' => 'G')
 function add_qconstr!(model::Model, lind::Vector, lval::Vector, qr::Vector, qc::Vector, qv::Vector{Float64}, rel::GChars, rhs::Real)
     add_qconstr!(model, ivec(lind), fvec(lval), ivec(qr), ivec(qc), fvec(qv), cchar(sensemap[rel]), float(rhs))
 end

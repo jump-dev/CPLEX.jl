@@ -145,7 +145,7 @@ function tune_param(model::Model, intfixed::Dict, dblfixed::Dict, strfixed::Dict
 end
 
 # grep "#define" cpxconst.h | grep "CPX_PARAM_" | awk '{ printf("\"%s\" => %s,\n",$2,$3) }'
-const paramName2Indx = Compat.@compat Dict(
+const paramName2Indx = Dict(
 "CPX_PARAM_ADVIND" => 1001,
 "CPX_PARAM_AGGFILL" => 1002,
 "CPX_PARAM_AGGIND" => 1003,

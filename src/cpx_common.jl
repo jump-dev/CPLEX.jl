@@ -9,14 +9,14 @@ macro cpx_ccall(func, args...)
     end
 end
 
-typealias GChars @compat(Union{Cchar, Char})
+typealias GChars Union{Cchar, Char}
 typealias IVec Vector{Cint}
 typealias FVec Vector{Cdouble}
 typealias CVec Vector{Cchar}
-typealias CoeffMat @compat(Union{Matrix{Cdouble}, SparseMatrixCSC{Cdouble}})
-typealias Bounds{T<:Real} @compat(Union{T, Vector{T}})
+typealias CoeffMat Union{Matrix{Cdouble}, SparseMatrixCSC{Cdouble}}
+typealias Bounds{T<:Real} Union{T, Vector{T}}
 
-typealias GCharOrVec @compat(Union{Cchar, Char, Vector{Cchar}, Vector{Char}})
+typealias GCharOrVec Union{Cchar, Char, Vector{Cchar}, Vector{Char}}
 
 # empty vector & matrix (for the purpose of supplying default arguments)
 const emptyfvec = Array(Float64, 0)
@@ -43,6 +43,6 @@ cvecx(c::GChars, n::Integer) = fill(cchar(c), n)
 cvecx(c::Vector{Cchar}, n::Integer) = (_chklen(c, n); c)
 cvecx(c::Vector{Char}, n::Integer) = (_chklen(c, n); convert(Vector{Cchar}, c))
 
-fvecx(v::Real, n::Integer) = fill(float64(v), n)
+fvecx(v::Real, n::Integer) = fill(Float64(v), n)
 fvecx(v::Vector{Float64}, n::Integer) = (_chklen(v, n); v)
 fvecx{T<:Real}(v::Vector{T}, n::Integer) = (_chklen(v, n); convert(Vector{Float64}, v))

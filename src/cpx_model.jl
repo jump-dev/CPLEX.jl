@@ -105,7 +105,7 @@ function get_obj(model::Model)
     return obj
 end
 
-const type_map = Compat.@compat Dict(
+const type_map = Dict(
      0 => :LP,
      1 => :MILP,
      3 => :MILP,
@@ -122,7 +122,7 @@ function get_prob_type(model::Model)
                    Ptr{Void}),
                    model.env.ptr, model.lp)
   ret == -1 && error("No problem of environment")
-  return type_map[@compat Int(ret)]
+  return type_map[Int(ret)]
 end
 
 function set_obj!(model::Model, c::Vector)
