@@ -160,21 +160,22 @@ function optimize!(m::CplexMathProgModel)
 end
 
 function status(m::CplexMathProgModel)
-  ret = get_status(m.inner)
-  if ret in [:CPX_STAT_OPTIMAL, :CPXMIP_OPTIMAL, :CPXMIP_OPTIMAL_TOL]
-    stat = :Optimal
-  elseif ret in [:CPX_STAT_UNBOUNDED, :CPXMIP_UNBOUNDED]
-    stat = :Unbounded
-  elseif ret in [:CPX_STAT_INFEASIBLE, :CPXMIP_INFEASIBLE]
-    stat = :Infeasible
-  elseif ret in [:CPX_STAT_INForUNBD, :CPXMIP_INForUNBD]
-    Base.warn_once("CPLEX reported infeasible or unbounded. Set CPX_PARAM_REDUCE=1 to check
-                    infeasibility or CPX_PARAM_REDUCE=2 to check unboundedness.")
-    stat = :InfeasibleOrUnbounded
-  else
-    stat = ret
-  end
-  return stat
+    ret = get_status(m.inner)
+    return (if ret in [:CPX_STAT_OPTIMAL, :CPXMIP_OPTIMAL, :CPXMIP_OPTIMAL_TOL]
+        :Optimal
+    elseif ret in [:CPX_STAT_UNBOUNDED, :CPXMIP_UNBOUNDED]
+        :Unbounded
+    elseif ret in [:CPX_STAT_INFEASIBLE, :CPXMIP_INFEASIBLE]
+        :Infeasible
+    elseif ret in [:CPX_STAT_INForUNBD, :CPXMIP_INForUNBD]
+        Base.warn_once("CPLEX reported infeasible or unbounded. Set CPX_PARAM_REDUCE=1 to check
+                        infeasibility or CPX_PARAM_REDUCE=2 to check unboundedness.")
+        :InfeasibleOrUnbounded
+    elseif contains(string(ret), "ABORT")
+        :UserLimit
+    else
+        ret
+    end)
 end
 
 getobjval(m::CplexMathProgModel)   = get_objval(m.inner)
