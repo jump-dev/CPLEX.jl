@@ -1,12 +1,12 @@
 function optimize!(model::Model)
   @assert is_valid(model.env)
-  if model.has_int
-    stat = @cpx_ccall(mipopt, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
+  stat = (if model.has_int
+    @cpx_ccall_intercept(model, mipopt, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
   elseif model.has_qc
-    stat = @cpx_ccall(qpopt, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
+    @cpx_ccall_intercept(model, qpopt, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
   else
-    stat = @cpx_ccall(lpopt, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
-  end
+    @cpx_ccall_intercept(model, lpopt, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
+    end)
   if stat != 0
     throw(CplexError(model.env, stat))
   end
