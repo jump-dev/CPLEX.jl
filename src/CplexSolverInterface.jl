@@ -428,6 +428,8 @@ type CplexCutCallbackData <: CplexCallbackData
     userinteraction_p::Ptr{Cint}
 end
 
+terminate(model::CplexMathProgModel) = terminate(model.inner)
+
 # breaking abstraction, define our low-level callback to eliminate
 # a level of indirection
 function mastercallback(env::Ptr{Void}, cbdata::Ptr{Void}, wherefrom::Cint, userdata::Ptr{Void}, userinteraction_p::Ptr{Cint})
@@ -439,7 +441,7 @@ function mastercallback(env::Ptr{Void}, cbdata::Ptr{Void}, wherefrom::Cint, user
         if model.lazycb != nothing
             stat = model.lazycb(cpxcb)
             if stat == :Exit
-                return convert(Cint, 1006)
+                terminate(model.inner)
             end
         end
     # elseif wherefrom == CPX_CALLBACK_MIP_CUT_LOOP || wherefrom == CPX_CALLBACK_MIP_CUT_LAST
@@ -449,7 +451,7 @@ function mastercallback(env::Ptr{Void}, cbdata::Ptr{Void}, wherefrom::Cint, user
         if model.cutcb != nothing
             stat = model.cutcb(cpxcb)
             if stat == :Exit
-                return convert(Cint, 1006)
+                terminate(model.inner)
             end
         end
     end
@@ -483,7 +485,7 @@ function masterheuristiccallback(env::Ptr{Void},
         if model.heuristiccb != nothing
             stat = model.heuristiccb(cpxcb)
             if stat == :Exit
-                return convert(Cint, 1006)
+                terminate(model.inner)
             end
             if any(x->!isnan(x), cpxcb.heur_x) # we filled in some solution values
                 unsafe_store!(objval_p, dot(get_obj(model.inner), cpxcb.heur_x), 1)
@@ -601,7 +603,7 @@ function masterbranchcallback(env::Ptr{Void},
         if model.branchcb != nothing
             stat = model.branchcb(cpxcb)
             if stat == :Exit
-                return convert(Cint, 1006)
+                terminate(model.inner)
             end
         end
     end
@@ -667,7 +669,7 @@ function masterincumbentcallback(env::Ptr{Void},
         if model.incumbentcb != nothing
             stat = model.incumbentcb(cpxcb)
             if stat == :Exit
-                return convert(Cint, 1006)
+                terminate(model.inner)
             end
         end
     end
@@ -714,7 +716,7 @@ function masterinfocallback(env::Ptr{Void},
     if model.infocb != nothing
         stat = model.infocb(cpxcb)
         if stat == :Exit
-            return convert(Cint, 1006)
+            terminate(model.inner)
         end
     end
     return convert(Cint, 0)

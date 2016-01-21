@@ -4,11 +4,13 @@ type Model
     has_int::Bool # problem has integer variables?
     has_qc::Bool # problem has quadratic constraints?
     callback::Any
+    terminator::Vector{Cint}
 end
 
 function Model(env::Env, lp::Ptr{Void})
-    model = Model(env, lp, false, false, nothing)
+    model = Model(env, lp, false, false, nothing, Cint[0])
     finalizer(model, free_problem)
+    set_terminate(model)
     model
 end
 
@@ -30,12 +32,13 @@ function _Model(env::Env)
     if tmp == C_NULL
         throw(CplexError(model.env, stat))
     end
-    model = Model(env, tmp, false, false, nothing)
+    model = Model(env, tmp, false, false, nothing, Cint[0])
     finalizer(model, model::Model -> begin
             tmp = model.env
             free_problem(model)
             close_CPLEX(tmp)
         end)
+    set_terminate(model)
     return model
 end
 
@@ -175,3 +178,12 @@ function close_CPLEX(env::Env)
         throw(CplexError(env, stat))
     end
 end
+
+function set_terminate(model::Model)
+    stat = @cpx_ccall(setterminate, Cint, (Ptr{Void},Ptr{Cint}), model.env.ptr, model.terminator)
+    if stat != 0
+        throw(CplexError(env, stat))
+    end
+end
+
+terminate(model::Model) = (model.terminator[1] = 1)
