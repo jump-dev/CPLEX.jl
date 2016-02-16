@@ -107,7 +107,7 @@ function subtour(cb)
 
 end
 
-setlazycallback(m, subtour)
+addLazyCallback(m, subtour)
 stat = solve(m)
 
 println(getValue(x))
