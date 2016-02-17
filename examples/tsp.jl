@@ -99,7 +99,7 @@ function subtour(cb)
         end
         println(expr)
         readline(STDIN)
-        addLazyConstraint(cb, expr >= 2)
+        @addLazyConstraint(cb, expr >= 2)
         break
       end
     end
@@ -107,7 +107,7 @@ function subtour(cb)
 
 end
 
-setlazycallback(m, subtour)
+addLazyCallback(m, subtour)
 stat = solve(m)
 
 println(getValue(x))
