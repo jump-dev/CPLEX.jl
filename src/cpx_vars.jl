@@ -198,3 +198,19 @@ function num_var(model::Model)
                       model.env.ptr, model.lp)
     return(nvar)
 end
+
+function set_varname!(model::Model, idx::Integer, name::AbstractString)
+    s = bytestring(name)
+
+    stat = @cpx_ccall(chgcolname, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Cint,
+                      Ptr{Cint},
+                      Ptr{Ptr{UInt8}}
+                      ),
+                      model.env.ptr, model.lp, 1, Cint[idx-1], [pointer(s)])
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+end
