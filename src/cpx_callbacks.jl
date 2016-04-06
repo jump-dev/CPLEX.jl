@@ -35,11 +35,40 @@ function setcallbackcut(cbdata::CallbackData, where::Cint, ind::Vector{Cint}, va
     end
 end
 
+function setcallbackcutlocal(cbdata::CallbackData, where::Cint, ind::Vector{Cint}, val::Vector{Cdouble}, sense::Char, rhs::Cdouble, purgeable::Cint)
+    len = length(ind)
+    @assert length(val) == len
+    sns = convert(Cint, sense)
+    stat = @cpx_ccall(cutcallbackaddlocal, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Cint,
+                      Cint,
+                      Cdouble,
+                      Cint,
+                      Ptr{Cint},
+                      Ptr{Cdouble},
+                      Cint
+                      ),
+                      cbdata.model.env.ptr, cbdata.cbdata, where, len, rhs, sns, ind.-1, val, purgeable)
+    if stat != 0
+        throw(CplexError(cbdata.model.env.ptr, stat))
+    end
+end
+
+
+
 cbcut(cbdata::CallbackData, where::Cint, ind::Vector{Cint}, val::Vector{Cdouble}, sense::Char, rhs::Cdouble) =
         setcallbackcut(cbdata, where, ind, val, sense, rhs, convert(Cint,CPX_USECUT_PURGE))
 
+cbcutlocal(cbdata::CallbackData, where::Cint, ind::Vector{Cint}, val::Vector{Cdouble}, sense::Char, rhs::Cdouble) =
+        setcallbackcutlocal(cbdata, where, ind, val, sense, rhs, convert(Cint,CPX_USECUT_PURGE))
+
 cblazy(cbdata::CallbackData, where::Cint, ind::Vector{Cint}, val::Vector{Cdouble}, sense::Char, rhs::Cdouble) =
         setcallbackcut(cbdata, where, ind, val, sense, rhs, convert(Cint,CPX_USECUT_FORCE))
+
+cblazylocal(cbdata::CallbackData, where::Cint, ind::Vector{Cint}, val::Vector{Cdouble}, sense::Char, rhs::Cdouble) =
+        setcallbackcutlocal(cbdata, where, ind, val, sense, rhs, convert(Cint,CPX_USECUT_FORCE))
 
 function cbbranch(cbdata::CallbackData, where::Cint, idx::Cint, LU::Cchar, bd::Cdouble, nodeest::Cdouble)
     seqnum = Array(Cint,1)
