@@ -121,8 +121,6 @@ end
 
 getconstrmatrix(m::CplexMathProgModel) = get_constr_matrix(m.inner)
 
-# updatemodel!(m::CplexMathProgModel) = Base.warn_once("Model update not necessary for Cplex.")
-
 setsense!(m::CplexMathProgModel, sense) = set_sense!(m.inner, sense)
 
 getsense(m::CplexMathProgModel) = get_sense(m.inner)
