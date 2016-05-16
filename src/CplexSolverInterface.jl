@@ -362,10 +362,23 @@ function cbaddcut!(d::CplexCallbackData,varidx,varcoef,sense,rhs)
     unsafe_store!(d.userinteraction_p, convert(Cint,CPX_CALLBACK_ABORT_CUT_LOOP), 1)
 end
 
+function cbaddcutlocal!(d::CplexCallbackData,varidx,varcoef,sense,rhs)
+    @assert d.state == :MIPNode
+    cbcutlocal(d.cbdata, d.where, convert(Vector{Cint}, varidx), float(varcoef), sensemap[sense], float(rhs))
+    unsafe_store!(d.userinteraction_p, convert(Cint,CPX_CALLBACK_ABORT_CUT_LOOP), 1)
+end
+
+
 function cbaddlazy!(d::CplexCallbackData,varidx,varcoef,sense,rhs)
     @assert d.state == :MIPNode || d.state == :MIPSol
     cblazy(d.cbdata, d.where, convert(Vector{Cint}, varidx), float(varcoef), sensemap[sense], float(rhs))
 end
+
+function cbaddlazylocal!(d::CplexCallbackData,varidx,varcoef,sense,rhs)
+    @assert d.state == :MIPNode || d.state == :MIPSol
+    cblazylocal(d.cbdata, d.where, convert(Vector{Cint}, varidx), float(varcoef), sensemap[sense], float(rhs))
+end
+
 
 function cbaddsolution!(d::CplexCallbackData)
     val = pointer_to_array(d.userinteraction_p, 1)
