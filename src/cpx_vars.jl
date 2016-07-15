@@ -67,11 +67,11 @@ add_var!(model::Model, obj, l, u) = add_vars!(model, Cdouble[obj], Cdouble[l], C
 
 function add_var!(model::Model, constridx, constrcoef, l, u, objcoef)
     return add_var!(model,
-                    convert(Vector{Cint},   collect(constridx)),
-                    convert(Vector{Cdouble},collect(constrcoef)),
-                    convert(Vector{Cdouble},collect(l)),
-                    convert(Vector{Cdouble},collect(u)),
-                    convert(Vector{Cdouble},collect(objcoef)))
+                    convert(Vector{Cint},   vec(collect(constridx))),
+                    convert(Vector{Cdouble},vec(collect(constrcoef))),
+                    convert(Vector{Cdouble},vec(collect(l))),
+                    convert(Vector{Cdouble},vec(collect(u))),
+                    convert(Vector{Cdouble},vec(collect(objcoef))))
 end
 
 function add_var!(model::Model, constridx::Vector, constrcoef::Vector, l::Vector, u::Vector, objcoef::Vector)

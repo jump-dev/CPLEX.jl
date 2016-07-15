@@ -115,7 +115,7 @@ function addconstr!(m::CplexMathProgModel, varidx, coef, lb, ub)
       rel = 'L'
       rhs = ub
     end
-    add_constrs!(m.inner, ivec([1]), ivec(varidx), fvec(coef), convert(Vector{Cchar},collect(rel)), fvec(collect(rhs)))
+    add_constrs!(m.inner, ivec([1]), ivec(varidx), fvec(coef), convert(Vector{Cchar},[rel]), fvec(vec(collect(rhs))))
   end
 end
 
