@@ -187,7 +187,7 @@ function get_vartype(model::Model)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
-    return(vartypes)
+    return convert(Vector{Char},vartypes)
 end
 
 function num_var(model::Model)
