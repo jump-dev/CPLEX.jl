@@ -2,10 +2,17 @@ __precompile__()
 
 module CPLEX
 
+    using Compat
 
-    @osx_only Libdl.dlopen("libstdc++",Libdl.RTLD_GLOBAL)
+    if is_apple()
+        Libdl.dlopen("libstdc++",Libdl.RTLD_GLOBAL)
+    end
 
-    include("../deps/deps.jl")
+    if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
+        include("../deps/deps.jl")
+    else
+        error("CPLEX not properly installed. Please run Pkg.build(\"CPLEX\")")
+    end
 
     ### imports
     import Base.convert, Base.show, Base.copy
