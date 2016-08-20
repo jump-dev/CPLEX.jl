@@ -352,7 +352,7 @@ for (func,param,typ) in ((:cbgetexplorednodes,CPX_CALLBACK_INFO_NODE_COUNT_LONG,
     end
 end
 
-# returns :MIPNode :MIPSol :Other
+# returns :MIPNode :MIPSol :Intermediate
 cbgetstate(d::CplexCallbackData) = d.state
 
 #const sensemap = Dict('=' => 'E', '<' => 'L', '>' => 'G')
@@ -457,7 +457,7 @@ function mastercallback(env::Ptr{Void}, cbdata::Ptr{Void}, wherefrom::Cint, user
             end
         end
     # elseif wherefrom == CPX_CALLBACK_MIP_CUT_LOOP || wherefrom == CPX_CALLBACK_MIP_CUT_LAST
-      elseif wherefrom == CPX_CALLBACK_MIP_CUT_LAST
+    elseif wherefrom == CPX_CALLBACK_MIP_CUT_LAST
         state = :MIPNode
         cpxcb = CplexCutCallbackData(cpxrawcb, state, wherefrom, userinteraction_p)
         if model.cutcb != nothing
@@ -723,7 +723,7 @@ function masterinfocallback(env::Ptr{Void},
                             userdata::Ptr{Void})
     model = unsafe_pointer_to_objref(userdata)::CplexMathProgModel
     cpxrawcb = CallbackData(cbdata, model.inner)
-    state = :MIPInfo
+    state = :Intermediate
     cpxcb = CplexInfoCallbackData(cpxrawcb, state, wherefrom)
     if model.infocb != nothing
         stat = model.infocb(cpxcb)
