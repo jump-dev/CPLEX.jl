@@ -449,22 +449,32 @@ function mastercallback(env::Ptr{Void}, cbdata::Ptr{Void}, wherefrom::Cint, user
     cpxrawcb = CallbackData(cbdata, model.inner)
     if wherefrom == CPX_CALLBACK_MIP_CUT_FEAS || wherefrom == CPX_CALLBACK_MIP_CUT_UNBD
         state = :MIPSol
-        cpxcb = CplexLazyCallbackData(cpxrawcb, state, wherefrom, userinteraction_p)
-        if model.lazycb != nothing
-            stat = model.lazycb(cpxcb)
-            if stat == :Exit
-                terminate(model.inner)
-            end
-        end
     # elseif wherefrom == CPX_CALLBACK_MIP_CUT_LOOP || wherefrom == CPX_CALLBACK_MIP_CUT_LAST
     elseif wherefrom == CPX_CALLBACK_MIP_CUT_LAST
         state = :MIPNode
+    else
+        state = :Intermediate
+    end
+
+    if model.infocb != nothing
+        cpxcb = CplexInfoCallbackData(cpxrawcb, state, wherefrom)
+        stat = model.infocb(cpxcb)
+        if stat == :Exit
+            terminate(model.inner)
+        end
+    end
+    if model.lazycb != nothing && state == :MIPSol
+        cpxcb = CplexLazyCallbackData(cpxrawcb, state, wherefrom, userinteraction_p)
+        stat = model.lazycb(cpxcb)
+        if stat == :Exit
+            terminate(model.inner)
+        end
+    end
+    if model.cutcb != nothing && state == :MIPNode
         cpxcb = CplexCutCallbackData(cpxrawcb, state, wherefrom, userinteraction_p)
-        if model.cutcb != nothing
-            stat = model.cutcb(cpxcb)
-            if stat == :Exit
-                terminate(model.inner)
-            end
+        stat = model.cutcb(cpxcb)
+        if stat == :Exit
+            terminate(model.inner)
         end
     end
     return convert(Cint, 0)
@@ -492,23 +502,33 @@ function masterheuristiccallback(env::Ptr{Void},
     cpxrawcb = CallbackData(cbdata, model.inner)
     if wherefrom == CPX_CALLBACK_MIP_HEURISTIC
         state = :MIPNode
+    else
+        state = :Intermediate
+    end
+
+    if model.infocb != nothing
+        cpxcb = CplexInfoCallbackData(cpxrawcb, state, wherefrom)
+        stat = model.infocb(cpxcb)
+        if stat == :Exit
+            terminate(model.inner)
+        end
+    end
+    if model.heuristiccb != nothing && state == :MIPNode
         sol = pointer_to_array(xx, numvar(model))
         cpxcb = CplexHeuristicCallbackData(cpxrawcb, state, wherefrom, sol, fill(NaN, numvar(model)), isfeas_p, userinteraction_p)
-        if model.heuristiccb != nothing
-            stat = model.heuristiccb(cpxcb)
-            if stat == :Exit
-                terminate(model.inner)
+        stat = model.heuristiccb(cpxcb)
+        if stat == :Exit
+            terminate(model.inner)
+        end
+        if any(x->!isnan(x), cpxcb.heur_x) # we filled in some solution values
+            unsafe_store!(objval_p, dot(get_obj(model.inner), cpxcb.heur_x), 1)
+            for i in 1:numvar(model)
+                unsafe_store!(xx, cpxcb.heur_x[i], i)
             end
-            if any(x->!isnan(x), cpxcb.heur_x) # we filled in some solution values
-                unsafe_store!(objval_p, dot(get_obj(model.inner), cpxcb.heur_x), 1)
-                for i in 1:numvar(model)
-                    unsafe_store!(xx, cpxcb.heur_x[i], i)
-                end
-                if any(x->isnan(x), cpxcb.heur_x) # we have a partial solution
-                    unsafe_store!(isfeas_p, convert(Cint,CPX_ON),  1)
-                else
-                    unsafe_store!(isfeas_p, convert(Cint,CPX_OFF), 1)
-                end
+            if any(x->isnan(x), cpxcb.heur_x) # we have a partial solution
+                unsafe_store!(isfeas_p, convert(Cint,CPX_ON),  1)
+            else
+                unsafe_store!(isfeas_p, convert(Cint,CPX_OFF), 1)
             end
         end
     end
@@ -598,6 +618,18 @@ function masterbranchcallback(env::Ptr{Void},
     if wherefrom == CPX_CALLBACK_MIP_BRANCH
         @assert 0 <= nodecnt <= 2
         state = :MIPBranch
+    else
+        state = :Intermediate
+    end
+
+    if model.infocb != nothing
+        cpxcb = CplexInfoCallbackData(cpxrawcb, state, wherefrom)
+        stat = model.infocb(cpxcb)
+        if stat == :Exit
+            terminate(model.inner)
+        end
+    end
+    if model.branchcb != nothing && state == :MIPBranch
         numbranchingvars = pointer_to_array(nodebeg, convert(Cint,nodecnt))::Vector{Cint} + 1
         idxs = pointer_to_array(indices, sum(numbranchingvars))::Vector{Cint}
         vals = pointer_to_array(bd, sum(numbranchingvars))::Vector{Cdouble}
@@ -612,11 +644,9 @@ function masterbranchcallback(env::Ptr{Void},
             nodes[2] = BranchingChoice(idxs[subidx], vals[subidx], dirs[subidx])
         end
         cpxcb = CplexBranchCallbackData(cpxrawcb, state, wherefrom, userinteraction_p, nodes)
-        if model.branchcb != nothing
-            stat = model.branchcb(cpxcb)
-            if stat == :Exit
-                terminate(model.inner)
-            end
+        stat = model.branchcb(cpxcb)
+        if stat == :Exit
+            terminate(model.inner)
         end
     end
     return convert(Cint, 0)
@@ -676,17 +706,28 @@ function masterincumbentcallback(env::Ptr{Void},
        wherefrom == CPX_CALLBACK_MIP_INCUMBENT_HEURSOLN ||
        wherefrom == CPX_CALLBACK_MIP_INCUMBENT_USERSOLN
         state = :MIPIncumbent
+    else
+        state = :Intermediate
+    end
+
+    if model.infocb != nothing
+        cpxcb = CplexInfoCallbackData(cpxrawcb, state, wherefrom)
+        stat = model.infocb(cpxcb)
+        if stat == :Exit
+            terminate(model.inner)
+        end
+    end
+    if model.incumbentcb != nothing && state == :MIPIncumbent
         sol = pointer_to_array(xx, numvar(model))
         cpxcb = CplexIncumbentCallbackData(cpxrawcb, state, wherefrom, sol, isfeas_p, useraction_p, BranchingChoice[])
-        if model.incumbentcb != nothing
-            stat = model.incumbentcb(cpxcb)
-            if stat == :Exit
-                terminate(model.inner)
-            end
+        stat = model.incumbentcb(cpxcb)
+        if stat == :Exit
+            terminate(model.inner)
         end
     end
     return convert(Cint, 0)
 end
+
 function setmathprogincumbentcallback!(model::CplexMathProgModel)
     set_param!(model.inner.env, "CPX_PARAM_MIPCBREDLP", 0)
     set_param!(model.inner.env, "CPX_PARAM_PRELINEAR", 0)
@@ -722,10 +763,10 @@ function masterinfocallback(env::Ptr{Void},
                             wherefrom::Cint,
                             userdata::Ptr{Void})
     model = unsafe_pointer_to_objref(userdata)::CplexMathProgModel
-    cpxrawcb = CallbackData(cbdata, model.inner)
-    state = :Intermediate
-    cpxcb = CplexInfoCallbackData(cpxrawcb, state, wherefrom)
     if model.infocb != nothing
+        state = :Intermediate
+        cpxrawcb = CallbackData(cbdata, model.inner)
+        cpxcb = CplexInfoCallbackData(cpxrawcb, state, wherefrom)
         stat = model.infocb(cpxcb)
         if stat == :Exit
             terminate(model.inner)
