@@ -4,13 +4,13 @@ function add_constrs!(model::Model, cbegins::IVec, inds::IVec, coeffs::FVec, rel
     (nnz == length(coeffs)) || error("Incompatible constraint argument dimensions.")
 
     for k in 1:length(rel)
-      if rel[k] == '>'
-        rel[k] = convert(Cchar, 'G')
-      elseif rel[k] == '<'
-        rel[k] = convert(Cchar, 'L')
-      elseif rel[k] == '='
-        rel[k] = convert(Cchar, 'E')
-      end
+        if rel[k] == UInt8('>')
+            rel[k] = convert(Cchar, 'G')
+        elseif rel[k] == UInt8('<')
+            rel[k] = convert(Cchar, 'L')
+        elseif rel[k] == UInt8('=')
+            rel[k] = convert(Cchar, 'E')
+        end
     end
 
     if ncons > 0
@@ -208,7 +208,7 @@ function get_constrLB(model::Model)
     senses = get_constr_senses(model)
     ret    = get_rhs(model)
     for i = 1:num_constr(model)
-        if senses[i] == 'G' || senses[i] == 'E'
+        if senses[i] == UInt8('G') || senses[i] == UInt8('E')
             # Do nothing
         else
             # LEQ constraint so LB is -Inf
@@ -222,7 +222,7 @@ function get_constrUB(model::Model)
     senses = get_constr_senses(model)
     ret    = get_rhs(model)
     for i = 1:num_constr(model)
-        if senses[i] == 'L' || senses[i] == 'E'
+        if senses[i] == UInt8('L') || senses[i] == UInt8('E')
             # Do nothing
         else
             # GEQ constraint so UB is Inf
@@ -237,9 +237,9 @@ function set_constrLB!(model::Model, lb)
     rhs    = get_rhs(model)
     sense_changed = false
     for i = 1:num_constr(model)
-        if senses[i] == 'G' || senses[i] == 'E'
+        if senses[i] == UInt8('G') || senses[i] == UInt8('E')
             # Do nothing
-        elseif senses[i] == 'L'
+        elseif senses[i] == UInt8('L')
             if lb[i] != -Inf
                 # LEQ constraint with non-NegInf LB implies a range
                 if isapprox(lb[i], rhs[i])
@@ -265,9 +265,9 @@ function set_constrUB!(model::Model, ub)
     rhs    = get_rhs(model)
     sense_changed = false
     for i = 1:num_constr(model)
-        if senses[i] == 'L' || senses[i] == 'E'
+        if senses[i] == UInt8('L') || senses[i] == UInt8('E')
             # Do nothing
-        elseif senses[i] == 'G'
+        elseif senses[i] == UInt8('G')
             if ub[i] != Inf
                 # GEQ constraint with non-PosInf UB implies a range
                 if isapprox(ub[i], rhs[i])
