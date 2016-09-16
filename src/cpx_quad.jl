@@ -27,7 +27,7 @@ function add_qpterms!(model::Model, qr::IVec, qc::IVec, qv::FVec)
                           model.env.ptr, model.lp, convert(Array{Cint,1}, Q.colptr[1:end-1].-1), convert(Array{Cint,1},qmatcnt), convert(Array{Cint,1}, Q.rowval.-1), Q.nzval)
         if stat != 0
             throw(CplexError(model.env, stat))
-        end 
+        end
     end
     model.has_qc = true
     nothing
@@ -41,21 +41,21 @@ end
 function add_qpterms!(model, H::SparseMatrixCSC{Float64}) # H must be symmetric
     n = num_var(model)
     (H.m == n && H.n == n) || error("H must be an n-by-n symmetric matrix.")
-    
+
     nnz_h = nnz(H)
     qr = Array(Cint, nnz_h)
     qc = Array(Cint, nnz_h)
     qv = Array(Float64, nnz_h)
     k = 0
-    
+
     colptr::Vector{Int} = H.colptr
     nzval::Vector{Float64} = H.nzval
-    
+
     for i = 1 : n
         qi::Cint = convert(Cint, i)
         for j = colptr[i]:(colptr[i+1]-1)
             qj = convert(Cint, H.rowval[j])
-            
+
             if qi <= qj
                 k += 1
                 qr[k] = qi
@@ -64,20 +64,20 @@ function add_qpterms!(model, H::SparseMatrixCSC{Float64}) # H must be symmetric
             end
         end
     end
-    
+
     add_qpterms!(model, qr[1:k], qc[1:k], qv[1:k])
 end
 
 function add_qpterms!(model, H::Matrix{Float64}) # H must be symmetric
     n = num_var(model)
     size(H) == (n, n) || error("H must be an n-by-n symmetric matrix.")
-    
+
     nmax = div(n * (n + 1), 2)
     qr = Array(Cint, nmax)
     qc = Array(Cint, nmax)
     qv = Array(Float64, nmax)
     k::Int = 0
-    
+
     for i = 1 : n
         qi = convert(Cint, i)
         for j = i : n
@@ -90,7 +90,7 @@ function add_qpterms!(model, H::Matrix{Float64}) # H must be symmetric
             end
         end
     end
-        
+
     add_qpterms!(model, qr[1:k], qc[1:k], qv[1:k])
 end
 
@@ -116,7 +116,7 @@ function add_qconstr!(model::Model, lind::IVec, lval::FVec, qr::IVec, qc::IVec, 
 
     lnnz = length(lind)
     lnnz == length(lval) || error("Inconsistent argument dimensions.")
-    
+
     if qnnz > 0
         stat = @cpx_ccall(addqconstr, Cint, (
                           Ptr{Void},    # env
@@ -131,11 +131,11 @@ function add_qconstr!(model::Model, lind::IVec, lval::FVec, qr::IVec, qc::IVec, 
                           Ptr{Cint},    # qcol
                           Ptr{Float64}, # qval
                           Ptr{UInt8}    # name
-                          ), 
+                          ),
                           model.env.ptr, model.lp, lnnz, qnnz, rhs, rel, lind.-1, lval, qr.-1, qc.-1, qv, C_NULL)
         if stat != 0
             throw(CplexError(model.env, stat))
-        end 
+        end
         model.has_qc = true
     end
     nothing
