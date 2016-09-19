@@ -18,7 +18,7 @@ macro cpx_ccall_intercept(model, func, args...)
     quote
         ccall(:jl_exit_on_sigint, Void, (Cint,), convert(Cint,0))
         ret = try
-            $(is_windows() ? :(ccall(($f,libcplex), stdcall, $(args...))) : :(ccall(($f,libcplex), $(args...))) )
+            $(@static is_windows() ? :(ccall(($f,libcplex), stdcall, $(args...))) : :(ccall(($f,libcplex), $(args...))) )
         catch ex
             println("Caught exception")
             if !isinteractive()
