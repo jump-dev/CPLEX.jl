@@ -1,12 +1,12 @@
 # makes calling C functions a bit easier
 macro cpx_ccall(func, args...)
     f = "CPX$(func)"
-    @static if is_unix()
+    if is_unix()
         return quote
             ccall(($f,libcplex), $(args...))
         end
     end
-    @static if is_windows()
+    if is_windows()
         return quote
             ccall(($f,libcplex), stdcall, $(args...))
         end
@@ -18,7 +18,7 @@ macro cpx_ccall_intercept(model, func, args...)
     quote
         ccall(:jl_exit_on_sigint, Void, (Cint,), convert(Cint,0))
         ret = try
-            $(@static is_windows() ? :(ccall(($f,libcplex), stdcall, $(args...))) : :(ccall(($f,libcplex), $(args...))) )
+            $(is_windows() ? :(ccall(($f,libcplex), stdcall, $(args...))) : :(ccall(($f,libcplex), $(args...))) )
         catch ex
             println("Caught exception")
             if !isinteractive()
