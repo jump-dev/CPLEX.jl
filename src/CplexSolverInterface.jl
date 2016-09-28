@@ -17,22 +17,14 @@ function CplexMathProgModel(;options...)
     # set_param!(env, "CPX_PARAM_PRELINEAR", 0) # MAY NOT BE NECESSARY, only performs linear presolving so can recover original variables
     set_param!(env, "CPX_PARAM_SCRIND", 1) # output logs to stdout by default
     for (name,value) in options
-        if name == :TimeLimit
-            set_param!(env, "CPX_PARAM_TILIM", value)
-        elseif name == :Silent
-            if value == true
-                set_param!(env, "CPX_PARAM_SCRIND", 0)
-            end
-        else
-            set_param!(env, string(name), value)
-        end
+        set_param!(env, string(name), value)
     end
 
     m = CplexMathProgModel(_Model(env), nothing, nothing, nothing, nothing, nothing, nothing, NaN)
     return m
 end
 
-immutable CplexSolver <: AbstractMathProgSolver
+type CplexSolver <: AbstractMathProgSolver
     options
 end
 CplexSolver(;kwargs...) = CplexSolver(kwargs)
@@ -40,6 +32,37 @@ LinearQuadraticModel(s::CplexSolver) = CplexMathProgModel(;s.options...)
 
 ConicModel(s::CplexSolver) = LPQPtoConicBridge(LinearQuadraticModel(s))
 supportedcones(::CplexSolver) = [:Free,:Zero,:NonNeg,:NonPos,:SOC]
+
+function setparameters!(s::CplexSolver; mpboptions...)
+    opts = collect(Any,s.options)
+    for (optname, optval) in mpboptions
+        if optname == :TimeLimit
+            push!(opts, (:CPX_PARAM_TILIM, optval))
+        elseif optname == :Silent
+            if optval == true
+                push!(opts, (:CPX_PARAM_SCRIND, 0))
+            end
+        else
+            error("Unrecognized parameter $optname")
+        end
+    end
+    s.options = opts
+    return
+end
+
+function setparameters!(s::CplexMathProgModel; mpboptions...)
+    for (optname, optval) in mpboptions
+        if optname == :TimeLimit
+            setparam!(m.inner, "CPX_PARAM_TILIM", optval)
+        elseif optname == :Silent
+            if optval == true
+                setparam!(m.inner,"CPX_PARAM_SCRIND",0)
+            end
+        else
+            error("Unrecognized parameter $optname")
+        end
+    end
+end
 
 function loadproblem!(m::CplexMathProgModel, filename::AbstractString)
    read_model(m.inner, filename)
