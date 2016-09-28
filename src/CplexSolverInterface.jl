@@ -17,7 +17,15 @@ function CplexMathProgModel(;options...)
     # set_param!(env, "CPX_PARAM_PRELINEAR", 0) # MAY NOT BE NECESSARY, only performs linear presolving so can recover original variables
     set_param!(env, "CPX_PARAM_SCRIND", 1) # output logs to stdout by default
     for (name,value) in options
-        set_param!(env, string(name), value)
+        if name == :TimeLimit
+            set_param!(env, "CPX_PARAM_TILIM", value)
+        elseif name == :Silent
+            if value == true
+                set_param!(env, "CPX_PARAM_SCRIND", 0)
+            end
+        else
+            set_param!(env, string(name), value)
+        end
     end
 
     m = CplexMathProgModel(_Model(env), nothing, nothing, nothing, nothing, nothing, nothing, NaN)
