@@ -24,7 +24,7 @@ function CplexMathProgModel(;options...)
     return m
 end
 
-immutable CplexSolver <: AbstractMathProgSolver
+type CplexSolver <: AbstractMathProgSolver
     options
 end
 CplexSolver(;kwargs...) = CplexSolver(kwargs)
@@ -32,6 +32,37 @@ LinearQuadraticModel(s::CplexSolver) = CplexMathProgModel(;s.options...)
 
 ConicModel(s::CplexSolver) = LPQPtoConicBridge(LinearQuadraticModel(s))
 supportedcones(::CplexSolver) = [:Free,:Zero,:NonNeg,:NonPos,:SOC]
+
+function setparameters!(s::CplexSolver; mpboptions...)
+    opts = collect(Any,s.options)
+    for (optname, optval) in mpboptions
+        if optname == :TimeLimit
+            push!(opts, (:CPX_PARAM_TILIM, optval))
+        elseif optname == :Silent
+            if optval == true
+                push!(opts, (:CPX_PARAM_SCRIND, 0))
+            end
+        else
+            error("Unrecognized parameter $optname")
+        end
+    end
+    s.options = opts
+    return
+end
+
+function setparameters!(s::CplexMathProgModel; mpboptions...)
+    for (optname, optval) in mpboptions
+        if optname == :TimeLimit
+            setparam!(m.inner, "CPX_PARAM_TILIM", optval)
+        elseif optname == :Silent
+            if optval == true
+                setparam!(m.inner,"CPX_PARAM_SCRIND",0)
+            end
+        else
+            error("Unrecognized parameter $optname")
+        end
+    end
+end
 
 function loadproblem!(m::CplexMathProgModel, filename::AbstractString)
    read_model(m.inner, filename)
