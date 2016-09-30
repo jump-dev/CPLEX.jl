@@ -199,7 +199,7 @@ function num_var(model::Model)
     return(nvar)
 end
 
-function set_varname!(model::Model, idx::Integer, name::AbstractString)
+function set_varname!(model::Model, idx::Integer, name::ASCIIString)
     s = bytestring(name)
 
     stat = @cpx_ccall(chgcolname, Cint, (

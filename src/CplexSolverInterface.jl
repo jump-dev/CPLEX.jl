@@ -64,7 +64,7 @@ function setparameters!(s::CplexMathProgModel; mpboptions...)
     end
 end
 
-function loadproblem!(m::CplexMathProgModel, filename::AbstractString)
+function loadproblem!(m::CplexMathProgModel, filename::ASCIIString)
    read_model(m.inner, filename)
    prob_type = get_prob_type(m.inner)
    if prob_type in [:MILP,:MIQP, :MIQCP]
@@ -107,7 +107,7 @@ function loadproblem!(m::CplexMathProgModel, A, collb, colub, obj, rowlb, rowub,
   set_sense!(m.inner, sense)
 end
 
-writeproblem(m::CplexMathProgModel, filename::AbstractString) = write_model(m.inner, filename)
+writeproblem(m::CplexMathProgModel, filename::ASCIIString) = write_model(m.inner, filename)
 
 getvarLB(m::CplexMathProgModel) = get_varLB(m.inner)
 setvarLB!(m::CplexMathProgModel, l) = set_varLB!(m.inner, l)

@@ -1,6 +1,6 @@
 using Compat
 
-import Compat: String
+import Compat: ASCIIString
 
 depsfile = joinpath(dirname(@__FILE__),"deps.jl")
 if isfile(depsfile)
@@ -21,7 +21,7 @@ end
 
 cpxvers = ["125","1251","1260","1261","1262","1263"]
 
-libnames = String["cplex"]
+libnames = ASCIIString["cplex"]
 for v in reverse(cpxvers)
     if is_apple()
         push!(libnames, "libcplex$v.dylib")

@@ -3,7 +3,7 @@ __precompile__()
 module CPLEX
 
     using Compat
-    import Compat.String
+    import Compat.ASCIIString
 
     if is_apple()
         Libdl.dlopen("libstdc++",Libdl.RTLD_GLOBAL)
