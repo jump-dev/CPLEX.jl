@@ -12,6 +12,7 @@ type Env
 end
 
 convert(ty::Type{Ptr{Void}}, env::Env) = env.ptr::Ptr{Void}
+unsafe_convert(ty::Type{Ptr{Void}}, env::Env) = convert(ty, env)
 
 function is_valid(env::Env)
     env.ptr != C_NULL
