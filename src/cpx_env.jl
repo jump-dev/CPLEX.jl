@@ -17,7 +17,7 @@ function is_valid(env::Env)
     env.ptr != C_NULL
 end
 
-function set_logfile(env::Env, filename::String)
+function set_logfile(env::Env, filename::ASCIIString)
   fp = @cpx_ccall(fopen, Ptr{Void}, (Ptr{Cchar}, Ptr{Cchar}), filename, "w")
   if fp == C_NULL
     error("CPLEX: Error setting logfile")
@@ -41,7 +41,7 @@ end
 
 type CplexError <: Exception
   code::Int
-  msg::String
+  msg::ASCIIString
 
   function CplexError(env::Env, code::Integer)
     new(convert(Cint, code), get_error_msg(env, code))

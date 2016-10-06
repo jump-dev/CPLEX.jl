@@ -1,7 +1,7 @@
 # High level model construction
 
 function cplex_model(env::Env;    # solver environment
-    name::String="",          # model name
+    name::ASCIIString="",          # model name
     sense::Symbol=:Min,       # :minimize or :maximize
     H::CoeffMat=emptyfmat,         # quadratic coefficient matrix
     f::FVec=emptyfvec,             # linear coefficient vector
