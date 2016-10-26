@@ -117,7 +117,7 @@ function add_qconstr!(model::Model, lind::IVec, lval::FVec, qr::IVec, qc::IVec, 
     lnnz = length(lind)
     lnnz == length(lval) || error("Inconsistent argument dimensions.")
 
-    if qnnz > 0
+    if qnnz > 0 || lnnz > 0
         stat = @cpx_ccall(addqconstr, Cint, (
                           Ptr{Void},    # env
                           Ptr{Void},    # model
