@@ -6,7 +6,7 @@ function add_qpterms!(model::Model, qr::IVec, qc::IVec, qv::FVec)
     ((m = length(qr)) == length(qc) == length(qv)) || error("Inconsistent argument dimensions.")
     nqv = copy(qv)
     Q = sparse(qr, qc, nqv, n, n)
-    if istriu(Q) || istril(Q) || issym(Q)
+    if istriu(Q) || istril(Q) || issymmetric(Q)
         Q = Q + Q' - spdiagm(diag(Q)) # reconstruct full matrix like CPLEX wants
     else
         error("Matrix Q must be either symmetric or triangular")

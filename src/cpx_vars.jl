@@ -199,8 +199,9 @@ function num_var(model::Model)
     return(nvar)
 end
 
-function set_varname!(model::Model, idx::Integer, name::ASCIIString)
+function set_varname!(model::Model, idx::Integer, name::String)
     s = bytestring(name)
+    @assert isascii(name)
 
     stat = @cpx_ccall(chgcolname, Cint, (
                       Ptr{Void},

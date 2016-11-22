@@ -18,7 +18,8 @@ function is_valid(env::Env)
     env.ptr != C_NULL
 end
 
-function set_logfile(env::Env, filename::ASCIIString)
+function set_logfile(env::Env, filename::String)
+  @assert isascii(filename)
   fp = @cpx_ccall(fopen, Ptr{Void}, (Ptr{Cchar}, Ptr{Cchar}), filename, "w")
   if fp == C_NULL
     error("CPLEX: Error setting logfile")
@@ -34,7 +35,7 @@ function get_error_msg(env::Env, code::Number)
     buf = Array(Cchar, 4096) # minimum size for Cplex to accept
     errstr = @cpx_ccall(geterrorstring, Ptr{Cchar}, (Ptr{Void}, Cint, Ptr{Cchar}), env.ptr, convert(Cint, code), buf)
     if errstr != C_NULL
-      return bytestring(pointer(buf))
+      return unsafe_string(pointer(buf))
     else
       error("CPLEX: error getting error message(!)")
     end
@@ -42,7 +43,7 @@ end
 
 type CplexError <: Exception
   code::Int
-  msg::ASCIIString
+  msg::String
 
   function CplexError(env::Env, code::Integer)
     new(convert(Cint, code), get_error_msg(env, code))
