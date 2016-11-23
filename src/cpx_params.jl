@@ -29,7 +29,7 @@ function get_param_type(env::Env, indx::Int)
   return ret
 end
 
-get_param_type(env::Env, name::ASCIIString) = get_param_type(env, paramName2Indx[name])
+get_param_type(env::Env, name::String) = get_param_type(env, paramName2Indx[name])
 
 function set_param!(env::Env, _pindx::Int, val, ptype::Symbol)
   pindx = convert(Cint, _pindx)
@@ -53,7 +53,7 @@ end
 
 set_param!(env::Env, pindx::Int, val) = set_param!(env, pindx, val, get_param_type(env, pindx))
 
-set_param!(env::Env, pname::ASCIIString, val) = set_param!(env, paramName2Indx[pname], val)
+set_param!(env::Env, pname::String, val) = set_param!(env, paramName2Indx[pname], val)
 
 # set_params!(env::Env, args...)
 #   for (name, v) in args
@@ -100,7 +100,7 @@ end
 
 get_param(env::Env, pindx::Int) = get_param(env, pindx, get_param_type(env, pindx))
 
-get_param(env::Env, pname::ASCIIString) = get_param(env, paramName2Indx[pname])
+get_param(env::Env, pname::String) = get_param(env, paramName2Indx[pname])
 
 tune_param(model::Model) = tune_param(model, Dict(), Dict(), Dict())
 

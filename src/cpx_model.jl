@@ -14,7 +14,7 @@ function Model(env::Env, lp::Ptr{Void})
     model
 end
 
-function Model(env::Env, name::ASCIIString)
+function Model(env::Env, name::String)
     @assert is_valid(env)
     stat = Array(Cint, 1)
     tmp = @cpx_ccall(createprob, Ptr{Void}, (Ptr{Void}, Ptr{Cint}, Ptr{Cchar}), env.ptr, stat, name)
@@ -42,14 +42,14 @@ function _Model(env::Env)
     return model
 end
 
-function read_model(model::Model, filename::ASCIIString)
+function read_model(model::Model, filename::String)
     stat = @cpx_ccall(readcopyprob, Cint, (Ptr{Void}, Ptr{Void}, Ptr{Cchar}, Ptr{Cchar}), model.env.ptr, model.lp, filename, C_NULL)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
 end
 
-function write_model(model::Model, filename::ASCIIString)
+function write_model(model::Model, filename::String)
     if endswith(filename,".mps")
         filetype = "MPS"
     elseif endswith(filename,".lp")

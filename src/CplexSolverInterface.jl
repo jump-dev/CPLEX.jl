@@ -64,7 +64,7 @@ function setparameters!(s::CplexMathProgModel; mpboptions...)
     end
 end
 
-function loadproblem!(m::CplexMathProgModel, filename::ASCIIString)
+function loadproblem!(m::CplexMathProgModel, filename::String)
    read_model(m.inner, filename)
    prob_type = get_prob_type(m.inner)
    if prob_type in [:MILP,:MIQP, :MIQCP]
@@ -107,7 +107,7 @@ function loadproblem!(m::CplexMathProgModel, A, collb, colub, obj, rowlb, rowub,
   set_sense!(m.inner, sense)
 end
 
-writeproblem(m::CplexMathProgModel, filename::ASCIIString) = write_model(m.inner, filename)
+writeproblem(m::CplexMathProgModel, filename::String) = write_model(m.inner, filename)
 
 getvarLB(m::CplexMathProgModel) = get_varLB(m.inner)
 setvarLB!(m::CplexMathProgModel, l) = set_varLB!(m.inner, l)
@@ -412,7 +412,7 @@ end
 
 
 function cbaddsolution!(d::CplexCallbackData)
-    val = pointer_to_array(d.userinteraction_p, 1)
+    val = unsafe_wrap(Array, d.userinteraction_p, 1)
     if val[1] == CPX_CALLBACK_SET
         error("CPLEX only allows one heuristic solution for each call to the callback")
     end
@@ -545,7 +545,7 @@ function masterheuristiccallback(env::Ptr{Void},
         end
     end
     if model.heuristiccb != nothing && state == :MIPNode
-        sol = pointer_to_array(xx, numvar(model))
+        sol = unsafe_wrap(Array, xx, numvar(model))
         cpxcb = CplexHeuristicCallbackData(cpxrawcb, state, wherefrom, sol, fill(NaN, numvar(model)), isfeas_p, userinteraction_p)
         stat = model.heuristiccb(cpxcb)
         if stat == :Exit
@@ -661,10 +661,10 @@ function masterbranchcallback(env::Ptr{Void},
         end
     end
     if model.branchcb != nothing && state == :MIPBranch
-        numbranchingvars = pointer_to_array(nodebeg, convert(Cint,nodecnt))::Vector{Cint} + 1
-        idxs = pointer_to_array(indices, sum(numbranchingvars))::Vector{Cint}
-        vals = pointer_to_array(bd, sum(numbranchingvars))::Vector{Cdouble}
-        dirs = pointer_to_array(bd, sum(numbranchingvars))::Vector{Cdouble}
+        numbranchingvars = unsafe_wrap(Array, nodebeg, convert(Cint,nodecnt))::Vector{Cint} + 1
+        idxs = unsafe_wrap(Array, indices, sum(numbranchingvars))::Vector{Cint}
+        vals = unsafe_wrap(Array, bd, sum(numbranchingvars))::Vector{Cdouble}
+        dirs = unsafe_wrap(Array, bd, sum(numbranchingvars))::Vector{Cdouble}
         nodes = Array(BranchingChoice, nodecnt)
         if nodecnt >= 1
             subidx = 1 : (numbranchingvars[1])
@@ -749,7 +749,7 @@ function masterincumbentcallback(env::Ptr{Void},
         end
     end
     if model.incumbentcb != nothing && state == :MIPIncumbent
-        sol = pointer_to_array(xx, numvar(model))
+        sol = unsafe_wrap(Array, xx, numvar(model))
         cpxcb = CplexIncumbentCallbackData(cpxrawcb, state, wherefrom, sol, isfeas_p, useraction_p, BranchingChoice[])
         stat = model.incumbentcb(cpxcb)
         if stat == :Exit
