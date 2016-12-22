@@ -22,32 +22,32 @@ for i = 1:n
 end
 #println(dist)
 
-@defVar(m, x[1:n,1:n], Bin)
+@variable(m, x[1:n,1:n], Bin)
 
-@setObjective(m, Min, sum{dist[i,j]*x[i,j], i=1:n,j=i:n})
+@objective(m, Min, sum(dist[i,j]*x[i,j] for i=1:n,j=i:n))
 
 
 # Make symmetric
 for i = 1:n
-  @addConstraint(m, x[i,i] == 0)
+  @constraint(m, x[i,i] == 0)
   for j = (i+1):n
-    @addConstraint(m, x[i,j] == x[j,i])
+    @constraint(m, x[i,j] == x[j,i])
   end
 end
 
 # Sum in to city = 1
 for i = 1:n
-  @addConstraint(m, sum{x[i,j], j=1:n} == 2)
+  @constraint(m, sum(x[i,j] for j=1:n) == 2)
 end
 
 # Sum out of city = 1
 for j = 1:n
-  @addConstraint(m, sum{x[i,j], i=1:n} == 2)
+  @constraint(m, sum(x[i,j] for i=1:n) == 2)
 end
 
 function subtour(cb)
   println("In subtour")
-  cur_sol = getValue(x)
+  cur_sol = getvalue(x)
   # println(cur_sol)
 
   # Find any subtour
@@ -99,7 +99,7 @@ function subtour(cb)
         end
         println(expr)
         readline(STDIN)
-        @addLazyConstraint(cb, expr >= 2)
+        @addlazyconstraint(cb, expr >= 2)
         break
       end
     end
@@ -107,9 +107,9 @@ function subtour(cb)
 
 end
 
-addLazyCallback(m, subtour)
+addlazycallback(m, subtour)
 stat = solve(m)
 
-println(getValue(x))
+println(getvalue(x))
 println(stat)
-println(getObjectiveValue(m))
+println(getobjectivevalue(m))
