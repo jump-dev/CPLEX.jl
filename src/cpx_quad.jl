@@ -130,7 +130,7 @@ function add_qconstr!(model::Model, lind::IVec, lval::FVec, qr::IVec, qc::IVec, 
                           Ptr{Float64}, # qval
                           Ptr{UInt8}    # name
                           ),
-                          model.env.ptr, model.lp, lnnz, qnnz, rhs, rel, lind.-1, lval, qr.-1, qc.-1, qv, C_NULL)
+                          model.env.ptr, model.lp, lnnz, qnnz, rhs, rel, lind-Cint(1), lval, qr-Cint(1), qc-Cint(1), qv, C_NULL)
         if stat != 0
             throw(CplexError(model.env, stat))
         end

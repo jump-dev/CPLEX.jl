@@ -28,7 +28,7 @@ function add_constrs!(model::Model, cbegins::IVec, inds::IVec, coeffs::FVec, rel
                           Ptr{Ptr{Cchar}},  # col names
                           Ptr{Ptr{Cchar}}   # row names
                           ),
-                          model.env.ptr, model.lp, 0, ncons, nnz, rhs, rel, cbegins.-1, inds.-1, coeffs, C_NULL, C_NULL)
+                          model.env.ptr, model.lp, 0, ncons, nnz, rhs, rel, cbegins-Cint(1), inds-Cint(1), coeffs, C_NULL, C_NULL)
 
         if stat != 0
            throw(CplexError(model.env, stat))
@@ -367,7 +367,7 @@ function add_indicator_constraint(model::Model, idx::Vector{Cint}, coeff::Vector
                       Ptr{Cdouble},
                       Ptr{Cchar}),
                       model.env.ptr, model.lp, indicator, comp,
-                      nzcnt, rhs, sense, idx.-1, coeff, C_NULL)
+                      nzcnt, rhs, sense, idx-Cint(1), coeff, C_NULL)
     if stat != 0
         throw(CplexError(model.env, stat))
     end

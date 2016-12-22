@@ -56,7 +56,7 @@ function add_var!(model::Model, constridx::IVec, constrcoef::FVec, l::FVec, u::F
                           Ptr{Cdouble},
                           Ptr{Ptr{Cchar}}
                           ),
-                          model.env.ptr, model.lp, nvars, length(constridx), objcoef, Cint[0], constridx.-1, constrcoef, l, u, C_NULL)
+                          model.env.ptr, model.lp, nvars, length(constridx), objcoef, Cint[0], constridx-Cint(1), constrcoef, l, u, C_NULL)
         if stat != 0
             throw(CplexError(model.env, stat))
         end

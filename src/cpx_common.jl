@@ -1,6 +1,7 @@
 # makes calling C functions a bit easier
 macro cpx_ccall(func, args...)
     f = "CPX$(func)"
+    args = map(esc,args)
     if is_unix()
         return quote
             ccall(($f,libcplex), $(args...))
@@ -15,6 +16,7 @@ end
 
 macro cpx_ccall_intercept(model, func, args...)
     f = "CPX$(func)"
+    args = map(esc,args)
     quote
         ccall(:jl_exit_on_sigint, Void, (Cint,), convert(Cint,0))
         ret = try

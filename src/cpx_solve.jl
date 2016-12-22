@@ -31,7 +31,7 @@ function set_branching_priority(model::Model, indices::Vector{Cint}, priority::V
                       Ptr{Cint},
                       Ptr{Cint},
                       Ptr{Cint}),
-                      model.env.ptr, model.lp, cnt, indices.-1, priority, direction)
+                      model.env.ptr, model.lp, cnt, indices-Cint(1), priority, direction)
     stat == 0 || throw(CplexError(model.env, stat))
     return nothing
 end
