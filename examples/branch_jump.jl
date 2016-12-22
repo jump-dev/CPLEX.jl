@@ -20,7 +20,7 @@ vtypes = MathProgBase.getvartype(m_internal)
 for i in 1:n
     setlower(x[i], xlb[i])
     setupper(x[i], xub[i])
-    (vtypes[i] == :Bin || vtypes[i] == :Int) ? mod.colcat[x[i].col] = :Int : nothing # change vartype to integer when appropriate
+    (vtypes[i] == :Bin || vtypes[i] == :Int) ? mod.colCat[x[i].col] = :Int : nothing # change vartype to integer when appropriate
 end
 At = A' # transpose to get useful row-wise sparse representation
 for i in 1:At.n

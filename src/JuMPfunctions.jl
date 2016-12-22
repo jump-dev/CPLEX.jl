@@ -21,7 +21,7 @@ function initcb(m::JuMP.Model)
 end
 
 function solvehook(m::JuMP.Model; kwargs...)
-    JuMP.buildinternalmodel(m)
+    JuMP.build(m)
     if isa(m.ext[:cb].branchcallback, Function)
         function branchcallback(d::MathProgCallbackData)
             state = cbgetstate(d)
@@ -32,7 +32,7 @@ function solvehook(m::JuMP.Model; kwargs...)
             end
             m.ext[:cb].branchcallback(d)
         end
-        setbranchcallback!(m.internalmodel, branchcallback)
+        setbranchcallback!(m.internalModel, branchcallback)
     end
     if isa(m.ext[:cb].incumbentcallback, Function)
         function incumbentcallback(d::MathProgCallbackData)
@@ -41,7 +41,7 @@ function solvehook(m::JuMP.Model; kwargs...)
             m.colVal = copy(d.sol)
             m.ext[:cb].incumbentcallback(d)
         end
-        setincumbentcallback!(m.internalmodel, incumbentcallback)
+        setincumbentcallback!(m.internalModel, incumbentcallback)
     end
     JuMP.solve(m; ignore_solve_hook=true, kwargs...)
 end
