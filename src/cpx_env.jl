@@ -41,6 +41,15 @@ function get_error_msg(env::Env, code::Number)
     end
 end
 
+function version(env::Env = Env())
+    charptr = @cpx_ccall(version, Ptr{Cchar}, (Ptr{Void},), env.ptr)
+    if charptr != C_NULL
+        return unsafe_string(charptr)
+    else
+        return error("CPLEX: error getting version")
+    end
+end
+
 type CplexError <: Exception
   code::Int
   msg::String

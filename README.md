@@ -1,7 +1,7 @@
 CPLEX.jl
 ========
 
-The CPLEX.jl package provides an interface for using [IBM's CPLEX Optimizer™](http://www.ibm.com/software/commerce/optimization/cplex-optimizer/) from the [Julia language](http://julialang.org/). You cannot use CPLEX.jl without having purchased and installed a copy of CPLEX Optimizer™ from [IBM](http://www.ibm.com/). This package is available free of charge and in no way replaces or alters any functionality of IBM's CPLEX Optimizer product.
+The CPLEX.jl package provides an unofficial interface for using [IBM's CPLEX Optimizer™](http://www.ibm.com/software/commerce/optimization/cplex-optimizer/) from the [Julia language](http://julialang.org/). You cannot use CPLEX.jl without having purchased and installed a copy of CPLEX Optimizer™ from [IBM](http://www.ibm.com/). This package is available free of charge and in no way replaces or alters any functionality of IBM's CPLEX Optimizer product.
 
 CPLEX.jl is a Julia interface for the CPLEX optimization software. CPLEX functionality is extensive, so coverage is incomplete, but the basic functionality for solving linear and mixed-integer programs is provided.
 
@@ -24,10 +24,6 @@ NOTE: CPLEX [does not officially support linking to their dynamic C library](htt
 
 4. Check that your version is included in ``deps/build.jl`` in the aliases for the library dependency; if not, open an issue.
 
-Note on parameters
-------------------
-
-CPLEX has a large range of parameters that can be tuned to change the solvers behavior in many stages of the optimization process. CPLEX.jl includes an automatically generated list of parameters that are accessible for use. However, this list has last been generated with CPLEX version 12.6.2, and there are some differences with previous versions. For this reason, take care when setting solver parameters on earlier versions of CPLEX.
 
 Note for windows
 ----------------

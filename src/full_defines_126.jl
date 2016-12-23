@@ -1,4 +1,4 @@
-# This list was obtained through AWK with Cplex 12.51 (and then pared down):
+# This list was obtained through AWK with Cplex 12.6.2 (and then pared down):
 #
 # grep "#define" cpxconst.h | awk '{ printf("const %s = convert(Cint,%s)\n",$2,$3) }'
 
