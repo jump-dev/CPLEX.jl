@@ -79,9 +79,17 @@ module CPLEX
     #        cbget_mipsol_sol,
     #        cplex_model
 
-    include("full_defines.jl")
+
     include("cpx_common.jl")
     include("cpx_env.jl")
+    v = version()
+    if startswith(v,"12.6")
+        include("full_defines_126.jl")
+    elseif startswith(v,"12.7")
+        include("full_defines_127.jl")
+    else
+        error("Unsupported CPLEX version $v. Only 12.6 and 12.7 are currently supported.")
+    end
     include("cpx_model.jl")
     include("cpx_params.jl")
     include("cpx_vars.jl")
