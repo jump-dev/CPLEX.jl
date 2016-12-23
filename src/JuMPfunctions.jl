@@ -1,13 +1,13 @@
 # Import functions that act on JuMP Models
 
-export setBranchCallback,
-       addBranchCallback,
-       addBranch,
-       setIncumbentCallback,
-       addIncumbentCallback,
-       acceptIncumbent,
-       rejectIncumbent,
-       noBranches
+export setbranchcallback,
+       addbranchcallback,
+       addbranch,
+       setincumbentcallback,
+       addincumbentcallback,
+       acceptincumbent,
+       rejectincumbent,
+       nobranches
 
 type CPLEXcb
     branchcallback
@@ -21,7 +21,7 @@ function initcb(m::JuMP.Model)
 end
 
 function solvehook(m::JuMP.Model; kwargs...)
-    JuMP.buildInternalModel(m)
+    JuMP.build(m)
     if isa(m.ext[:cb].branchcallback, Function)
         function branchcallback(d::MathProgCallbackData)
             state = cbgetstate(d)
@@ -46,19 +46,19 @@ function solvehook(m::JuMP.Model; kwargs...)
     JuMP.solve(m; ignore_solve_hook=true, kwargs...)
 end
 
-addBranchCallback(m::JuMP.Model, f::Function) = setBranchCallback(m, f)
-function setBranchCallback(m::JuMP.Model, f::Function)
+addbranchcallback(m::JuMP.Model, f::Function) = setbranchcallback(m, f)
+function setbranchcallback(m::JuMP.Model, f::Function)
     initcb(m)
     m.ext[:cb].branchcallback = f
-    JuMP.setSolveHook(m, solvehook)
+    JuMP.setsolvehook(m, solvehook)
     nothing
 end
 
-function addBranch(cbdata::MathProgCallbackData, aff::JuMP.LinearConstraint)
-    addBranch(cbdata, aff, cbgetnodeobjval(cbdata))
+function addbranch(cbdata::MathProgCallbackData, aff::JuMP.LinearConstraint)
+    addbranch(cbdata, aff, cbgetnodeobjval(cbdata))
 end
 
-function addBranch(cbdata::MathProgCallbackData, aff::JuMP.LinearConstraint, nodeest)
+function addbranch(cbdata::MathProgCallbackData, aff::JuMP.LinearConstraint, nodeest)
     if length(aff.terms.vars) == 1 # branch on variable
         @assert (isinf(aff.lb) + isinf(aff.ub) == 1)
         up = isinf(aff.ub)
@@ -91,21 +91,21 @@ function addBranch(cbdata::MathProgCallbackData, aff::JuMP.LinearConstraint, nod
 end
 
 # This tells CPLEX that the current node should spawn zero branches
-function noBranches(d::CplexBranchCallbackData)
+function nobranches(d::CplexBranchCallbackData)
     unsafe_store!(d.userinteraction_p, convert(Cint,CPX_CALLBACK_SET), 1)
     nothing
 end
 
-addIncumbentCallback(m::JuMP.Model, f::Function) = setIncumbentCallback(m, f)
-function setIncumbentCallback(m::JuMP.Model, f::Function)
+addincumbentcallback(m::JuMP.Model, f::Function) = setincumbentcallback(m, f)
+function setincumbentcallback(m::JuMP.Model, f::Function)
     initcb(m)
     m.ext[:cb].incumbentcallback = f
-    JuMP.setSolveHook(m, solvehook)
+    JuMP.setsolvehook(m, solvehook)
     nothing
 end
 
-acceptIncumbent(cbdata::MathProgCallbackData) =
+acceptincumbent(cbdata::MathProgCallbackData) =
     cbprocessincumbent!(cbdata, true)
 
-rejectIncumbent(cbdata::MathProgCallbackData) =
+rejectincumbent(cbdata::MathProgCallbackData) =
     cbprocessincumbent!(cbdata, false)

@@ -14,11 +14,11 @@ using CPLEX
 using JuMP
 
 m = Model(solver=CplexSolver())
-@defVar(m, 5 >= x >= 0)
-@defVar(m, 10 >= y >= 0, Int)
-@defVar(m, z, Bin)
-@setObjective(m, Max, x + 2*y + 5*z)
-@addConstraint(m, x + y + z <= 10)
-@addConstraint(m, x + 2*y + z <= 15)
+@variable(m, 5 >= x >= 0)
+@variable(m, 10 >= y >= 0, Int)
+@variable(m, z, Bin)
+@objective(m, Max, x + 2*y + 5*z)
+@constraint(m, x + y + z <= 10)
+@constraint(m, x + 2*y + z <= 15)
 status = solve(m)
-println("walltime = $(MathProgBase.getsolvetime(getInternalModel(m)))")
+println("walltime = $(MathProgBase.getsolvetime(internalmodel(m)))")
