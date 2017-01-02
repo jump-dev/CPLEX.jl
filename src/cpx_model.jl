@@ -8,13 +8,17 @@ type Model
 end
 
 function Model(env::Env, lp::Ptr{Void})
+    notify_new_model(env)
     model = Model(env, lp, false, false, nothing, Cint[0])
-    finalizer(model, free_problem)
+    finalizer(model, m -> begin
+                              free_problem(m)
+                              notify_freed_model(env)
+                          end)
     set_terminate(model)
     model
 end
 
-function Model(env::Env, name::String)
+function Model(env::Env, name::String="CPLEX.jl")
     @assert is_valid(env)
     stat = Array(Cint, 1)
     tmp = @cpx_ccall(createprob, Ptr{Void}, (Ptr{Void}, Ptr{Cint}, Ptr{Cchar}), env.ptr, stat, name)
@@ -22,24 +26,6 @@ function Model(env::Env, name::String)
         throw(CplexError(env, stat))
     end
     return Model(env, tmp)
-end
-
-# internal function that wraps finalizer for model and environment together
-function _Model(env::Env)
-    @assert is_valid(env)
-    stat = Array(Cint, 1)
-    tmp = @cpx_ccall(createprob, Ptr{Void}, (Ptr{Void}, Ptr{Cint}, Ptr{Cchar}), env.ptr, stat, "CPLEX.jl")
-    if tmp == C_NULL
-        throw(CplexError(model.env, stat))
-    end
-    model = Model(env, tmp, false, false, nothing, Cint[0])
-    finalizer(model, model::Model -> begin
-            tmp = model.env
-            free_problem(model)
-            close_CPLEX(tmp)
-        end)
-    set_terminate(model)
-    return model
 end
 
 function read_model(model::Model, filename::String)
@@ -168,14 +154,6 @@ function free_problem(model::Model)
     stat = @cpx_ccall(freeprob, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, tmp)
     if stat != 0
         throw(CplexError(model.env, stat))
-    end
-end
-
-function close_CPLEX(env::Env)
-    tmp = Ptr{Void}[env.ptr]
-    stat = @cpx_ccall(closeCPLEX, Cint, (Ptr{Void},), tmp)
-    if stat != 0
-        throw(CplexError(env, stat))
     end
 end
 

@@ -8,6 +8,7 @@ tests = ["low_level_api",
          "qp_01",
          "qp_02",
          "qcqp_01",
+         "env",
          "mathprog"]
 
 for t in tests
