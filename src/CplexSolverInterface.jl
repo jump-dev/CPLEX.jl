@@ -20,7 +20,7 @@ function CplexMathProgModel(;options...)
         set_param!(env, string(name), value)
     end
 
-    m = CplexMathProgModel(_Model(env), nothing, nothing, nothing, nothing, nothing, nothing, NaN)
+    m = CplexMathProgModel(Model(env), nothing, nothing, nothing, nothing, nothing, nothing, NaN)
     return m
 end
 
@@ -76,6 +76,8 @@ function loadproblem!(m::CplexMathProgModel, filename::String)
 end
 
 function loadproblem!(m::CplexMathProgModel, A, collb, colub, obj, rowlb, rowub, sense)
+  # throw away old model but keep env
+  m.inner = Model(m.inner.env)
   add_vars!(m.inner, float(obj), float(collb), float(colub))
 
   neginf = typemin(eltype(rowlb))
