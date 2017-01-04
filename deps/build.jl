@@ -26,15 +26,15 @@ for v in reverse(cpxvers)
     end
 end
 
-wincpxvers = ["126","1261","1262","1263","1270"]
+wincpxvers = ["126","1261","1262","1263","1270","127"]
 if is_windows()
     for v in reverse(wincpxvers)
         env = "CPLEX_STUDIO_BINARIES$v"
         if haskey(ENV,env)
             for d in split(ENV[env],';')
                 contains(d,"cplex") || continue
-                if v == "126" # annoying inconsistency
-                    push!(libnames,joinpath(d,"cplex1260"))
+                if length(v) == 3 # annoying inconsistency
+                    push!(libnames,joinpath(d,"cplex$(v)0"))
                 else
                     push!(libnames,joinpath(d,"cplex$(v)"))
                 end
