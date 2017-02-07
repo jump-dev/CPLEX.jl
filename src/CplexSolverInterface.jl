@@ -219,38 +219,58 @@ getrawsolver(m::CplexMathProgModel) = m.inner
 getnodecount(m::CplexMathProgModel) = get_node_count(m.inner)
 
 const var_type_map = Dict(
-  'C' => :Cont,
-  'B' => :Bin,
-  'I' => :Int,
-  'S' => :SemiCont,
-  'N' => :SemiInt
+    'C' => :Cont,
+    'B' => :Bin,
+    'I' => :Int,
+    'S' => :SemiCont,
+    'N' => :SemiInt
 )
 
 const rev_var_type_map = Dict(
-  :Cont => 'C',
-  :Bin => 'B',
-  :Int => 'I',
-  :SemiCont => 'S',
-  :SemiInt => 'N'
+    :Cont     => 'C',
+    :Bin      => 'B',
+    :Int      => 'I',
+    :SemiCont => 'S',
+    :SemiInt  => 'N'
 )
 
 function setvartype!(m::CplexMathProgModel, v::Vector{Symbol})
-  target_int = all(x->isequal(x,:Cont), v)
-  prob_type = get_prob_type(m.inner)
-  if target_int && prob_type in [:LP,:QP,:QCP]
+    target_int = all(x->isequal(x,:Cont), v)
+    prob_type = get_prob_type(m.inner)
+    if target_int
+        m.inner.has_int = false
+        if !(prob_type in [:LP,:QP,:QCP])
+            toggleproblemtype!(m)
+        end
+    else
+        if prob_type in [:LP,:QP,:QCP]
+            toggleproblemtype!(m)
+        end
+        set_vartype!(m.inner, map(x->rev_var_type_map[x], v))
+    end
     return nothing
-  else
-    set_vartype!(m.inner, map(x->rev_var_type_map[x], v))
-    return nothing
-  end
+end
+
+const prob_type_toggle_map = Dict(
+    :LP    => :MILP,
+    :MILP  => :LP,
+    :QP    => :MIQP,
+    :MIQP  => :QP,
+    :QCP   => :MIQCP,
+    :MIQCP => :QCP
+)
+
+function toggleproblemtype!(m::CplexMathProgModel)
+    prob_type = get_prob_type(m.inner)
+    set_prob_type!(m.inner, prob_type_toggle_map[prob_type])
 end
 
 function getvartype(m::CplexMathProgModel)
-  if m.inner.has_int
-    return map(x->var_type_map[x], get_vartype(m.inner))
-  else
-    return fill(:Cont, num_var(m.inner))
-  end
+    if m.inner.has_int
+        return map(x->var_type_map[x], get_vartype(m.inner))
+    else
+        return fill(:Cont, num_var(m.inner))
+    end
 end
 
 function getsolvetime(m::CplexMathProgModel)

@@ -9,7 +9,9 @@ tests = ["low_level_api",
          "qp_02",
          "qcqp_01",
          "env",
-         "mathprog"]
+         "problemtype",
+         "mathprog"
+         ]
 
 for t in tests
     fp = "$(t).jl"
