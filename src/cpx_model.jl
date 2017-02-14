@@ -97,12 +97,23 @@ end
 const type_map = Dict(
      0 => :LP,
      1 => :MILP,
-     3 => :MILP,
+     3 => :MILP, # actually fixed milp
      5 => :QP,
      7 => :MIQP,
      8 => :MIQP,
     10 => :QCP,
     11 => :MIQCP
+)
+
+const rev_prob_type_map = Dict(
+    :LP    => 0,
+    :MILP  => 1,
+    :FIXEDMILP  => 3,
+    :QP    => 5,
+    :MIQP  => 7,
+    :MIQP  => 8,
+    :QCP   => 10,
+    :MIQCP => 11
 )
 
 function get_prob_type(model::Model)
@@ -113,6 +124,19 @@ function get_prob_type(model::Model)
   ret == -1 && error("No problem of environment")
   return type_map[Int(ret)]
 end
+
+function set_prob_type!(model::Model, tyint::Int)
+    stat = @cpx_ccall(chgprobtype, Cint, (
+                     Ptr{Void},
+                     Ptr{Void},
+                     Cint),
+                     model.env.ptr, model.lp, tyint)
+     if stat != 0
+         throw(CplexError(model.env, stat))
+     end
+end
+set_prob_type!(model::Model, ty::Symbol) = set_prob_type!(model, rev_prob_type_map[ty])
+
 
 function set_obj!(model::Model, c::Vector)
     nvars = num_var(model)
