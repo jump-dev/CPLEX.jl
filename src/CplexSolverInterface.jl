@@ -343,7 +343,7 @@ setincumbentcallback!(m::CplexMathProgModel,f) = (m.incumbentcb = f)
 setinfocallback!(m::CplexMathProgModel,f) = (m.infocb = f)
 
 function cbgetmipsolution(d::CplexCallbackData)
-    @assert d.state == :MIPSol
+    @assert d.state == :MIPSol || d.state == :MIPIncumbent
     n = num_var(d.cbdata.model)
     sol = Array(Cdouble, n)
     stat = @cpx_ccall(getcallbacknodex, Cint, (Ptr{Void},Ptr{Void},Cint,Ptr{Cdouble},Cint,Cint),
