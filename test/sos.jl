@@ -3,8 +3,8 @@ using CPLEX, Base.Test
 m = CPLEX.CplexMathProgModel()
 CPLEX.loadproblem!(m,
     [1 2 3 0 0 0 0 0 -1 0; 0 0 0 5 4 7 2 1 0 -1], # constraint matrix
-    fill(-Inf, 10), # variable lb
-    fill(Inf, 10), # variable ub
+    [0, 0, 0, 0, 0, 0, 0, 0, -Inf, -Inf], # variable lb
+    [2, 2, 2, 2, 2, 2, 2, 2, Inf, Inf], # variable ub
     vcat(zeros(8), ones(2)), # objective vector
     [0, 0], # constraint lb
     [0, 0], # constraint ub
@@ -24,6 +24,16 @@ CPLEX.optimize!(m)
 sol = CPLEX.getsolution(m)
 @test isapprox(sol[9],  3.0)
 @test isapprox(sol[10], 12.0)
+
+CPLEX.setvartype!(m, fill(:Cont, 10))
+@test CPLEX.get_prob_type(m.inner) == :MILP
+
+CPLEX.optimize!(m)
+
+@test isapprox(CPLEX.getobjval(m), 30.0)
+sol = CPLEX.getsolution(m)
+@test isapprox(sol[9],  6.0)
+@test isapprox(sol[10], 24.0)
 
 # ======================================
 
