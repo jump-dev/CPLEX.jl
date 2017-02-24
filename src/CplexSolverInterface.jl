@@ -282,7 +282,12 @@ getunboundedray(m::CplexMathProgModel) = get_unbounded_ray(m.inner)
 
 getbasis(m::CplexMathProgModel) = get_basis(m.inner)
 
-setwarmstart!(m::CplexMathProgModel, v) = set_warm_start!(m.inner, v)
+function setwarmstart!(m::CplexMathProgModel, v)
+    # This means that warm starts are ignored if you haven't called setvartype! first
+    if m.inner.has_int
+        set_warm_start!(m.inner, v)
+    end
+end
 
 addsos1!(m::CplexMathProgModel, idx, weight) = add_sos!(m.inner, :SOS1, idx, weight)
 addsos2!(m::CplexMathProgModel, idx, weight) = add_sos!(m.inner, :SOS2, idx, weight)
