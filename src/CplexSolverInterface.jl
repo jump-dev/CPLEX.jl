@@ -686,7 +686,7 @@ function masterbranchcallback(env::Ptr{Void},
         numbranchingvars = unsafe_wrap(Array, nodebeg, convert(Cint,nodecnt))::Vector{Cint} + 1
         idxs = unsafe_wrap(Array, indices, sum(numbranchingvars))::Vector{Cint}
         vals = unsafe_wrap(Array, bd, sum(numbranchingvars))::Vector{Cdouble}
-        dirs = unsafe_wrap(Array, bd, sum(numbranchingvars))::Vector{Cdouble}
+        dirs = unsafe_wrap(Array, lu, sum(numbranchingvars))::Vector{Cchar}
         nodes = Array(BranchingChoice, nodecnt)
         if nodecnt >= 1
             subidx = 1 : (numbranchingvars[1])
