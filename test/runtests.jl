@@ -11,6 +11,7 @@ tests = ["low_level_api",
          "env",
          "sos",
          "problemtype",
+         "miqcp",
          "mathprog"
          ]
 

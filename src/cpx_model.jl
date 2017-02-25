@@ -98,10 +98,10 @@ end
 const type_map = Dict(
      0 => :LP,
      1 => :MILP,
-     3 => :MILP, # actually fixed milp
+     3 => :FIXEDMILP, # actually fixed milp
      5 => :QP,
      7 => :MIQP,
-     8 => :MIQP,
+     8 => :FIXEDMIQP,
     10 => :QCP,
     11 => :MIQCP
 )
@@ -112,7 +112,7 @@ const rev_prob_type_map = Dict(
     :FIXEDMILP  => 3,
     :QP    => 5,
     :MIQP  => 7,
-    :MIQP  => 8,
+    :FIXEDMIQP  => 8,
     :QCP   => 10,
     :MIQCP => 11
 )
