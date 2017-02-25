@@ -3,13 +3,14 @@ type Model
     lp::Ptr{Void} # Cplex problem (lp)
     has_int::Bool # problem has integer variables?
     has_qc::Bool # problem has quadratic constraints?
+    has_sos::Bool # problem has Special Ordered Sets?
     callback::Any
     terminator::Vector{Cint}
 end
 
 function Model(env::Env, lp::Ptr{Void})
     notify_new_model(env)
-    model = Model(env, lp, false, false, nothing, Cint[0])
+    model = Model(env, lp, false, false, false, nothing, Cint[0])
     finalizer(model, m -> begin
                               free_problem(m)
                               notify_freed_model(env)

@@ -9,6 +9,7 @@ tests = ["low_level_api",
          "qp_02",
          "qcqp_01",
          "env",
+         "sos",
          "problemtype",
          "mathprog"
          ]

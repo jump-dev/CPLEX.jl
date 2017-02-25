@@ -345,6 +345,7 @@ function add_sos!(model::Model, sostype::Symbol, idx::Vector{Int}, weight::Vecto
         throw(CplexError(model.env, stat))
     end
     model.has_int = true
+    model.has_sos = true
     return nothing
 end
 

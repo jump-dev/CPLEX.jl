@@ -238,9 +238,13 @@ function setvartype!(m::CplexMathProgModel, v::Vector{Symbol})
     target_int = all(x->isequal(x,:Cont), v)
     prob_type = get_prob_type(m.inner)
     if target_int
-        m.inner.has_int = false
-        if !(prob_type in [:LP,:QP,:QCP])
-            toggleproblemtype!(m)
+        if m.inner.has_sos # if it has sos we need to keep has_int==true and the MI(prob_type) version.
+            set_vartype!(m.inner, map(x->rev_var_type_map[x], v))    
+        else
+            m.inner.has_int = false
+            if !(prob_type in [:LP,:QP,:QCP])
+                toggleproblemtype!(m)
+            end
         end
     else
         if prob_type in [:LP,:QP,:QCP]
