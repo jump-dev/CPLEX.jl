@@ -29,3 +29,9 @@ Note for windows
 ----------------
 
 Currently, CPLEX.jl is compatible only with 64-bit CPLEX and 64-bit Julia on Windows. CPLEX.jl attemps to automatically find the CPLEX library based on the ``CPLEX_STUDIO_BINARIES`` environmental variable set by the CPLEX installer.
+
+
+Parameters
+----------
+
+Solver parameters can be passed through the ``CplexSolver()`` object, e.g., ``CplexSolver(CPX_PARAM_EPINT=1e-8)``. Parameters match those of the CPLEX documentation. Additionally, the ``mipstart_effortlevel`` parameter can be used to tell CPLEX how much effort to put into turning warmstarts into feasible solutions, with possible values ``CPLEX.CPX_MIPSTART_AUTO``, ``CPLEX.CPX_MIPSTART_CHECKFEAS``, ``CPLEX.CPX_MIPSTART_SOLVEFIXED``, ``CPLEX.CPX_MIPSTART_SOLVEMIP``, ``CPLEX.CPX_MIPSTART_REPAIR``, and ``CPLEX.CPX_MIPSTART_NOCHECK``.

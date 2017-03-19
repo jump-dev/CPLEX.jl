@@ -9,9 +9,10 @@ type CplexMathProgModel <: AbstractLinearQuadraticModel
     incumbentcb
     infocb
     solvetime::Float64
+    mipstart_effortlevel::Cint
 end
 
-function CplexMathProgModel(;options...)
+function CplexMathProgModel(;mipstart_effortlevel::Cint = CPX_MIPSTART_AUTO, options...)
     env = Env()
     # set_param!(env, "CPX_PARAM_MIPCBREDLP", 0) # access variables in original problem, not presolved
     # set_param!(env, "CPX_PARAM_PRELINEAR", 0) # MAY NOT BE NECESSARY, only performs linear presolving so can recover original variables
@@ -20,7 +21,7 @@ function CplexMathProgModel(;options...)
         set_param!(env, string(name), value)
     end
 
-    m = CplexMathProgModel(Model(env), nothing, nothing, nothing, nothing, nothing, nothing, NaN)
+    m = CplexMathProgModel(Model(env), nothing, nothing, nothing, nothing, nothing, nothing, NaN, mipstart_effortlevel)
     return m
 end
 
@@ -289,7 +290,7 @@ getbasis(m::CplexMathProgModel) = get_basis(m.inner)
 function setwarmstart!(m::CplexMathProgModel, v)
     # This means that warm starts are ignored if you haven't called setvartype! first
     if m.inner.has_int
-        set_warm_start!(m.inner, v)
+        set_warm_start!(m.inner, v, m.mipstart_effortlevel)
     end
 end
 
