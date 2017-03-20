@@ -154,9 +154,9 @@ function set_obj!(model::Model, c::Vector)
     end
 end
 
-set_warm_start!(model::Model, x::Vector{Float64}) = set_warm_start!(model, Cint[1:length(x);], x)
+set_warm_start!(model::Model, x::Vector{Float64}, effortlevel::Integer = CPX_MIPSTART_AUTO) = set_warm_start!(model, Cint[1:length(x);], x, effortlevel)
 
-function set_warm_start!(model::Model, indx::IVec, val::FVec)
+function set_warm_start!(model::Model, indx::IVec, val::FVec, effortlevel::Integer)
     stat = @cpx_ccall(addmipstarts, Cint, (
                       Ptr{Void},
                       Ptr{Void},
@@ -168,7 +168,7 @@ function set_warm_start!(model::Model, indx::IVec, val::FVec)
                       Ptr{Cint},
                       Ptr{Ptr{Cchar}}
                       ),
-                      model.env.ptr, model.lp, 1, length(indx), Cint[0], indx.-1, val, Cint[CPX_MIPSTART_AUTO], C_NULL)
+                      model.env.ptr, model.lp, 1, length(indx), Cint[0], indx -Cint(1), val, Cint[effortlevel], C_NULL)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
