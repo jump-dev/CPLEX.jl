@@ -174,6 +174,65 @@ function set_warm_start!(model::Model, indx::IVec, val::FVec, effortlevel::Integ
     end
 end
 
+function add_warm_start!(model::CPLEX.Model, x::Vector{BOPSolution})
+	x_::Vector{Vector{Float64}} = Vector{Float64}[]
+	for i in 1:length(x)
+		push!(x_, x[i].vars)
+	end
+	add_warm_start!(model, x_, fill(convert(Int32, 5), length(x)))
+end
+
+function add_warm_start!(model::CPLEX.Model, x::Vector{Vector{Float64}}, efforts::Vector{Cint})
+	beg::Vector{Cint}, inds::Vector{Cint}, vals::Vector{Cdouble} = Cint[], Cint[], Cdouble[]
+	count::Int64 = 1
+	for i in 1:length(x)
+		push!(beg, count)
+		for j in 1:length(x[i])
+			push!(inds, j)
+			push!(vals, x[i][j])
+			count += 1
+		end
+	end
+	add_warm_start!(model, convert(Cint, length(x)), beg, inds, vals, efforts)
+end
+
+add_warm_start!{T<:Signed}(model::CPLEX.Model, x::Vector{Float64}, effort::T) = add_warm_start!(model, convert(Cint, 1), Cint[1], Cint[1:length(x);], x, [convert(Cint, effort)])
+
+function add_warm_start!(model::CPLEX.Model, num_warm_starts::Cint, beg::Vector{Cint}, inds::Vector{Cint}, vals::Vector{Cdouble}, efforts::Vector{Cint})
+    stat = CPLEX.@cpx_ccall(addmipstarts, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Cint,
+                      Cint,
+                      Ptr{Cint},
+                      Ptr{Cint},
+                      Ptr{Cdouble},
+                      Ptr{Cint},
+                      Ptr{Ptr{Cchar}}
+                      ),
+                      model.env.ptr, model.lp, num_warm_starts, length(inds), beg - 1, inds - 1, vals, efforts, fill(C_NULL, num_warm_starts))
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+end
+
+del_warm_start!{T<:Signed}(model::CPLEX.Model, ind::T) = del_warm_start!(model, convert(Cint, ind), convert(Cint, ind))
+
+del_warm_start!{T<:Signed}(model::CPLEX.Model, start_ind::T, end_ind::T) = del_warm_start!(model, convert(Cint, start_ind), convert(Cint, end_ind))
+
+function del_warm_start!(model::CPLEX.Model, start_ind::Cint, end_ind::Cint)
+    stat = CPLEX.@cpx_ccall(delmipstarts, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Cint,
+                      Cint
+                      ),
+                      model.env.ptr, model.lp, start_ind-1, end_ind-1)
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+end
+
 function free_problem(model::Model)
     tmp = Ptr{Void}[model.lp]
     stat = @cpx_ccall(freeprob, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, tmp)
