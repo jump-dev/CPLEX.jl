@@ -133,7 +133,7 @@ end
 del_constrs!{T<:Signed}(model::Model, ind::T) = del_constrs!(model, ind, ind)
 
 function del_constrs!{T<:Signed}(model::Model, start_ind::T, end_ind::T)
-    stat = CPLEX.@cpx_ccall(delrows, Cint, (
+    stat = @cpx_ccall(delrows, Cint, (
                         Ptr{Void},
                         Ptr{Void},
                         Cint,
