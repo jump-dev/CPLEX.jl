@@ -130,6 +130,21 @@ function add_rangeconstrs!(model::Model, A::CoeffMat, lb::Vector, ub::Vector)
     add_rangeconstrs_t!(model, transpose(A), lb, ub)
 end
 
+del_constrs!{T<:Signed}(model::Model, ind::T) = del_constrs!(model, ind, ind)
+
+function del_constrs!{T<:Signed}(model::Model, start_ind::T, end_ind::T)
+    stat = CPLEX.@cpx_ccall(delrows, Cint, (
+                        Ptr{Void},
+                        Ptr{Void},
+                        Cint,
+                        Cint
+                        ),
+                        model.env.ptr, model.lp, convert(Cint, start_ind-1), convert(Cint, end_ind-1))
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+end
+
 function num_constr(model::Model)
     ncons = @cpx_ccall(getnumrows, Cint, (
                        Ptr{Void},
