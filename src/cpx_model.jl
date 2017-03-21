@@ -191,7 +191,7 @@ end
 add_warm_start!{T<:Signed}(model::Model, x::Vector{Float64}, effort::T) = add_warm_start!(model, convert(Cint, 1), Cint[1], Cint[1:length(x);], x, [convert(Cint, effort)])
 
 function add_warm_start!(model::Model, num_warm_starts::Cint, beg::Vector{Cint}, inds::Vector{Cint}, vals::Vector{Cdouble}, efforts::Vector{Cint})
-    stat = CPLEX.@cpx_ccall(addmipstarts, Cint, (
+    stat = @cpx_ccall(addmipstarts, Cint, (
                       Ptr{Void},
                       Ptr{Void},
                       Cint,
@@ -213,7 +213,7 @@ del_warm_start!{T<:Signed}(model::Model, ind::T) = del_warm_start!(model, conver
 del_warm_start!{T<:Signed}(model::Model, start_ind::T, end_ind::T) = del_warm_start!(model, convert(Cint, start_ind), convert(Cint, end_ind))
 
 function del_warm_start!(model::Model, start_ind::Cint, end_ind::Cint)
-    stat = CPLEX.@cpx_ccall(delmipstarts, Cint, (
+    stat = @cpx_ccall(delmipstarts, Cint, (
                       Ptr{Void},
                       Ptr{Void},
                       Cint,
