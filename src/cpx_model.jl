@@ -174,8 +174,8 @@ function set_warm_start!(model::Model, indx::IVec, val::FVec, effortlevel::Integ
     end
 end
 
-function add_warm_start!(model::Model, x::Vector{Vector{Float64}}, efforts::Vector{Cint})
-	beg::Vector{Cint}, inds::Vector{Cint}, vals::Vector{Cdouble} = Cint[], Cint[], Cdouble[]
+function set_warm_start!(model::Model, x::Vector{Vector{Float64}}, efforts::Vector{Cint})
+	beg, inds, vals = Cint[], Cint[], Cdouble[]
 	count::Int64 = 1
 	for i in 1:length(x)
 		push!(beg, count)
@@ -185,12 +185,12 @@ function add_warm_start!(model::Model, x::Vector{Vector{Float64}}, efforts::Vect
 			count += 1
 		end
 	end
-	add_warm_start!(model, convert(Cint, length(x)), beg, inds, vals, efforts)
+	set_warm_start!(model, convert(Cint, length(x)), beg, inds, vals, efforts)
 end
 
-add_warm_start!{T<:Signed}(model::Model, x::Vector{Float64}, effort::T) = add_warm_start!(model, convert(Cint, 1), Cint[1], Cint[1:length(x);], x, [convert(Cint, effort)])
+set_warm_start!{T<:Signed}(model::Model, x::Vector{Float64}, effort::T) = add_warm_start!(model, convert(Cint, 1), Cint[1], Cint[1:length(x);], x, [convert(Cint, effort)])
 
-function add_warm_start!(model::Model, num_warm_starts::Cint, beg::Vector{Cint}, inds::Vector{Cint}, vals::Vector{Cdouble}, efforts::Vector{Cint})
+function set_warm_start!(model::Model, num_warm_starts::Cint, beg::Vector{Cint}, inds::Vector{Cint}, vals::Vector{Cdouble}, efforts::Vector{Cint})
     stat = @cpx_ccall(addmipstarts, Cint, (
                       Ptr{Void},
                       Ptr{Void},
