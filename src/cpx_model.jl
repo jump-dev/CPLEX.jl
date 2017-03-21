@@ -174,7 +174,7 @@ function set_warm_start!(model::Model, indx::IVec, val::FVec, effortlevel::Integ
     end
 end
 
-function set_warm_starts!(model::Model, x::Vector{Vector{Float64}}, efforts::Vector{Cint})
+function set_mip_starts!(model::Model, x::Vector{Vector{Float64}}, efforts::Vector{Cint})
 	beg, inds, vals = Cint[], Cint[], Cdouble[]
 	count::Int64 = 1
 	for i in 1:length(x)
@@ -185,12 +185,12 @@ function set_warm_starts!(model::Model, x::Vector{Vector{Float64}}, efforts::Vec
 			count += 1
 		end
 	end
-	set_warm_starts!(model, convert(Cint, length(x)), beg, inds, vals, efforts)
+	set_mip_starts!(model, convert(Cint, length(x)), beg, inds, vals, efforts)
 end
 
-set_warm_start!{T<:Signed}(model::Model, x::Vector{Float64}, effort::T) = set_warm_starts!(model, convert(Cint, 1), Cint[1], Cint[1:length(x);], x, [convert(Cint, effort)])
+set_mip_start!{T<:Signed}(model::Model, x::Vector{Float64}, effort::T) = set_mip_starts!(model, convert(Cint, 1), Cint[1], Cint[1:length(x);], x, [convert(Cint, effort)])
 
-function set_warm_starts!(model::Model, num_warm_starts::Cint, beg::Vector{Cint}, inds::Vector{Cint}, vals::Vector{Cdouble}, efforts::Vector{Cint})
+function set_mip_starts!(model::Model, num_warm_starts::Cint, beg::Vector{Cint}, inds::Vector{Cint}, vals::Vector{Cdouble}, efforts::Vector{Cint})
     stat = @cpx_ccall(addmipstarts, Cint, (
                       Ptr{Void},
                       Ptr{Void},
@@ -208,11 +208,11 @@ function set_warm_starts!(model::Model, num_warm_starts::Cint, beg::Vector{Cint}
     end
 end
 
-del_warm_start!{T<:Signed}(model::Model, ind::T) = del_warm_starts!(model, convert(Cint, ind), convert(Cint, ind))
+del_mip_start!{T<:Signed}(model::Model, ind::T) = del_mip_starts!(model, convert(Cint, ind), convert(Cint, ind))
 
-del_warm_starts!{T<:Signed}(model::Model, start_ind::T, end_ind::T) = del_warm_starts!(model, convert(Cint, start_ind), convert(Cint, end_ind))
+del_mip_starts!{T<:Signed}(model::Model, start_ind::T, end_ind::T) = del_mip_starts!(model, convert(Cint, start_ind), convert(Cint, end_ind))
 
-function del_warm_starts!(model::Model, start_ind::Cint, end_ind::Cint)
+function del_mip_starts!(model::Model, start_ind::Cint, end_ind::Cint)
     stat = @cpx_ccall(delmipstarts, Cint, (
                       Ptr{Void},
                       Ptr{Void},
