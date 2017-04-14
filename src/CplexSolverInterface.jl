@@ -13,7 +13,7 @@ type CplexMathProgModel <: AbstractLinearQuadraticModel
     mipstart_effortlevel::Cint
 end
 
-function CplexMathProgModel(solver; mipstart_effortlevel::Cint = CPX_MIPSTART_AUTO, options...)
+function CplexMathProgModel(; mipstart_effortlevel::Cint = CPX_MIPSTART_AUTO, vars_decomposition_list = nothing, options...)
     env = Env()
     # set_param!(env, "CPX_PARAM_MIPCBREDLP", 0) # access variables in original problem, not presolved
     # set_param!(env, "CPX_PARAM_PRELINEAR", 0) # MAY NOT BE NECESSARY, only performs linear presolving so can recover original variables
@@ -22,22 +22,16 @@ function CplexMathProgModel(solver; mipstart_effortlevel::Cint = CPX_MIPSTART_AU
         set_param!(env, string(name), value)
     end
 
-    if isdefined(solver.vars_decomposition)
-      decompositionlist = solver.vars_decomposition
-    else
-      decompositionlist = nothing
-    end
-    m = CplexMathProgModel(Model(env), nothing, nothing, nothing, nothing, nothing, nothing, NaN, decompositionlist, mipstart_effortlevel)
+    m = CplexMathProgModel(Model(env), nothing, nothing, nothing, nothing, nothing, nothing, NaN, vars_decomposition_list, mipstart_effortlevel)
     return m
 end
 
 type CplexSolver <: AbstractMathProgSolver
     options
-    cstrs_decomposition
     vars_decomposition
 end
-CplexSolver(;kwargs...) = CplexSolver(kwargs, nothing, nothing)
-LinearQuadraticModel(s::CplexSolver) = CplexMathProgModel(s ;s.options...)
+CplexSolver(;kwargs...) = CplexSolver(kwargs, nothing)
+LinearQuadraticModel(s::CplexSolver) = CplexMathProgModel(;vars_decomposition_list = s.vars_decomposition, s.options...)
 
 ConicModel(s::CplexSolver) = LPQPtoConicBridge(LinearQuadraticModel(s))
 supportedcones(::CplexSolver) = [:Free,:Zero,:NonNeg,:NonPos,:SOC]
@@ -926,9 +920,8 @@ function cbgetintfeas(d::CplexCallbackData)
 end
 
 ### BlockJuMP decomposition interface
-function set_cstrs_decomposition!(s::CplexSolver, cstrs_decomposition_list)
-  s.cstrs_decomposition = cstrs_decomposition_list
-end
 function set_vars_decomposition!(s::CplexSolver, vars_decomposition_list)
   s.vars_decomposition = vars_decomposition_list
 end
+# Cplex does not support Dantzig-Wolfe decomposition
+set_cstrs_decomposition!(s::CplexSolver, cstrs_decomposition_list) = nothing

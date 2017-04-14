@@ -18,8 +18,10 @@ module CPLEX
     # Standard LP interface
     importall MathProgBase.SolverInterface
 
-    # BlockJuMP decomposition interface
-    importall BlockJuMP.BlockSolverInterface
+    # BlockJuMP Interface
+    if Pkg.installed("BlockJuMP") != nothing
+        importall BlockJuMP.BlockSolverInterface
+    end
 
     # exported functions
     # export is_valid,
