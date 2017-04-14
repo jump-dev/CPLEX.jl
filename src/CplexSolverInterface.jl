@@ -9,7 +9,7 @@ type CplexMathProgModel <: AbstractLinearQuadraticModel
     incumbentcb
     infocb
     solvetime::Float64
-    solver
+    vars_decomposition
     mipstart_effortlevel::Cint
 end
 
@@ -22,7 +22,12 @@ function CplexMathProgModel(solver; mipstart_effortlevel::Cint = CPX_MIPSTART_AU
         set_param!(env, string(name), value)
     end
 
-    m = CplexMathProgModel(Model(env), nothing, nothing, nothing, nothing, nothing, nothing, NaN, solver, mipstart_effortlevel)
+    if isdefined(solver.vars_decomposition)
+      decompositionlist = solver.vars_decomposition
+    else
+      decompositionlist = nothing
+    end
+    m = CplexMathProgModel(Model(env), nothing, nothing, nothing, nothing, nothing, nothing, NaN, decompositionlist, mipstart_effortlevel)
     return m
 end
 
@@ -190,16 +195,16 @@ function optimize!(m::CplexMathProgModel)
         setmathproginfocallback!(m)
     end
 
-    if m.solver.vars_decomposition != nothing
+    if m.vars_decomposition != nothing
         blocks = Dict{Tuple,Clong}()
         iblock = 1
         newlongannotation(m.inner, "cpxBendersPartition", Clong(-1))
-        for (col, (v_name, v_id, sp_type, sp_id)) in enumerate(m.solver.vars_decomposition)
+        for (col, (v_name, v_id, sp_type, sp_id)) in enumerate(m.vars_decomposition)
             indexArr = Array(Cint,1)
             indexArr[1] = col - 1
             valArr = Array(Clong,1)
             if sp_type == :B_MASTER
-                valArr[1] = 0                
+                valArr[1] = 0
             elseif sp_type == :B_SP
                 if !haskey(blocks, sp_id)
                     blocks[sp_id] = iblock
