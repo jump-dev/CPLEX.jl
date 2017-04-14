@@ -9,10 +9,11 @@ type CplexMathProgModel <: AbstractLinearQuadraticModel
     incumbentcb
     infocb
     solvetime::Float64
+    solver
     mipstart_effortlevel::Cint
 end
 
-function CplexMathProgModel(;mipstart_effortlevel::Cint = CPX_MIPSTART_AUTO, options...)
+function CplexMathProgModel(solver; mipstart_effortlevel::Cint = CPX_MIPSTART_AUTO, options...)
     env = Env()
     # set_param!(env, "CPX_PARAM_MIPCBREDLP", 0) # access variables in original problem, not presolved
     # set_param!(env, "CPX_PARAM_PRELINEAR", 0) # MAY NOT BE NECESSARY, only performs linear presolving so can recover original variables
@@ -21,15 +22,17 @@ function CplexMathProgModel(;mipstart_effortlevel::Cint = CPX_MIPSTART_AUTO, opt
         set_param!(env, string(name), value)
     end
 
-    m = CplexMathProgModel(Model(env), nothing, nothing, nothing, nothing, nothing, nothing, NaN, mipstart_effortlevel)
+    m = CplexMathProgModel(Model(env), nothing, nothing, nothing, nothing, nothing, nothing, NaN, solver, mipstart_effortlevel)
     return m
 end
 
 type CplexSolver <: AbstractMathProgSolver
     options
+    cstrs_decomposition
+    vars_decomposition
 end
-CplexSolver(;kwargs...) = CplexSolver(kwargs)
-LinearQuadraticModel(s::CplexSolver) = CplexMathProgModel(;s.options...)
+CplexSolver(;kwargs...) = CplexSolver(kwargs, nothing, nothing)
+LinearQuadraticModel(s::CplexSolver) = CplexMathProgModel(s ;s.options...)
 
 ConicModel(s::CplexSolver) = LPQPtoConicBridge(LinearQuadraticModel(s))
 supportedcones(::CplexSolver) = [:Free,:Zero,:NonNeg,:NonPos,:SOC]
@@ -186,6 +189,28 @@ function optimize!(m::CplexMathProgModel)
     if m.infocb != nothing
         setmathproginfocallback!(m)
     end
+
+    if m.solver.vars_decomposition != nothing
+        blocks = Dict{Tuple,Clong}()
+        iblock = 1
+        newlongannotation(m.inner, "cpxBendersPartition", Clong(-1))
+        for (col, (v_name, v_id, sp_type, sp_id)) in enumerate(m.solver.vars_decomposition)
+            indexArr = Array(Cint,1)
+            indexArr[1] = col - 1
+            valArr = Array(Clong,1)
+            if sp_type == :B_MASTER
+                valArr[1] = 0                
+            elseif sp_type == :B_SP
+                if !haskey(blocks, sp_id)
+                    blocks[sp_id] = iblock
+                    iblock += 1
+                end
+                valArr[1] = blocks[sp_id]
+            end
+            setlongannotations(m.inner, Cint(0), Cint(1), Cint(1), indexArr, valArr)
+        end
+    end
+
     start = time()
     optimize!(m.inner)
     m.solvetime = time() - start
@@ -240,7 +265,7 @@ function setvartype!(m::CplexMathProgModel, v::Vector{Symbol})
     prob_type = get_prob_type(m.inner)
     if target_int
         if m.inner.has_sos # if it has sos we need to keep has_int==true and the MI(prob_type) version.
-            set_vartype!(m.inner, map(x->rev_var_type_map[x], v))    
+            set_vartype!(m.inner, map(x->rev_var_type_map[x], v))
         else
             m.inner.has_int = false
             if !(prob_type in [:LP,:QP,:QCP])
@@ -893,4 +918,12 @@ function cbgetintfeas(d::CplexCallbackData)
         throw(CplexError(model.env, stat))
     end
     return convert(Vector{Int64},feas)
+end
+
+### BlockJuMP decomposition interface
+function set_cstrs_decomposition!(s::CplexSolver, cstrs_decomposition_list)
+  s.cstrs_decomposition = cstrs_decomposition_list
+end
+function set_vars_decomposition!(s::CplexSolver, vars_decomposition_list)
+  s.vars_decomposition = vars_decomposition_list
 end

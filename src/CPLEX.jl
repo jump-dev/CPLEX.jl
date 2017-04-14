@@ -18,6 +18,9 @@ module CPLEX
     # Standard LP interface
     importall MathProgBase.SolverInterface
 
+    # BlockJuMP decomposition interface
+    importall BlockJuMP.BlockSolverInterface
+
     # exported functions
     # export is_valid,
     #        set_logfile,
