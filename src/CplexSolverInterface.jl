@@ -10,6 +10,7 @@ type CplexMathProgModel <: AbstractLinearQuadraticModel
     infocb
     solvetime::Float64
     mipstart_effortlevel::Cint
+    heuristic_buffer::Vector{Float64}
 end
 
 function CplexMathProgModel(;mipstart_effortlevel::Cint = CPX_MIPSTART_AUTO, options...)
@@ -21,7 +22,7 @@ function CplexMathProgModel(;mipstart_effortlevel::Cint = CPX_MIPSTART_AUTO, opt
         set_param!(env, string(name), value)
     end
 
-    m = CplexMathProgModel(Model(env), nothing, nothing, nothing, nothing, nothing, nothing, NaN, mipstart_effortlevel)
+    m = CplexMathProgModel(Model(env), nothing, nothing, nothing, nothing, nothing, nothing, NaN, mipstart_effortlevel, [])
     return m
 end
 
@@ -454,6 +455,8 @@ end
 function cbsetsolutionvalue!(d::CplexCallbackData,varidx,value)
     @assert 1 <= varidx <= num_var(d.cbdata.model)
     d.heur_x[varidx] = value
+    d.user_solution = true
+    nothing
 end
 
 function cbaddboundbranchup!(d::CplexCallbackData,idx,bd,nodeest)
@@ -551,6 +554,15 @@ type CplexHeuristicCallbackData <: CplexCallbackData
     heur_x::Vector{Float64}
     isfeas_p::Ptr{Cint}
     userinteraction_p::Ptr{Cint}
+    user_solution::Bool # true if user has set any solution values
+end
+
+function cbgetlpsolution(d::CplexHeuristicCallbackData)
+    return copy(d.sol)
+end
+
+function cbgetlpsolution(d::CplexHeuristicCallbackData, sol::Vector{Cdouble})
+    copy!(sol,d.sol)
 end
 
 function masterheuristiccallback(env::Ptr{Void},
@@ -578,12 +590,12 @@ function masterheuristiccallback(env::Ptr{Void},
     end
     if model.heuristiccb != nothing && state == :MIPNode
         sol = unsafe_wrap(Array, xx, numvar(model))
-        cpxcb = CplexHeuristicCallbackData(cpxrawcb, state, wherefrom, sol, fill(NaN, numvar(model)), isfeas_p, userinteraction_p)
+        cpxcb = CplexHeuristicCallbackData(cpxrawcb, state, wherefrom, sol, model.heuristic_buffer, isfeas_p, userinteraction_p, false)
         stat = model.heuristiccb(cpxcb)
         if stat == :Exit
             terminate(model.inner)
         end
-        if any(x->!isnan(x), cpxcb.heur_x) # we filled in some solution values
+        if cpxcb.user_solution # we filled in some solution values
             unsafe_store!(objval_p, dot(get_obj(model.inner), cpxcb.heur_x), 1)
             for i in 1:numvar(model)
                 unsafe_store!(xx, cpxcb.heur_x[i], i)
@@ -593,6 +605,7 @@ function masterheuristiccallback(env::Ptr{Void},
             else
                 unsafe_store!(isfeas_p, convert(Cint,CPX_OFF), 1)
             end
+            fill!(model.heuristic_buffer, NaN)
         end
     end
     return convert(Cint, 0)
@@ -644,6 +657,7 @@ function setmathprogheuristiccallback!(model::CplexMathProgModel)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
+    model.heuristic_buffer = fill(NaN, numvar(model))
     nothing
 end
 
