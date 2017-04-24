@@ -36,6 +36,36 @@ function set_branching_priority(model::Model, indices::Vector{Cint}, priority::V
     return nothing
 end
 
+
+function newlongannotation(model::Model, name::String, defval::Clong)
+    stat = @cpx_ccall(newlongannotation, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Ptr{Cchar},
+                      Clong),
+                      model.env.ptr, model.lp, name, defval)
+    stat == 0 || throw(CplexError(model.env, stat))
+
+    return nothing
+end
+
+function setlongannotations(model::Model, idx::Cint, objtype::Cint, cnt::Cint, indexArr::Array{Cint},
+                valArr::Array{Clong})
+    stat = @cpx_ccall(setlongannotations, Cint, (
+                Ptr{Void},
+                Ptr{Void},
+                Cint,
+                Cint,
+                Cint,
+                Ptr{Void},
+                Ptr{Void}),
+                model.env.ptr, model.lp, idx, objtype, cnt, indexArr, valArr)
+    stat == 0 || throw(CplexError(model.env, stat))
+    return nothing
+end
+
+export setlongannotations, newlongannotation
+
 function get_objval(model::Model)
   objval = Array(Cdouble, 1)
   stat = @cpx_ccall(getobjval, Cint, (
