@@ -85,6 +85,8 @@ module CPLEX
     v = version()
     if startswith(v,"12.6")
         include("full_defines_126.jl")
+    elseif startswith(v,"12.7.1")
+        include("full_defines_1271.jl")
     elseif startswith(v,"12.7")
         include("full_defines_127.jl")
     else
