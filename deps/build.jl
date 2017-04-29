@@ -15,6 +15,8 @@ if is_apple()
     Libdl.dlopen("libstdc++",Libdl.RTLD_GLOBAL)
 end
 
+base_env = "CPLEX_STUDIO_BINARIES"
+
 cpxvers = ["1260","1261","1262","1263","1270", "1271"]
 
 libnames = String["cplex"]
@@ -23,13 +25,16 @@ for v in reverse(cpxvers)
         push!(libnames, "libcplex$v.dylib")
     elseif is_unix()
         push!(libnames, "libcplex$v.so")
+        if haskey(ENV, base_env)
+            push!(libnames, joinpath(ENV[base_env], "libcplex$v.so"))
+        end
     end
 end
 
 wincpxvers = ["126","1261","1262","1263","127","1270","1271"]
 if is_windows()
     for v in reverse(wincpxvers)
-        env = "CPLEX_STUDIO_BINARIES$v"
+        env = base_env * v
         if haskey(ENV,env)
             for d in split(ENV[env],';')
                 contains(d,"cplex") || continue
