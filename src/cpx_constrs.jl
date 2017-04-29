@@ -67,7 +67,7 @@ function add_rangeconstrs!(model::Model, cbegins::IVec, inds::IVec, coeffs::FVec
     ncons = length(lb)
     (ncons  == length(ub) && nnz == length(coeffs)) || error("Incompatible constraint argument dimensions.")
 
-    sense = fill!(Array(Cchar, ncons), 'R')
+    sense = fill!(Vector{Cchar}(ncons), 'R')
 
     for i in 1:ncons
         if lb[i] == -Inf
@@ -141,7 +141,7 @@ end
 
 function get_constr_senses(model::Model)
     ncons = num_constr(model)
-    senses = Array(Cchar, ncons)
+    senses = Vector{Cchar}(ncons)
     stat = @cpx_ccall(getsense, Cint, (
                       Ptr{Void},
                       Ptr{Void},
@@ -173,7 +173,7 @@ end
 
 function get_rhs(model::Model)
     ncons = num_constr(model)
-    rhs = Array(Cdouble, ncons)
+    rhs = Vector{Cdouble}(ncons)
     stat = @cpx_ccall(getrhs, Cint, (
                       Ptr{Void},
                       Ptr{Void},
@@ -295,14 +295,14 @@ function get_nnz(model::Model)
 end
 
 function get_constr_matrix(model::Model)
-  nzcnt_p = Array(Cint, 1)
+  nzcnt_p = Vector{Cint}(1)
   m = num_constr(model)
   n = num_var(model)
   nnz = get_nnz(model)
-  cmatbeg = Array(Cint, n+1)
-  cmatind = Array(Cint, nnz)
-  cmatval = Array(Cdouble, nnz)
-  surplus_p = Array(Cint, 1)
+  cmatbeg = Vector{Cint}(n+1)
+  cmatind = Vector{Cint}(nnz)
+  cmatval = Vector{Cdouble}(nnz)
+  surplus_p = Vector{Cint}(1)
   stat = @cpx_ccall(getcols, Cint, (
                     Ptr{Void},
                     Ptr{Void},

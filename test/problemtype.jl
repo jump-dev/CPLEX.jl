@@ -8,17 +8,17 @@ using Base.Test
 
     @test CPLEX.get_prob_type(m.inner) == :LP
     CPLEX.optimize!(m)
-    @test_approx_eq CPLEX.getsolution(m) [0.5, 0.83]
+    @test CPLEX.getsolution(m) ≈ [0.5, 0.83]
 
     CPLEX.setvartype!(m, [:Cont, :Bin])
 
     @test CPLEX.get_prob_type(m.inner) == :MILP
     CPLEX.optimize!(m)
-    @test_approx_eq CPLEX.getsolution(m) [0.33, 1]
+    @test CPLEX.getsolution(m) ≈ [0.33, 1]
 
     CPLEX.setvartype!(m, [:Cont, :Cont])
 
     @test CPLEX.get_prob_type(m.inner) == :LP
     CPLEX.optimize!(m)
-    @test_approx_eq CPLEX.getsolution(m) [0.5, 0.83]
+    @test CPLEX.getsolution(m) ≈ [0.5, 0.83]
 end

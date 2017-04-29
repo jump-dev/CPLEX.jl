@@ -1,5 +1,5 @@
 function get_best_bound(m::Model)
-    objval_p = Array(Cdouble, 1)
+    objval_p = Vector{Cdouble}(1)
     stat = @cpx_ccall(getbestobjval, Cint, (Ptr{Void}, Ptr{Void}, Ptr{Cdouble}), m.env.ptr, m.lp, objval_p)
     if stat != 0
         throw(CplexError(m.env.ptr, stat))
@@ -71,7 +71,7 @@ cblazylocal(cbdata::CallbackData, where::Cint, ind::Vector{Cint}, val::Vector{Cd
         setcallbackcutlocal(cbdata, where, ind, val, sense, rhs, convert(Cint,CPX_USECUT_FORCE))
 
 function cbbranch(cbdata::CallbackData, where::Cint, idx::Cint, LU::Cchar, bd::Cdouble, nodeest::Cdouble)
-    seqnum = Array(Cint,1)
+    seqnum = Vector{Cint}(1)
     stat = @cpx_ccall(branchcallbackbranchbds, Cint, (Ptr{Void},Ptr{Void},Cint,Cint,Ptr{Cint},Ptr{Cchar},Ptr{Cdouble},Cdouble,Ptr{Void},Ptr{Cint}),
                       cbdata.model.env.ptr,cbdata.cbdata,where,convert(Cint,1),[idx],[LU],[bd],nodeest,C_NULL,seqnum)
     if stat != 0
@@ -81,7 +81,7 @@ function cbbranch(cbdata::CallbackData, where::Cint, idx::Cint, LU::Cchar, bd::C
 end
 
 function cbbranchconstr(cbdata::CallbackData, where::Cint, indices::Vector{Cint}, coeffs::Vector{Cdouble}, rhs::Cdouble, sense::Cchar, nodeest::Cdouble)
-    seqnum = Array(Cint,1)
+    seqnum = Vector{Cint}(1)
     stat = @cpx_ccall(branchcallbackbranchconstraints, Cint,
                       (Ptr{Void},
                        Ptr{Void},

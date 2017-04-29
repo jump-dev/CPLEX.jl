@@ -79,6 +79,7 @@ module CPLEX
     #        cbget_mipsol_sol,
     #        cplex_model
 
+    using Compat
 
     include("cpx_common.jl")
     include("cpx_env.jl")

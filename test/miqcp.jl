@@ -12,7 +12,7 @@ using Base.Test
 # ===========================================
 
 m = CPLEX.CplexMathProgModel()
-CPLEX.loadproblem!(m, Array(Float64, (0,1)), [0.1], [Inf], [0], Float64[], Float64[], :Min)
+CPLEX.loadproblem!(m, Matrix{Float64}(0,1), [0.1], [Inf], [0], Float64[], Float64[], :Min)
 @test CPLEX.get_prob_type(m.inner) == :LP
 CPLEX.setquadobj!(m, reshape([2],(1,1)))
 @test CPLEX.get_prob_type(m.inner) == :QP
@@ -22,7 +22,7 @@ CPLEX.optimize!(m)
 # ===========================================
 
 m2 = CPLEX.CplexMathProgModel()
-CPLEX.loadproblem!(m2, Array(Float64, (0,1)), [0.1], [Inf], [0], Float64[], Float64[], :Min)
+CPLEX.loadproblem!(m2, Matrix{Float64}(0,1), [0.1], [Inf], [0], Float64[], Float64[], :Min)
 @test CPLEX.get_prob_type(m2.inner) == :LP
 CPLEX.setvartype!(m2, [:Bin])
 @test CPLEX.get_prob_type(m2.inner) == :MILP
@@ -34,7 +34,7 @@ CPLEX.optimize!(m2)
 # ===========================================
 
 m3 = CPLEX.CplexMathProgModel()
-CPLEX.loadproblem!(m3, Array(Float64, (0,1)), [0.1], [Inf], [0], Float64[], Float64[], :Min)
+CPLEX.loadproblem!(m3, Matrix{Float64}(0,1), [0.1], [Inf], [0], Float64[], Float64[], :Min)
 @test CPLEX.get_prob_type(m3.inner) == :LP
 CPLEX.setquadobj!(m3, reshape([2],(1,1)))
 @test CPLEX.get_prob_type(m3.inner) == :QP
