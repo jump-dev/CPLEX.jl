@@ -168,7 +168,8 @@ function set_vartype!(model::Model, vtype::Vector{Char})
     if stat != 0
         throw(CplexError(model.env, stat))
     end
-    if !isempty(find(.!(vtype.=='C')))
+    #if !isempty(find(.!(vtype.=='C'))) # replace the line below by this one once we stop supporting Julia v0.5
+    if !isempty(find(broadcast(!, vtype.=='C')))
         model.has_int = true
     end
 end
