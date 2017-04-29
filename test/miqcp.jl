@@ -11,7 +11,7 @@ using Base.Test
 
 @testset "MIQCP" begin
     @testset "MIQCP 01" begin
-        m = CPLEX.CplexMathProgModel()
+        m = CPLEX.CplexMathProgModel(CPX_PARAM_SCRIND=0)
         CPLEX.loadproblem!(m, Matrix{Float64}(0,1), [0.1], [Inf], [0], Float64[], Float64[], :Min)
         @test CPLEX.get_prob_type(m.inner) == :LP
         CPLEX.setquadobj!(m, reshape([2],(1,1)))
@@ -21,7 +21,7 @@ using Base.Test
     end
 
     @testset "MIQCP 02" begin
-        m = CPLEX.CplexMathProgModel()
+        m = CPLEX.CplexMathProgModel(CPX_PARAM_SCRIND=0)
         CPLEX.loadproblem!(m, Matrix{Float64}(0,1), [0.1], [Inf], [0], Float64[], Float64[], :Min)
         @test CPLEX.get_prob_type(m.inner) == :LP
         CPLEX.setvartype!(m, [:Bin])
@@ -33,7 +33,7 @@ using Base.Test
     end
 
     @testset "MIQCP 03" begin
-        m = CPLEX.CplexMathProgModel()
+        m = CPLEX.CplexMathProgModel(CPX_PARAM_SCRIND=0)
         CPLEX.loadproblem!(m, Matrix{Float64}(0,1), [0.1], [Inf], [0], Float64[], Float64[], :Min)
         @test CPLEX.get_prob_type(m.inner) == :LP
         CPLEX.setquadobj!(m, reshape([2],(1,1)))

@@ -6,7 +6,7 @@
 #           x +   y       >= 1
 #
 
-using CPLEX
+using CPLEX, Base.Test
 
 @testset "QP 02" begin
     env = CPLEX.Env()
@@ -20,6 +20,9 @@ using CPLEX
 
     CPLEX.optimize!(model)
 
-    println("sol = $(CPLEX.get_solution(model))")
-    println("obj = $(CPLEX.get_objval(model))")
+    sol = CPLEX.get_solution(model)
+    @test isapprox(sol[1], 0.571429, rtol=1e-4)
+    @test isapprox(sol[2], 0.428571, rtol=1e-4)
+    @test isapprox(sol[3], 0.857143, rtol=1e-4)
+    @test isapprox(CPLEX.get_objval(model), 1.857142864, rtol=1e-8)
 end

@@ -29,6 +29,9 @@ using CPLEX, Base.Test
 
     CPLEX.optimize!(model)
 
-    println("sol = $(CPLEX.get_solution(model))")
-    println("objv = $(CPLEX.get_objval(model))")
+    sol = CPLEX.get_solution(model)
+    @test sol[1] ≈ 4
+    @test sol[2] ≈ 5
+    @test sol[3] ≈ 1
+    @test CPLEX.get_objval(model) ≈ 19
 end

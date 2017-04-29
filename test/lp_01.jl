@@ -11,7 +11,6 @@
 using CPLEX, Base.Test
 
 @testset "LP 01" begin
-
     env = CPLEX.Env()
 
     # method = getparam(env, "Method")
@@ -28,16 +27,14 @@ using CPLEX, Base.Test
     CPLEX.add_constr!(model, [50., 24.], '<', 2400.)
     CPLEX.add_constr!(model, [30., 33.], '<', 2100.)
 
-    println(model)
-
     # perform optimization
     CPLEX.optimize!(model)
 
     sol = CPLEX.get_solution(model)
-    println("soln = $(sol)")
+    @test sol[1] ≈ 45
+    @test sol[2] ≈ 6.25
 
-    objv = CPLEX.get_objval(model)
-    println("objv = $(objv)")
+    @test CPLEX.get_objval(model) ≈ 51.25
 
     gc()  # test finalizers
 end

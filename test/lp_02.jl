@@ -13,7 +13,6 @@
 using CPLEX, Base.Test
 
 @testset "LP 02" begin
-
     env = CPLEX.Env()
 
     model = CPLEX.cplex_model(env;
@@ -24,11 +23,11 @@ using CPLEX, Base.Test
         b = [0., 1000., 70000.],
         lb = [0., 30.])
 
-    println(model)
-
     CPLEX.optimize!(model)
 
-    println()
-    println("soln = $(CPLEX.get_solution(model))")
-    println("objv = $(CPLEX.get_objval(model))")
+    sol = CPLEX.get_solution(model)
+    @test sol[1] ≈ 650/11
+    @test sol[2] ≈ 400/11
+
+    @test CPLEX.get_objval(model) ≈ 790000/11
 end

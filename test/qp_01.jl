@@ -8,10 +8,11 @@
 #    solution: (0.25, 0.75), objv = 1.875
 #
 
-using CPLEX
+using CPLEX, Base.Test
 
 @testset "QP 01" begin
     env = CPLEX.Env()
+    CPLEX.set_param!(env, "CPX_PARAM_SCRIND", 0)
 
     model = CPLEX.Model(env, "qp_02")
 
@@ -22,6 +23,8 @@ using CPLEX
 
     CPLEX.optimize!(model)
 
-    println("sol = $(CPLEX.get_solution(model))")
-    println("obj = $(CPLEX.get_objval(model))")
+    sol = CPLEX.get_solution(model)
+    @test abs(sol[1]) < 1e-4
+    @test isapprox(sol[2], 1, rtol=1e-4)
+    @test isapprox(CPLEX.get_objval(model), 1.5, rtol=1e-8)
 end

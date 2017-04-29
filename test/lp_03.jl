@@ -29,9 +29,10 @@ using CPLEX, Base.Test
 
     CPLEX.optimize!(model)
 
-    println()
-    println("soln = $(CPLEX.get_solution(model))")
-    println("objv = $(CPLEX.get_objval(model))")
+    sol = CPLEX.get_solution(model)
+    @test sol[1] ≈ 1
+    @test sol[2] ≈ 1
+    @test CPLEX.get_objval(model) ≈ 4
 
 
     # change objective (warm start)
@@ -48,7 +49,8 @@ using CPLEX, Base.Test
 
     CPLEX.optimize!(model)
 
-    println()
-    println("soln = $(CPLEX.get_solution(model))")
-    println("objv = $(CPLEX.get_objval(model))")
+    sol = CPLEX.get_solution(model)
+    @test sol[1] ≈ 1
+    @test sol[2] ≈ 0.2
+    @test CPLEX.get_objval(model) ≈ 0.8
 end

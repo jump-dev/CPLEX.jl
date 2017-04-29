@@ -21,6 +21,8 @@ using CPLEX, Base.Test
 
     CPLEX.optimize!(model)
 
-    println("sol = $(CPLEX.get_solution(model))")
-    println("obj = $(CPLEX.get_objval(model))")
+    sol = CPLEX.get_solution(model)
+    @test isapprox(sol[1], sqrt(2)/2, rtol=1e-4)
+    @test isapprox(sol[2], sqrt(2)/2, rtol=1e-4)
+    @test isapprox(CPLEX.get_objval(model), sqrt(2), rtol=1e-8)
 end
