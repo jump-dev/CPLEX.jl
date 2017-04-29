@@ -86,10 +86,13 @@ module CPLEX
     v = version()
     if startswith(v,"12.6")
         include("full_defines_126.jl")
+        include("cpx_params_126.jl")
     elseif startswith(v,"12.7.1")
         include("full_defines_1271.jl")
+        include("cpx_params_1271.jl")
     elseif startswith(v,"12.7")
         include("full_defines_127.jl")
+        include("cpx_params_127.jl")
     else
         error("Unsupported CPLEX version $v. Only 12.6 and 12.7 are currently supported.")
     end
