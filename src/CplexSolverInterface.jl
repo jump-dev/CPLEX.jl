@@ -338,7 +338,6 @@ export cbaddboundbranchup!,
        cbgetdettimestamp,
        cbgetintfeas
 
-using Compat
 @compat abstract type CplexCallbackData <: MathProgCallbackData end
 
 # set to nothing to clear callback
