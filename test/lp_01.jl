@@ -8,33 +8,36 @@
 #
 #   solution: x = 45, y = 6.25, objv = 51.25
 
-using CPLEX
+using CPLEX, Base.Test
 
-env = CPLEX.Env()
+@testset "LP 01" begin
 
-# method = getparam(env, "Method")
-# println("method = $method")
+    env = CPLEX.Env()
 
-model = CPLEX.Model(env, "lp_01")
-CPLEX.set_sense!(model, :Max)
+    # method = getparam(env, "Method")
+    # println("method = $method")
 
-# add variables
-CPLEX.add_var!(model, 1.0, 45., Inf)  # x
-CPLEX.add_var!(model, 1.0,  5., Inf)  # y
+    model = CPLEX.Model(env, "lp_01")
+    CPLEX.set_sense!(model, :Max)
 
-# add constraints
-CPLEX.add_constr!(model, [50., 24.], '<', 2400.)
-CPLEX.add_constr!(model, [30., 33.], '<', 2100.)
+    # add variables
+    CPLEX.add_var!(model, 1.0, 45., Inf)  # x
+    CPLEX.add_var!(model, 1.0,  5., Inf)  # y
 
-println(model)
+    # add constraints
+    CPLEX.add_constr!(model, [50., 24.], '<', 2400.)
+    CPLEX.add_constr!(model, [30., 33.], '<', 2100.)
 
-# perform optimization
-CPLEX.optimize!(model)
+    println(model)
 
-sol = CPLEX.get_solution(model)
-println("soln = $(sol)")
+    # perform optimization
+    CPLEX.optimize!(model)
 
-objv = CPLEX.get_objval(model)
-println("objv = $(objv)")
+    sol = CPLEX.get_solution(model)
+    println("soln = $(sol)")
 
-gc()  # test finalizers
+    objv = CPLEX.get_objval(model)
+    println("objv = $(objv)")
+
+    gc()  # test finalizers
+end

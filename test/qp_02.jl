@@ -8,16 +8,18 @@
 
 using CPLEX
 
-env = CPLEX.Env()
+@testset "QP 02" begin
+    env = CPLEX.Env()
 
-model = CPLEX.cplex_model(env; 
-	name = "qp_02", 
-	f = [0., 0., 0.],
-	H = [2. 1. 0.; 1. 2. 1.; 0. 1. 2.],
-	A = -[1. 2. 3.; 1. 1. 0.], 
-	b = -[4., 1.])
+    model = CPLEX.cplex_model(env;
+        name = "qp_02",
+        f = [0., 0., 0.],
+        H = [2. 1. 0.; 1. 2. 1.; 0. 1. 2.],
+        A = -[1. 2. 3.; 1. 1. 0.],
+        b = -[4., 1.])
 
-CPLEX.optimize!(model)
+    CPLEX.optimize!(model)
 
-println("sol = $(CPLEX.get_solution(model))")
-println("obj = $(CPLEX.get_objval(model))")
+    println("sol = $(CPLEX.get_solution(model))")
+    println("obj = $(CPLEX.get_objval(model))")
+end

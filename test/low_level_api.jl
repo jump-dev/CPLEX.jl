@@ -1,5 +1,7 @@
-using CPLEX
+using CPLEX, Base.Test
 
-env = CPLEX.Env()
-CPLEX.set_logfile(env, "cplex.log")
-CPLEX.close_CPLEX(env)
+@testset "Low-level API" begin
+    env = CPLEX.Env()
+    CPLEX.set_logfile(env, "cplex.log")
+    CPLEX.close_CPLEX(env)
+end
