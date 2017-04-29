@@ -1,22 +1,19 @@
-tests = ["low_level_api",
-         "lp_01",
-#        "lp_01a",
-#        "lp_01b",
-         "lp_02",
-         "lp_03",
-         "mip_01",
-         "qp_01",
-         "qp_02",
-         "qcqp_01",
-         "env",
-         "sos",
-         "problemtype",
-         "miqcp",
-         "mathprog"
-         ]
+using Base.Test
+using CPLEX
 
-for t in tests
-    fp = "$(t).jl"
-    println("running $(fp) ...")
-    evalfile(fp)
-end
+include("constants.jl")
+include("low_level_api.jl")
+include("lp_01.jl")
+#include("lp_01a.jl")
+#include("lp_01b.jl")
+include("lp_02.jl")
+include("lp_03.jl")
+include("mip_01.jl")
+include("qp_01.jl")
+include("qp_02.jl")
+include("qcqp_01.jl")
+include("env.jl")
+include("sos.jl")
+include("problemtype.jl")
+include("miqcp.jl")
+include("mathprog.jl")
