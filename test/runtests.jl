@@ -19,4 +19,6 @@ include("env.jl")
 include("sos.jl")
 include("problemtype.jl")
 include("miqcp.jl")
-include("mathprog.jl")
+@testset "MathProgBase" begin
+    include("mathprog.jl")
+end
