@@ -6,28 +6,28 @@
 #            x - 1.5y >= 0  (i.e. -x + 1.5 y <= 0)
 #            12 x + 8 y <= 1000
 #            1000 x + 300 y <= 70000
-#            
+#
 #   solution: (59.0909, 36.3636)
 #   objv: 71818.1818
-#
 
-using MathProgBase
-using CPLEX
+using CPLEX, Base.Test
 
-env = CPLEX.Env()
+@testset "LP 02" begin
+    env = CPLEX.Env()
 
-model = CPLEX.cplex_model(env; 
-	name="lp_02", 
-	sense=:Max, 
-	f = [1000., 350.],
-	A = [-1. 1.5; 12. 8.; 1000. 300.], 
-	b = [0., 1000., 70000.], 
-	lb = [0., 30.])
+    model = CPLEX.cplex_model(env;
+        name="lp_02",
+        sense=:Max,
+        f = [1000., 350.],
+        A = [-1. 1.5; 12. 8.; 1000. 300.],
+        b = [0., 1000., 70000.],
+        lb = [0., 30.])
 
-println(model)
+    CPLEX.optimize!(model)
 
-CPLEX.optimize!(model)
+    sol = CPLEX.get_solution(model)
+    @test sol[1] ≈ 650/11
+    @test sol[2] ≈ 400/11
 
-println()
-println("soln = $(CPLEX.get_solution(model))")
-println("objv = $(CPLEX.get_objval(model))")
+    @test CPLEX.get_objval(model) ≈ 790000/11
+end
