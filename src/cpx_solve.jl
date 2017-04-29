@@ -67,7 +67,7 @@ end
 export setlongannotations, newlongannotation
 
 function get_objval(model::Model)
-  objval = Array(Cdouble, 1)
+  objval = Vector{Cdouble}(1)
   stat = @cpx_ccall(getobjval, Cint, (
                     Ptr{Void},
                     Ptr{Void},
@@ -82,7 +82,7 @@ end
 
 function get_solution(model::Model)
   nvars = num_var(model)
-  x = Array(Cdouble, nvars)
+  x = Vector{Cdouble}(nvars)
   stat = @cpx_ccall(getx, Cint, (
                     Ptr{Void},
                     Ptr{Void},
@@ -99,8 +99,8 @@ end
 
 function get_reduced_costs(model::Model)
     nvars = num_var(model)
-    p = Array(Cdouble, nvars)
-    status = Array(Cint, 1)
+    p = Vector{Cdouble}(nvars)
+    status = Vector{Cint}(1)
     stat = @cpx_ccall(getdj, Cint, (
                       Ptr{Void},
                       Ptr{Void},
@@ -117,8 +117,8 @@ end
 
 function get_constr_duals(model::Model)
     ncons = num_constr(model)
-    p = Array(Cdouble, ncons)
-    status = Array(Cint, 1)
+    p = Vector{Cdouble}(ncons)
+    status = Vector{Cint}(1)
     stat = @cpx_ccall(getpi, Cint, (
                       Ptr{Void},
                       Ptr{Void},
@@ -135,7 +135,7 @@ end
 
 function get_constr_solution(model::Model)
   ncons = num_constr(model)
-  Ax = Array(Cdouble, ncons)
+  Ax = Vector{Cdouble}(ncons)
   stat = @cpx_ccall(getax, Cint, (
                     Ptr{Void},
                     Ptr{Void},
@@ -152,8 +152,8 @@ end
 
 function get_infeasibility_ray(model::Model)
   ncons = num_constr(model)
-  y = Array(Cdouble, ncons)
-  proof_p = Array(Cdouble, 1)
+  y = Vector{Cdouble}(ncons)
+  proof_p = Vector{Cdouble}(1)
   stat = @cpx_ccall(dualfarkas, Cint, (
                     Ptr{Void},
                     Ptr{Void},
@@ -172,7 +172,7 @@ function get_unbounded_ray(model::Model)
   solve_stat = get_status(model)
   if solve_stat == :CPX_STAT_UNBOUNDED
     n = num_var(model)
-    z = Array(Cdouble, n)
+    z = Vector{Cdouble}(n)
     stat = @cpx_ccall(getray, Cint, (
                       Ptr{Void},
                       Ptr{Void},
@@ -202,15 +202,15 @@ const conmap = Dict(
 )
 
 function get_basis(model::Model)
-    cval = Array(Cint, num_var(model))
-    rval = Array(Cint, num_constr(model))
+    cval = Vector{Cint}(num_var(model))
+    rval = Vector{Cint}(num_constr(model))
     stat = @cpx_ccall(getbase, Cint, (Ptr{Void},Ptr{Void},Ptr{Cint},Ptr{Cint}),
                       model.env.ptr, model.lp, cval, rval)
     stat != 0 && throw(CplexError(model.env, stat))
 
     csense = get_constr_senses(model)
-    cbasis = Array(Symbol, num_var(model))
-    rbasis = Array(Symbol, num_constr(model))
+    cbasis = Vector{Symbol}(num_var(model))
+    rbasis = Vector{Symbol}(num_constr(model))
     for it in 1:num_var(model)
         cbasis[it] = varmap[cval[it]]
     end
@@ -226,7 +226,7 @@ end
 get_node_count(model::Model) = @cpx_ccall(getnodecnt, Cint, (Ptr{Void},Ptr{Void}), model.env.ptr, model.lp)
 
 function get_rel_gap(model::Model)
-  ret = Array(Cdouble,1)
+  ret = Vector{Cdouble}(1)
   stat = @cpx_ccall(getmiprelgap, Cint, (Ptr{Void},Ptr{Void},Ptr{Cdouble}), model.env.ptr, model.lp, ret)
   if stat != 0
     throw(CplexError(model.env, stat))
@@ -236,7 +236,7 @@ end
 
 
 function get_num_cuts(model::Model,cuttype)
-    cutcount = Array(Cint,1)
+    cutcount = Vector{Cint}(1)
 
     stat = @cpx_ccall(getnumcuts, Cint, (Ptr{Void},Ptr{Void},Cint,Ptr{Void}), model.env.ptr , model.lp, cuttype, cutcount)
     if stat != 0

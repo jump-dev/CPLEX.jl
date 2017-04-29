@@ -21,7 +21,7 @@ end
 
 function Model(env::Env, name::String="CPLEX.jl")
     @assert is_valid(env)
-    stat = Array(Cint, 1)
+    stat = Vector{Cint}(1)
     tmp = @cpx_ccall(createprob, Ptr{Void}, (Ptr{Void}, Ptr{Cint}, Ptr{Cchar}), env.ptr, stat, name)
     if tmp == C_NULL
         throw(CplexError(env, stat))
@@ -80,7 +80,7 @@ end
 
 function get_obj(model::Model)
     nvars = num_var(model)
-    obj = Array(Cdouble, nvars)
+    obj = Vector{Cdouble}(nvars)
     stat = @cpx_ccall(getobj, Cint, (
                       Ptr{Void},
                       Ptr{Void},

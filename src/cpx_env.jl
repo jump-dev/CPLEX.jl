@@ -4,7 +4,7 @@ type Env
     finalize_called::Bool
 
     function Env()
-      stat = Array(Cint, 1)
+      stat = Vector{Cint}(1)
       tmp = @cpx_ccall(openCPLEX, Ptr{Void}, (Ptr{Cint},), stat)
       if tmp == C_NULL
           error("CPLEX: Error creating environment")
@@ -63,7 +63,7 @@ end
 
 function get_error_msg(env::Env, code::Number)
     @assert env.ptr != C_NULL
-    buf = Array(Cchar, 4096) # minimum size for Cplex to accept
+    buf = Vector{Cchar}(4096) # minimum size for Cplex to accept
     errstr = @cpx_ccall(geterrorstring, Ptr{Cchar}, (Ptr{Void}, Cint, Ptr{Cchar}), env.ptr, convert(Cint, code), buf)
     if errstr != C_NULL
       return unsafe_string(pointer(buf))

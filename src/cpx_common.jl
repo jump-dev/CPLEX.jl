@@ -38,18 +38,18 @@ macro cpx_ccall_intercept(model, func, args...)
     end
 end
 
-typealias GChars Union{Cchar, Char}
-typealias IVec Vector{Cint}
-typealias FVec Vector{Cdouble}
-typealias CVec Vector{Cchar}
-typealias CoeffMat Union{Matrix{Cdouble}, SparseMatrixCSC{Cdouble}}
-typealias Bounds{T<:Real} Union{T, Vector{T}}
+const GChars = Union{Cchar, Char}
+const IVec = Vector{Cint}
+const FVec = Vector{Cdouble}
+const CVec = Vector{Cchar}
+const CoeffMat = Union{Matrix{Cdouble}, SparseMatrixCSC{Cdouble}}
+@compat Bounds{T<:Real} = Union{T, Vector{T}}
 
-typealias GCharOrVec Union{Cchar, Char, Vector{Cchar}, Vector{Char}}
+const GCharOrVec = Union{Cchar, Char, Vector{Cchar}, Vector{Char}}
 
 # empty vector & matrix (for the purpose of supplying default arguments)
-const emptyfvec = Array(Float64, 0)
-const emptyfmat = Array(Float64, 0, 0)
+const emptyfvec = Vector{Float64}(0)
+const emptyfmat = Matrix{Float64}(0, 0)
 
 cchar(c::Cchar) = c
 cchar(c::Char) = convert(Cchar, c)

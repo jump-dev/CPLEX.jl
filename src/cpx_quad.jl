@@ -11,7 +11,7 @@ function add_qpterms!(model::Model, qr::IVec, qc::IVec, qv::FVec)
     else
         error("Matrix Q must be either symmetric or triangular")
     end
-    qmatcnt = Array(Cint, n)
+    qmatcnt = Vector{Cint}(n)
     for k = 1:n
       qmatcnt[k] = Q.colptr[k+1] - Q.colptr[k]
     end
@@ -41,9 +41,9 @@ function add_qpterms!(model, H::SparseMatrixCSC{Float64}) # H must be symmetric
     (H.m == n && H.n == n) || error("H must be an n-by-n symmetric matrix.")
 
     nnz_h = nnz(H)
-    qr = Array(Cint, nnz_h)
-    qc = Array(Cint, nnz_h)
-    qv = Array(Float64, nnz_h)
+    qr = Vector{Cint}(nnz_h)
+    qc = Vector{Cint}(nnz_h)
+    qv = Vector{Float64}(nnz_h)
     k = 0
 
     colptr::Vector{Int} = H.colptr
@@ -71,9 +71,9 @@ function add_qpterms!(model, H::Matrix{Float64}) # H must be symmetric
     size(H) == (n, n) || error("H must be an n-by-n symmetric matrix.")
 
     nmax = div(n * (n + 1), 2)
-    qr = Array(Cint, nmax)
-    qc = Array(Cint, nmax)
-    qv = Array(Float64, nmax)
+    qr = Vector{Cint}(nmax)
+    qc = Vector{Cint}(nmax)
+    qv = Vector{Float64}(nmax)
     k::Int = 0
 
     for i = 1 : n

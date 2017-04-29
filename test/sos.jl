@@ -38,7 +38,7 @@ sol = CPLEX.getsolution(m)
 # ======================================
 
 m2 = CPLEX.CplexMathProgModel()
-CPLEX.loadproblem!(m2, Array(Float64, (0,3)), [-Inf, -Inf, -Inf], [1,1,2], [2,1,1], Float64[], Float64[], :Max)
+CPLEX.loadproblem!(m2, Matrix{Float64}(0,3), [-Inf, -Inf, -Inf], [1,1,2], [2,1,1], Float64[], Float64[], :Max)
 @test CPLEX.get_prob_type(m2.inner) == :LP
 
 CPLEX.addsos1!(m2, [1,2], [1.0,2.0])

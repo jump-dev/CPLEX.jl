@@ -80,7 +80,7 @@ end
 
 function get_varLB(model::Model)
     nvars = num_var(model)
-    lb = Array(Cdouble, nvars)
+    lb = Vector{Cdouble}(nvars)
     stat = @cpx_ccall(getlb, Cint, (
                       Ptr{Void},
                       Ptr{Void},
@@ -118,7 +118,7 @@ end
 
 function get_varUB(model::Model)
     nvars = num_var(model)
-    ub = Array(Cdouble, nvars)
+    ub = Vector{Cdouble}(nvars)
     stat = @cpx_ccall(getub, Cint, (
                       Ptr{Void},
                       Ptr{Void},
@@ -168,14 +168,14 @@ function set_vartype!(model::Model, vtype::Vector{Char})
     if stat != 0
         throw(CplexError(model.env, stat))
     end
-    if !isempty(find(!(vtype.=='C')))
+    if !isempty(find(.!(vtype.=='C')))
         model.has_int = true
     end
 end
 
 function get_vartype(model::Model)
     nvars = num_var(model)
-    vartypes = Array(Cchar, nvars)
+    vartypes = Vector{Cchar}(nvars)
     stat = @cpx_ccall(getctype, Cint, (
                       Ptr{Void},
                       Ptr{Void},
