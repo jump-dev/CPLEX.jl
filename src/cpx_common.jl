@@ -8,8 +8,14 @@ macro cpx_ccall(func, args...)
         end
     end
     if is_windows()
-        return quote
-            ccall(($f,libcplex), stdcall, $(args...))
+        if VERSION < v"0.6-"
+            return quote
+                ccall(($f,libcplex), stdcall, $(args...))
+            end
+        else
+            return quote
+                ccall(($f,libcplex), $(esc(:stdcall)), $(args...))
+            end
         end
     end
 end
@@ -20,7 +26,7 @@ macro cpx_ccall_intercept(model, func, args...)
     quote
         ccall(:jl_exit_on_sigint, Void, (Cint,), convert(Cint,0))
         ret = try
-            $(@static is_windows() ? :(ccall(($f,libcplex), stdcall, $(args...))) : :(ccall(($f,libcplex), $(args...))) )
+            $(Expr(:macrocall, Symbol("@cpx_ccall"), esc(func), args...))
         catch ex
             println("Caught exception")
             if !isinteractive()
