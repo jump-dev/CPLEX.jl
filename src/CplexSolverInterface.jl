@@ -44,6 +44,8 @@ function setparameters!(s::CplexSolver; mpboptions...)
             if optval == true
                 push!(opts, (:CPX_PARAM_SCRIND, 0))
             end
+        elseif optname == :CPX_PARAM_REDUCE || optname == :Reduce
+            push!(opts, (:CPX_PARAM_REDUCE, optval))
         else
             error("Unrecognized parameter $optname")
         end
