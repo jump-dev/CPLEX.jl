@@ -8,7 +8,7 @@ macro cpx_ccall(func, args...)
         end
     end
     if is_windows()
-        if VERSION < v"0.6-"
+        if VERSION < v"0.6.0-dev.1512" # probably julia PR #15850
             return quote
                 ccall(($f,libcplex), stdcall, $(args...))
             end
