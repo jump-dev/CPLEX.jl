@@ -106,7 +106,9 @@ module CPLEX
     include("cpx_highlevel.jl")
 
     include("CplexSolverInterface.jl")
-    if isdir(Pkg.dir("JuMP"))
+    # These are undocumented JuMP extensions for CPLEX which
+    # will need to be hosted in a separate package for Julia 0.6 and later.
+    if isdir(Pkg.dir("JuMP")) && VERSION < v"0.6-"
         try
             eval(current_module(), Expr(:import,:JuMP))
             include("JuMPfunctions.jl")
