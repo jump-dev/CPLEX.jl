@@ -1,3 +1,5 @@
+include("variables_cpx.jl")
+
 """
     Get a vector of column indices given a vector of variable references
 """

@@ -59,11 +59,8 @@ function MOI.SolverInstance(s::CplexSolver)
     CplexSolverInstance(Model(env), 0, Dict{VariableReference, Int}(), 0, Dict{ConstraintRef, Any}())
 end
 
-function MOI.optimize!(m::CplexSolverInstance)
-    # start = time()
-    optimize!(m.inner)
-    # m.solvetime = time() - start
-end
-
-function MOI.free!(m::CplexSolverInstance)
-end
+include("macros_cpx.jl")
+include("variables.jl")
+include("constraints.jl")
+include("objective.jl")
+include("solve.jl")

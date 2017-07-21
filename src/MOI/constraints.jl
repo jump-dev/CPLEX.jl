@@ -1,3 +1,5 @@
+include("constraints_cpx.jl")
+
 function MOI.addconstraint!(m::CplexSolverInstance, func::ScalarAffineFunction{Float64}, set::T) where T <: Union{LessThan{Float64}, GreaterThan{Float64}, EqualsTo{Float64}}
     addlinearconstraint!(m, func, set)
     m.last_constraint_reference += 1
@@ -14,6 +16,15 @@ function addlinearconstraint!(m::CplexSolverInstance, func::ScalarAffineFunction
         warn("Constant in scalar function moved into set.")
     end
     cpx_add_constraint!(m.inner, getcols(m, func.variables), func.coefficients, sense, rhs - func.constant)
+end
+
+function MOI.getattribute(m::CplexSolverInstance, ::NumberOfConstraints{F, S}) where F where S
+    i = 0
+    for key in keys(m.constraint_mapping)
+        if isa(key, ConstraintReference{F, S})
+            i += 1
+        end
+    end
 end
 
 # function MOI.getattribute(m::CplexSolverInstance, ::ConstraintSet, c::ConstraintReference{ScalarAffineFunction{Float64},LessThan{Float64}})
