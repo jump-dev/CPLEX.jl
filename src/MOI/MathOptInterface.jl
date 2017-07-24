@@ -1,3 +1,5 @@
+using MathOptInterface
+
 const MOI = MathOptInterface
 
 export CplexSolver
@@ -10,18 +12,27 @@ function CplexSolver(;mipstart_effortlevel::Cint = CPX_MIPSTART_AUTO, options...
     CplexSolver(mipstart_effortlevel, options)
 end
 
+
+const Linear = MOI.ScalarAffineFunction{Float64}
+const LE = MOI.LessThan{Float64}
+const GE = MOI.GreaterThan{Float64}
+const EQ = MOI.EqualTo{Float64}
+const LinConstrRef{T} = MOI.ConstraintReference{Linear, T}
+const SVConstrRef{T} = MOI.ConstraintReference{MOI.SingleVariable, T}
+
 const SUPPORTED_OBJECTIVES = [
-    # ScalarAffineFunction{Float64},
+    Linear
     # ScalarQuadraticFunction{Float64}
 ]
+
 const SUPPORTED_CONSTRAINTS = [
-    (ScalarAffineFunction{Float64}, EqualsTo{Float64}),
-    (ScalarAffineFunction{Float64}, LessThan{Float64}),
-    (ScalarAffineFunction{Float64}, GreaterThan{Float64}),
-    (SingleVariable, EqualsTo{Float64}),
-    (SingleVariable, LessThan{Float64}),
-    (SingleVariable, GreaterThan{Float64}),
-    (SingleVariable, Interval{Float64})
+    (Linear, EQ),
+    (Linear, LE),
+    (Linear, GE),
+    (MOI.SingleVariable, EQ),
+    (MOI.SingleVariable, LE),
+    (MOI.SingleVariable, GE),
+    (MOI.SingleVariable, MOI.Interval{Float64})
 ]
 
 function MOI.supportsproblem(s::CplexSolver, objective_type, constraint_types)
@@ -36,18 +47,35 @@ function MOI.supportsproblem(s::CplexSolver, objective_type, constraint_types)
     return true
 end
 
+struct ConstraintMapping
+    # rows in constraint matrix
+    less_than::Dict{LinConstrRef{LE}, Int}
+    greater_than::Dict{LinConstrRef{GE}, Int}
+    equal_to::Dict{LinConstrRef{EQ}, Int}
+
+    # references to variable
+    variable_upper_bound::Dict{SVConstrRef{LE}, MOI.VariableReference}
+    variable_lower_bound::Dict{SVConstrRef{GE}, MOI.VariableReference}
+    fixed_variables::Dict{SVConstrRef{EQ}, MOI.VariableReference}
+    interval_variables::Dict{SVConstrRef{MOI.Interval{Float64}}, MOI.VariableReference}
+end
+ConstraintMapping() = ConstraintMapping(
+    Dict{LinConstrRef{LE}, Int}(),
+    Dict{LinConstrRef{GE}, Int}(),
+    Dict{LinConstrRef{EQ}, Int}(),
+    Dict{SVConstrRef{LE}, MOI.VariableReference}(),
+    Dict{SVConstrRef{GE}, MOI.VariableReference}(),
+    Dict{SVConstrRef{EQ}, MOI.VariableReference}(),
+    Dict{SVConstrRef{MOI.Interval{Float64}}, MOI.VariableReference}()
+)
+
 mutable struct CplexSolverInstance <: MOI.AbstractSolverInstance
     inner::Model
     last_variable_reference::UInt64
-    variable_mapping::Dict{VariableReference, Int}
+    variable_mapping::Dict{MOI.VariableReference, Int}
 
     last_constraint_reference::UInt64
-    constraint_mapping::Dict{ConstraintRef, Any}
-
-    # callbacks not yet dealt with
-    # solvetime::Float64
-    # mipstart_effortlevel::Cint
-    # heuristic_buffer::Vector{Float64}
+    constraint_mapping::ConstraintMapping
 end
 
 function MOI.SolverInstance(s::CplexSolver)
@@ -56,7 +84,13 @@ function MOI.SolverInstance(s::CplexSolver)
     for (name,value) in s.options
         set_param!(env, string(name), value)
     end
-    CplexSolverInstance(Model(env), 0, Dict{VariableReference, Int}(), 0, Dict{ConstraintRef, Any}())
+    CplexSolverInstance(
+        Model(env),
+        0,
+        Dict{MOI.VariableReference, Int}(),
+        0,
+        ConstraintMapping()
+    )
 end
 
 include("macros_cpx.jl")

@@ -1,6 +1,6 @@
 function cpx_add_variables!(model::Model, n::Int)
     if n > 0
-        @cpx_ccall(model.env, newcols, Cint, (
+        @cpx_ccall_error(model.env, newcols, Cint, (
           Ptr{Void},
           Ptr{Void},
           Cint,
@@ -20,9 +20,8 @@ end
 
 function cpx_set_variable_bounds!(model::Model, cols::Vector{Int}, values::Vector{Float64}, sense::Vector{Cchar})
     @assert length(cols) == length(values) == length(sense)
-    n = length(cols)
     bounds = copy(values)
-    for (i, v) in enumerate(upperbounds)
+    for (i, v) in enumerate(values)
         if v > CPX_INFBOUND
             # TODO: potentially throw a warning here
             bounds[i] = CPX_INFBOUND
@@ -30,7 +29,7 @@ function cpx_set_variable_bounds!(model::Model, cols::Vector{Int}, values::Vecto
             bounds[i] = -CPX_INFBOUND
         end
     end
-    @cpx_ccall(model.env, chgbds, Cint, (
+    @cpx_ccall_error(model.env, chgbds, Cint, (
         Ptr{Void},
         Ptr{Void},
         Cint,
@@ -38,12 +37,12 @@ function cpx_set_variable_bounds!(model::Model, cols::Vector{Int}, values::Vecto
         Ptr{Cchar},
         Ptr{Cdouble}
         ),
-        model.env.ptr, model.lp, nvars, Cint.(cols-1), sense, bounds)
+        model.env.ptr, model.lp, Cint(length(cols)), Cint.(cols-1), sense, bounds)
 end
 
 function cpx_get_variable_upperbound(model::Model, col::Int)
     ub = Vector{Cdouble}(1)
-    @cpx_ccall(getub, Cint, (
+    @cpx_ccall_error(model.env, getub, Cint, (
         Ptr{Void},
         Ptr{Void},
         Ptr{Cdouble},
@@ -55,7 +54,7 @@ function cpx_get_variable_upperbound(model::Model, col::Int)
 end
 function cpx_get_variable_lowerbound(model::Model, col::Int)
     lb = Vector{Cdouble}(1)
-    @cpx_ccall(getlb, Cint, (
+    @cpx_ccall_error(model.env, getlb, Cint, (
         Ptr{Void},
         Ptr{Void},
         Ptr{Cdouble},

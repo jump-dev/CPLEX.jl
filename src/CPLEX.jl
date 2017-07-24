@@ -16,7 +16,7 @@ module CPLEX
     import Base: convert, unsafe_convert, show, copy
 
     # Standard LP interface
-    importall MathProgBase.SolverInterface
+    # importall MathProgBase.SolverInterface
 
     # exported functions
     # export is_valid,
@@ -105,7 +105,8 @@ module CPLEX
     include("cpx_callbacks.jl")
     include("cpx_highlevel.jl")
 
-    include("CplexSolverInterface.jl")
+    # include("CplexSolverInterface.jl")
+    include("MOI/MathOptInterface.jl")
     # These are undocumented JuMP extensions for CPLEX which
     # will need to be hosted in a separate package for Julia 0.6 and later.
     if isdir(Pkg.dir("JuMP")) && VERSION < v"0.6-"

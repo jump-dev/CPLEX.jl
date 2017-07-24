@@ -27,22 +27,22 @@ macro cpx_ccall_error(env, func, args...)
     return code
 end
 
-
-"""
-    @cpx_ccall(func, args...)
-"""
-macro cpx_ccall(func, args...)
-    f = "CPX$(func)"
-    args = map(esc,args)
-    if is_unix()
-        return quote stat = ccall(($f,libcplex), $(args...))) end
-    elseif is_windows()
-        if VERSION < v"0.6.0-dev.1512" # probably julia PR #15850
-            return quote stat = ccall(($f,libcplex), stdcall, $(args...))) end
-        else
-            return quote stat = ccall(($f,libcplex), $(esc(:stdcall)), $(args...))) end
-        end
-    else
-        error("Unknown platform.")
-    end
-end
+#
+# """
+#     @cpx_ccall(func, args...)
+# """
+# macro cpx_ccall(func, args...)
+#     f = "CPX$(func)"
+#     args = map(esc,args)
+#     if is_unix()
+#         return quote stat = ccall(($f,libcplex), $(args...))) end
+#     elseif is_windows()
+#         if VERSION < v"0.6.0-dev.1512" # probably julia PR #15850
+#             return quote stat = ccall(($f,libcplex), stdcall, $(args...))) end
+#         else
+#             return quote stat = ccall(($f,libcplex), $(esc(:stdcall)), $(args...))) end
+#         end
+#     else
+#         error("Unknown platform.")
+#     end
+# end
