@@ -11,7 +11,6 @@ function cpx_set_objective!(model::Model, cols::Vector{Int}, coefs::Vector{Float
 end
 
 function cpx_set_sense!(model::Model, sense::Symbol)
-    @show typeof(model), sense
     if sense == :Min
         @cpx_ccall_error(model.env, chgobjsen, Cint, (Ptr{Void}, Ptr{Void}, Cint), model.env.ptr, model.lp, CPX_MIN)
     elseif sense == :Max
@@ -30,4 +29,18 @@ function cpx_get_sense(model::Model)
     else
         error("CPLEX: problem object or environment does not exist")
     end
+end
+
+function cpx_get_obj(model::Model)
+    nvars = cpx_number_variables(model)
+    obj = Vector{Cdouble}(nvars)
+    @cpx_ccall_error(model.env, getobj, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Ptr{Cdouble},
+                      Cint,
+                      Cint
+                      ),
+                      model.env.ptr, model.lp, obj, 0, nvars-1)
+    return obj
 end

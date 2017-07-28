@@ -85,35 +85,28 @@ module CPLEX
     include("cpx_env.jl")
     v = version()
     if startswith(v,"12.6")
-        include(joinpath("cpx_defines", "full_defines_126.jl"))
-        include(joinpath("cpx_params", "cpx_params_126.jl"))
+        include("full_defines_126.jl")
+        include("cpx_params_126.jl")
     elseif startswith(v,"12.7.1")
-        include(joinpath("cpx_defines", "full_defines_1271.jl"))
-        include(joinpath("cpx_params", "cpx_params_1271.jl"))
+        include("full_defines_1271.jl")
+        include("cpx_params_1271.jl")
     elseif startswith(v,"12.7")
-        include(joinpath("cpx_defines", "full_defines_127.jl"))
-        include(joinpath("cpx_params", "cpx_params_127.jl"))
+        include("full_defines_127.jl")
+        include("cpx_params_127.jl")
     else
         error("Unsupported CPLEX version $v. Only 12.6 and 12.7 are currently supported.")
     end
-
     include("cpx_model.jl")
     include("cpx_params.jl")
-    # include("cpx_vars.jl")
-    # include("cpx_constrs.jl")
-    # include("cpx_quad.jl")
-    # include("cpx_solve.jl")
-    # include("cpx_callbacks.jl")
-    # include("cpx_highlevel.jl")
-
-
-    include("cpx_variables.jl")
-    include("cpx_constraints.jl")
-    include("cpx_objective.jl")
+    include("cpx_vars.jl")
+    include("cpx_constrs.jl")
+    include("cpx_quad.jl")
     include("cpx_solve.jl")
+    include("cpx_callbacks.jl")
+    include("cpx_highlevel.jl")
 
     # include("CplexSolverInterface.jl")
-    include("MathOptInterface.jl")
+    include("MOI/MathOptInterface.jl")
     # These are undocumented JuMP extensions for CPLEX which
     # will need to be hosted in a separate package for Julia 0.6 and later.
     if isdir(Pkg.dir("JuMP")) && VERSION < v"0.6-"

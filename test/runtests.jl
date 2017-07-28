@@ -2,6 +2,8 @@ using Base.Test
 # using MathProgBase
 using CPLEX
 using MathOptInterface
+const MOI = MathOptInterface
+include(joinpath(Pkg.dir("MathOptInterface"), "test", "function_utilities.jl"))
 include(joinpath(Pkg.dir("MathOptInterface"), "test", "contlinear.jl"))
 
 linear1test(CplexSolver())

@@ -12,6 +12,7 @@ function CplexSolver(;mipstart_effortlevel::Cint = CPX_MIPSTART_AUTO, options...
     CplexSolver(mipstart_effortlevel, options)
 end
 
+MOI.getattribute(s::CplexSolver, ::MOI.SupportsDuals) = false
 
 const Linear = MOI.ScalarAffineFunction{Float64}
 const LE = MOI.LessThan{Float64}
@@ -71,11 +72,16 @@ ConstraintMapping() = ConstraintMapping(
 
 mutable struct CplexSolverInstance <: MOI.AbstractSolverInstance
     inner::Model
+
     last_variable_reference::UInt64
     variable_mapping::Dict{MOI.VariableReference, Int}
+    variable_references::Vector{MOI.VariableReference}
+    primal_solution::Vector{Float64}
 
     last_constraint_reference::UInt64
     constraint_mapping::ConstraintMapping
+
+    objective_constant::Float64
 end
 
 function MOI.SolverInstance(s::CplexSolver)
@@ -88,13 +94,16 @@ function MOI.SolverInstance(s::CplexSolver)
         Model(env),
         0,
         Dict{MOI.VariableReference, Int}(),
+        MOI.VariableReference[],
+        Float64[],
         0,
-        ConstraintMapping()
+        ConstraintMapping(),
+        0.0
     )
 end
+include(joinpath("cpx_status", "status_codes.jl"))
 
-include("macros_cpx.jl")
-include("variables.jl")
-include("constraints.jl")
-include("objective.jl")
-include("solve.jl")
+include("moi_variables.jl")
+include("moi_constraints.jl")
+include("moi_objective.jl")
+include("moi_solve.jl")

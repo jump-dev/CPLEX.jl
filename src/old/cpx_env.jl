@@ -1,11 +1,3 @@
-function  cpx_finalizer(env)
-    if env.num_models == 0
-        close_CPLEX(env)
-    else
-        env.finalize_called = true
-    end
-end
-
 type Env
     ptr::Ptr{Void}
     num_models::Int
@@ -18,7 +10,13 @@ type Env
           error("CPLEX: Error creating environment")
       end
       env = new(tmp, 0, false)
-      finalizer(env, cpx_finalizer)
+      finalizer(env, env -> begin
+                                if env.num_models == 0
+                                    close_CPLEX(env)
+                                else
+                                    env.finalize_called = true
+                                end
+                            end)
       env
     end
 end

@@ -1,4 +1,3 @@
-include("variables_cpx.jl")
 
 """
     Get a vector of column indices given a vector of variable references
@@ -13,6 +12,9 @@ function MOI.getattribute(m::CplexSolverInstance, ::MOI.NumberOfVariables)
     return cpx_number_variables(m.inner)
 end
 
+function getvariables(m::CplexSolverInstance)
+    m.variable_references
+end
 #=
     Add a variable to the CplexSolverInstance
 
@@ -25,7 +27,9 @@ function MOI.addvariable!(m::CplexSolverInstance)
     # assumes we add columns linearly
     m.last_variable_reference += 1
     ref = MOI.VariableReference(m.last_variable_reference)
-    m.variable_mapping[ref] = getattribute(m, MOI.NumberOfVariables())
+    m.variable_mapping[ref] = MOI.getattribute(m, MOI.NumberOfVariables())
+    push!(m.variable_references, ref)
+    push!(m.primal_solution, NaN)
     return ref
 end
 
@@ -40,6 +44,8 @@ function MOI.addvariables!(m::CplexSolverInstance, n::Int)
         ref = MOI.VariableReference(m.last_variable_reference)
         push!(variable_references, ref)
         m.variable_mapping[ref] = previous_vars + i
+        push!(m.variable_references, ref)
+        push!(m.primal_solution, NaN)
     end
     return variable_references
 end
