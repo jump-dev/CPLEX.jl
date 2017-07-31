@@ -29,7 +29,8 @@ function MOI.addvariable!(m::CplexSolverInstance)
     ref = MOI.VariableReference(m.last_variable_reference)
     m.variable_mapping[ref] = MOI.getattribute(m, MOI.NumberOfVariables())
     push!(m.variable_references, ref)
-    push!(m.primal_solution, NaN)
+    push!(m.variable_primal_solution, NaN)
+    push!(m.variable_dual_solution, NaN)
     return ref
 end
 
@@ -45,7 +46,8 @@ function MOI.addvariables!(m::CplexSolverInstance, n::Int)
         push!(variable_references, ref)
         m.variable_mapping[ref] = previous_vars + i
         push!(m.variable_references, ref)
-        push!(m.primal_solution, NaN)
+        push!(m.variable_primal_solution, NaN)
+        push!(m.variable_dual_solution, NaN)
     end
     return variable_references
 end

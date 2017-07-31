@@ -8,9 +8,9 @@ constraint_storage(m::CplexSolverInstance, ::Type{MOI.SingleVariable}, ::Type{LE
 constraint_storage(m::CplexSolverInstance, ::Type{MOI.SingleVariable}, ::Type{GE}) = m.constraint_mapping.variable_lower_bound
 constraint_storage(m::CplexSolverInstance, ::Type{MOI.SingleVariable}, ::Type{EQ}) = m.constraint_mapping.fixed_variables
 constraint_storage(m::CplexSolverInstance, ::Type{MOI.SingleVariable}, ::Type{MOI.Interval{Float64}}) = m.constraint_mapping.interval_variables
-
+constraint_storage(m::CplexSolverInstance, c::MOI.ConstraintReference{F, S}) where F where S = constraint_storage(m, F, S)
 function constraint_storage_value(m::CplexSolverInstance, c::MOI.ConstraintReference{F, S}) where F where S
-    dict = constraint_storage(m, F, S)
+    dict = constraint_storage(m, c)
     return dict[c]
 end
 """
@@ -39,7 +39,7 @@ function setvariablebound!(m::CplexSolverInstance, v::MOI.SingleVariable, set::E
 end
 function setvariablebound!(m::CplexSolverInstance, v::MOI.SingleVariable, set::MOI.Interval{Float64})
     setvariablebound!(m, getcol(m, v), set.upper, Cchar('U'))
-    setvariablebound!(m, getcols(m, v), set.lower, Cchar('L'))
+    setvariablebound!(m, getcol(m, v), set.lower, Cchar('L'))
 end
 
 function MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintSet, c::MOI.ConstraintReference{MOI.SingleVariable,T}) where T <: Union{LE, GE, EQ}
@@ -82,6 +82,8 @@ function MOI.addconstraint!(m::CplexSolverInstance, func::Linear, set::T) where 
     ref = MOI.ConstraintReference{Linear, T}(m.last_constraint_reference)
     dict = constraint_storage(m, func, set)
     dict[ref] = cpx_number_constraints(m.inner)
+    push!(m.constraint_primal_solution, NaN)
+    push!(m.constraint_dual_solution, NaN)
     return ref
 end
 
@@ -99,7 +101,7 @@ function addlinearconstraint!(m::CplexSolverInstance, func::Linear, sense::Cchar
     if abs(func.constant) > eps(Float64)
         warn("Constant in scalar function moved into set.")
     end
-    cpx_add_constraint!(m.inner, getcols(m, func.variables), func.coefficients, sense, rhs - func.constant)
+    cpx_addrows!(m.inner, getcols(m, func.variables), func.coefficients, sense, rhs - func.constant)
 end
 
 function MOI.getattribute(m::CplexSolverInstance, ::MOI.NumberOfConstraints{F, S}) where F where S
@@ -113,8 +115,56 @@ function MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintSet, c::MOI.Co
     T(rhs)
 end
 MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintSet, ::MOI.ConstraintReference{Linear,T}) where T <: Union{LE, GE, EQ} = true
-#
-# function MOI.getattribute(m::CplexSolverInstance, ::ConstraintFunction, c::ConstraintReference{ScalarAffineFunction{Float64},T}) where T <: Union{LessThan{Float64}, GreaterThan{Float64}, EqualsTo{Float64}}
-#     row = m.constraint_mapping[c]::Int
-#
-# end
+
+function MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintFunction, c::MOI.ConstraintReference{Linear, S}) where S
+    row = constraint_storage_value(m, c)
+    # TODO more efficiently
+    colidx, coefs = cpx_getrows(m.inner, row)
+    MOI.ScalarAffineFunction(m.variable_references[colidx+1] , coefs, 0.0)
+end
+
+function MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintFunction, c::MOI.ConstraintReference{F, S}) where F where S
+    true
+end
+"""
+    modifyconstraint
+"""
+function MOI.modifyconstraint!(m::CplexSolverInstance, c::MOI.ConstraintReference{Linear, S}, chg::MOI.ScalarCoefficientChange{Float64}) where S
+    col = m.variable_mapping[chg.variable]
+    row = constraint_storage_value(m, c)
+    cpx_chgcoef(m.inner, row, col, chg.new_coefficient)
+end
+
+function MOI.modifyconstraint!(m::CplexSolverInstance, c::MOI.ConstraintReference{MOI.SingleVariable, S}, newset::S) where S
+    vref = constraint_storage_value(m, c)
+    setvariablebound!(m, MOI.SingleVariable(vref), newset)
+end
+
+function _shift_constraintrows!(dict::Dict, deleted_row::Int)
+    for (key, val) in dict
+        if val > deleted_row
+            dict[key] -= 1
+        end
+    end
+end
+function _shift_constraintrows!(m::CplexSolverInstance, deleted_row::Int)
+    _shift_constraintrows!(m.constraint_mapping.less_than, deleted_row)
+    _shift_constraintrows!(m.constraint_mapping.greater_than, deleted_row)
+    _shift_constraintrows!(m.constraint_mapping.equal_to, deleted_row)
+end
+function MOI.delete!(m::CplexSolverInstance, c::MOI.ConstraintReference{Linear, S}) where S
+    dict = constraint_storage(m, c)
+    row = dict[c]
+    cpx_delrows(m.inner, row, row)
+    _shift_constraintrows!(m, row)
+    deleteat!(m.constraint_primal_solution, row)
+    deleteat!(m.constraint_dual_solution, row)
+    delete!(dict, c)
+end
+
+function MOI.delete!(m::CplexSolverInstance, c::MOI.ConstraintReference{MOI.SingleVariable, S}) where S
+    dict = constraint_storage(m, c)
+    vref = dict[c]
+    setvariablebound!(m, MOI.SingleVariable(vref), MOI.Interval{Float64}(-Inf, Inf))
+    delete!(dict, c)
+end

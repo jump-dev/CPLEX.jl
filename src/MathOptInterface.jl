@@ -12,7 +12,7 @@ function CplexSolver(;mipstart_effortlevel::Cint = CPX_MIPSTART_AUTO, options...
     CplexSolver(mipstart_effortlevel, options)
 end
 
-MOI.getattribute(s::CplexSolver, ::MOI.SupportsDuals) = false
+MOI.getattribute(s::CplexSolver, ::MOI.SupportsDuals) = true
 
 const Linear = MOI.ScalarAffineFunction{Float64}
 const LE = MOI.LessThan{Float64}
@@ -76,10 +76,15 @@ mutable struct CplexSolverInstance <: MOI.AbstractSolverInstance
     last_variable_reference::UInt64
     variable_mapping::Dict{MOI.VariableReference, Int}
     variable_references::Vector{MOI.VariableReference}
-    primal_solution::Vector{Float64}
+
+    variable_primal_solution::Vector{Float64}
+    variable_dual_solution::Vector{Float64}
 
     last_constraint_reference::UInt64
     constraint_mapping::ConstraintMapping
+
+    constraint_primal_solution::Vector{Float64}
+    constraint_dual_solution::Vector{Float64}
 
     objective_constant::Float64
 end
@@ -96,8 +101,11 @@ function MOI.SolverInstance(s::CplexSolver)
         Dict{MOI.VariableReference, Int}(),
         MOI.VariableReference[],
         Float64[],
+        Float64[],
         0,
         ConstraintMapping(),
+        Float64[],
+        Float64[],
         0.0
     )
 end

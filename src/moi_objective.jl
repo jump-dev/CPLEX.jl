@@ -28,3 +28,8 @@ function MOI.getattribute(m::CplexSolverInstance, ::MOI.ObjectiveFunction)
     variable_coefficients = cpx_get_obj(m.inner)
     MOI.ScalarAffineFunction(getvariables(m), variable_coefficients, m.objective_constant)
 end
+
+function MOI.modifyobjective!(m::CplexSolverInstance, chg::MOI.ScalarCoefficientChange{Float64})
+    col = m.variable_mapping[chg.variable]
+    cpx_chgcoef(m.inner, 0, col, chg.new_coefficient)
+end
