@@ -77,13 +77,18 @@ struct ConstraintMapping
     equal_to::Dict{LCR{EQ}, Int}
 
     # references to variable
-    variable_upper_bound::Dict{SVCR{LE}, VarRef}
-    variable_lower_bound::Dict{SVCR{GE}, VarRef}
-    fixed_variables::Dict{SVCR{EQ}, VarRef}
-    interval_variables::Dict{SVCR{MOI.Interval{Float64}}, VarRef}
+    upper_bound::Dict{SVCR{LE}, VarRef}
+    lower_bound::Dict{SVCR{GE}, VarRef}
+    fixed_bound::Dict{SVCR{EQ}, VarRef}
+    interval_bound::Dict{SVCR{MOI.Interval{Float64}}, VarRef}
 
-    integer_variables::Dict{SVCR{MOI.Integer}, VarRef}
-    binary_variables::Dict{SVCR{MOI.ZeroOne}, VarRef}
+    integer::Dict{SVCR{MOI.Integer}, VarRef}
+    #=
+     for some reason CPLEX doesn't respect bounds on a binary variable, so we
+     should store the previous bounds so that if we delete the binary constraint
+     we can revert to the old bounds
+    =#
+    binary::Dict{SVCR{MOI.ZeroOne}, Tuple{VarRef, Float64, Float64}}
 end
 ConstraintMapping() = ConstraintMapping(
     Dict{LCR{LE}, Int}(),
@@ -94,7 +99,7 @@ ConstraintMapping() = ConstraintMapping(
     Dict{SVCR{EQ}, VarRef}(),
     Dict{SVCR{IV}, VarRef}(),
     Dict{SVCR{MOI.Integer}, VarRef}(),
-    Dict{SVCR{MOI.ZeroOne}, VarRef}()
+    Dict{SVCR{MOI.ZeroOne}, Tuple{VarRef, Float64, Float64}}()
 )
 
 mutable struct CplexSolverInstance <: MOI.AbstractSolverInstance
@@ -118,6 +123,8 @@ mutable struct CplexSolverInstance <: MOI.AbstractSolverInstance
     termination_status::MOI.TerminationStatusCode
     primal_status::MOI.ResultStatusCode
     dual_status::MOI.ResultStatusCode
+    primal_result_count::Int
+    dual_result_count::Int
 end
 
 function MOI.SolverInstance(s::CplexSolver)
@@ -140,7 +147,9 @@ function MOI.SolverInstance(s::CplexSolver)
         0.0,
         MOI.OtherError, # not solved
         MOI.UnknownResultStatus,
-        MOI.UnknownResultStatus
+        MOI.UnknownResultStatus,
+        0,
+        0
     )
 end
 include(joinpath("cpx_status", "status_codes.jl"))
@@ -155,6 +164,10 @@ function deleteref!(dict::Dict, i::Int, ref)
     delete!(dict, ref)
 end
 
+function problemtype(m::CplexSolverInstance)
+    code = cpx_getprobtype(m.inner)
+    PROB_TYPE_MAP[code]
+end
 include("moi_variables.jl")
 include("moi_constraints.jl")
 include("moi_objective.jl")

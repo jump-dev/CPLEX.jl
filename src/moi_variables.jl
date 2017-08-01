@@ -78,9 +78,9 @@ function MOI.delete!(m::CplexSolverInstance, ref::MOI.VariableReference)
 
     deleteref!(m.variable_mapping, col, ref)
     # deleting from a dict without the key does nothing
-    delete!(cmap(m).variable_upper_bound, ref)
-    delete!(cmap(m).variable_lower_bound, ref)
-    delete!(cmap(m).fixed_variables, ref)
-    delete!(cmap(m).interval_variables, ref)
+    delete!(cmap(m).upper_bound, ref)
+    delete!(cmap(m).lower_bound, ref)
+    delete!(cmap(m).fixed_bound, ref)
+    delete!(cmap(m).interval_bound, ref)
 
 end

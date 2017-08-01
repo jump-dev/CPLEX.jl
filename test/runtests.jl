@@ -13,9 +13,11 @@ linear4test(CplexSolver(), 1e-8)
 linear5test(CplexSolver(), 1e-8)
 linear6test(CplexSolver(), 1e-8)
 # linear7test(CplexSolver(), 1e-8)
-# linear8test(CplexSolver(), 1e-8)
+linear8test(CplexSolver(), 1e-8)
 
 include(joinpath(Pkg.dir("MathOptInterface"), "test", "intlinear.jl"))
+
+int1test(CplexSolver(), 1e-8)
 
 # include("constants.jl")
 # include("low_level_api.jl")

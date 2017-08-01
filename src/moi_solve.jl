@@ -10,9 +10,15 @@ function MOI.optimize!(m::CplexSolverInstance)
     fill!(m.constraint_dual_solution, NaN)
     m.primal_status = MOI.UnknownResultStatus
     m.dual_status   = MOI.UnknownResultStatus
+    m.primal_result_count = 0
+    m.dual_result_count = 0
 
     # reset storage
-    optimize!(m.inner)
+    if hasinteger(m)
+        cpx_mipopt!(m.inner)
+    else
+        cpx_lpopt!(m.inner)
+    end
 
     # termination_status
     code = cpx_getstat(m.inner)
@@ -23,18 +29,19 @@ function MOI.optimize!(m::CplexSolverInstance)
     mthd, soltype, prifeas, dualfeas = cpx_solninfo(m.inner)
     #
     @assert soltype in [CPX_BASIC_SOLN, CPX_NONBASIC_SOLN, CPX_PRIMAL_SOLN, CPX_NO_SOLN]
-
     if soltype == CPX_BASIC_SOLN || soltype == CPX_NONBASIC_SOLN || soltype == CPX_PRIMAL_SOLN
         # primal solution exists
         cpx_getx!(m.inner, m.variable_primal_solution)
         cpx_getax!(m.inner, m.constraint_primal_solution)
         m.primal_status = MOI.FeasiblePoint
+        m.primal_result_count = 1
     end
     if soltype == CPX_BASIC_SOLN || soltype == CPX_NONBASIC_SOLN
         # dual solution exists
         cpx_getdj!(m.inner, m.variable_dual_solution)
         cpx_getpi!(m.inner, m.constraint_dual_solution)
         m.dual_status = MOI.FeasiblePoint
+        m.dual_result_count = 1
     end
 
     # TODO: handle the case where we can find a proof of infeasibility etc.
@@ -60,6 +67,15 @@ function MOI.optimize!(m::CplexSolverInstance)
 end
 
 #=
+    Result Count
+    TODO: improve
+=#
+function MOI.getattribute(m::CplexSolverInstance, ::MOI.ResultCount)
+    m.primal_result_count
+end
+MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ResultCount) = true
+
+#=
     Termination status
 =#
 
@@ -72,19 +88,23 @@ MOI.cangetattribute(m::CplexSolverInstance, ::MOI.TerminationStatus) = true
     Primal status
 =#
 
-function MOI.getattribute(m::CplexSolverInstance, ::MOI.PrimalStatus)
+function MOI.getattribute(m::CplexSolverInstance, p::MOI.PrimalStatus)
     m.primal_status
 end
-MOI.cangetattribute(m::CplexSolverInstance, ::MOI.PrimalStatus) = true
+function MOI.cangetattribute(m::CplexSolverInstance, p::MOI.PrimalStatus)
+    m.primal_result_count >= p.N
+end
 
 #=
     Dual status
 =#
 
-function MOI.getattribute(m::CplexSolverInstance, ::MOI.DualStatus)
+function MOI.getattribute(m::CplexSolverInstance, d::MOI.DualStatus)
     m.dual_status
 end
-MOI.cangetattribute(m::CplexSolverInstance, ::MOI.DualStatus) = true
+function MOI.cangetattribute(m::CplexSolverInstance, d::MOI.DualStatus)
+    m.dual_result_count >= d.N
+end
 
 #=
     Objective Value

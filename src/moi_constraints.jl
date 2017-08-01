@@ -10,11 +10,12 @@ end
 constrdict(m::CplexSolverInstance, ::LCR{LE})  = cmap(m).less_than
 constrdict(m::CplexSolverInstance, ::LCR{GE})  = cmap(m).greater_than
 constrdict(m::CplexSolverInstance, ::LCR{EQ})  = cmap(m).equal_to
-constrdict(m::CplexSolverInstance, ::SVCR{LE}) = cmap(m).variable_upper_bound
-constrdict(m::CplexSolverInstance, ::SVCR{GE}) = cmap(m).variable_lower_bound
-constrdict(m::CplexSolverInstance, ::SVCR{EQ}) = cmap(m).fixed_variables
-constrdict(m::CplexSolverInstance, ::SVCR{IV}) = cmap(m).interval_variables
-
+constrdict(m::CplexSolverInstance, ::SVCR{LE}) = cmap(m).upper_bound
+constrdict(m::CplexSolverInstance, ::SVCR{GE}) = cmap(m).lower_bound
+constrdict(m::CplexSolverInstance, ::SVCR{EQ}) = cmap(m).fixed_bound
+constrdict(m::CplexSolverInstance, ::SVCR{IV}) = cmap(m).interval_bound
+constrdict(m::CplexSolverInstance, ::SVCR{MOI.ZeroOne}) = cmap(m).binary
+constrdict(m::CplexSolverInstance, ::SVCR{MOI.Integer}) = cmap(m).integer
 #=
     Set variable bounds
 =#
@@ -195,4 +196,64 @@ function MOI.delete!(m::CplexSolverInstance, c::LCR{<: Union{LE, GE, EQ}})
     deleteat!(m.constraint_primal_solution, row)
     deleteat!(m.constraint_dual_solution, row)
     deleteref!(m, row, c)
+end
+
+#=
+    Integer constraints
+=#
+"""
+    hasinteger(m::CplexSolverInstance)::Bool
+
+A helper function to determine if the solver instance `m` has any integer
+components (i.e. binary, integer, special ordered sets, etc).
+"""
+function hasinteger(m::CplexSolverInstance)
+    length(cmap(m).integer) + length(cmap(m).binary) > 0
+end
+
+#=
+ for some reason CPLEX doesn't respect bounds on a binary variable, so we
+ should store the previous bounds so that if we delete the binary constraint
+ we can revert to the old bounds
+=#
+function MOI.addconstraint!(m::CplexSolverInstance, v::SinVar, ::MOI.ZeroOne)
+    cpx_chgctype!(m.inner, [getcol(m, v)], ['B'])
+    ub = cpx_getub(m.inner, getcol(m, v))
+    lb = cpx_getlb(m.inner, getcol(m, v))
+    m.last_constraint_reference += 1
+    ref = MOI.ConstraintReference{SinVar, MOI.ZeroOne}(m.last_constraint_reference)
+    dict = constrdict(m, ref)
+    dict[ref] = (v.variable, lb, ub)
+    setvariablebound!(m, getcol(m, v), 1.0, Cchar('U'))
+    setvariablebound!(m, getcol(m, v), 0.0, Cchar('L'))
+    _make_problem_type_integer(m.inner)
+end
+function MOI.delete!(m::CplexSolverInstance, c::SVCR{MOI.ZeroOne})
+    dict = constrdict(m, c)
+    (v, lb, ub) = dict[c]
+    cpx_chgctype!(m.inner, [getcol(m, v)], ['C'])
+    setvariablebound!(m, getcol(m, v), ub, Cchar('U'))
+    setvariablebound!(m, getcol(m, v), lb, Cchar('L'))
+    delete!(dict, c)
+    if !hasinteger(m)
+        _make_problem_type_continuous(m.inner)
+    end
+end
+
+function MOI.addconstraint!(m::CplexSolverInstance, v::SinVar, ::MOI.Integer)
+    cpx_chgctype!(m.inner, [getcol(m, v)], ['I'])
+    m.last_constraint_reference += 1
+    ref = MOI.ConstraintReference{SinVar, MOI.Integer}(m.last_constraint_reference)
+    dict = constrdict(m, ref)
+    dict[ref] = v.variable
+    _make_problem_type_integer(m.inner)
+end
+function MOI.delete!(m::CplexSolverInstance, c::SVCR{MOI.Integer})
+    dict = constrdict(m, c)
+    v = dict[c]
+    cpx_chgctype!(m.inner, [getcol(m, v)], ['C'])
+    delete!(dict, c)
+    if !hasinteger(m)
+        _make_problem_type_continuous(m.inner)
+    end
 end

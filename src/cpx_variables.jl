@@ -74,3 +74,29 @@ function cpx_delcols!(model::Model, colbegin::Int, colend::Int)
         ),
         model.env.ptr, model.lp, Cint(colbegin-1), Cint(colend-1))
 end
+
+
+function cpx_chgctype!(model::Model, vidx::Vector{Int}, vtype::Vector{Char})
+    @cpx_ccall_error(model.env, chgctype, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Cint,
+                      Ptr{Cint},
+                      Ptr{Cchar}
+                      ),
+                      model.env.ptr, model.lp, length(vtype), Cint.(vidx), Cchar.(vtype))
+end
+
+function cpx_getctype(model::Model)
+    nvars = cpx_numcols(model)
+    vartypes = Vector{Cchar}(nvars)
+    @cpx_ccall_error(model.env, getctype, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Ptr{Cchar},
+                      Cint,
+                      Cint
+                      ),
+                      model.env.ptr, model.lp, vartypes, 0, nvars-1)
+    return Char.(vartypes)
+end

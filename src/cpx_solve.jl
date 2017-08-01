@@ -1,6 +1,13 @@
-function optimize!(model::Model)
+function cpx_lpopt!(model::Model)
   @assert is_valid(model.env)
   stat = @cpx_ccall_intercept(model, lpopt, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
+  if stat != 0
+    throw(CplexError(model.env, stat))
+  end
+end
+function cpx_mipopt!(model::Model)
+  @assert is_valid(model.env)
+  stat = @cpx_ccall_intercept(model, mipopt, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
   if stat != 0
     throw(CplexError(model.env, stat))
   end

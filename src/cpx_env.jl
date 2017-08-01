@@ -1,6 +1,6 @@
 function  cpx_finalizer(env)
     if env.num_models == 0
-        close_CPLEX(env)
+        cpx_closeCPLEX(env)
     else
         env.finalize_called = true
     end
@@ -38,11 +38,11 @@ function notify_freed_model(env::Env)
     @assert env.num_models > 0
     env.num_models -= 1
     if env.num_models <= 0 && env.finalize_called
-        close_CPLEX(env)
+        cpx_closeCPLEX(env)
     end
 end
 
-function close_CPLEX(env::Env)
+function cpx_closeCPLEX(env::Env)
     tmp = Ptr{Void}[env.ptr]
     stat = @cpx_ccall(closeCPLEX, Cint, (Ptr{Void},), tmp)
     env.ptr = C_NULL
