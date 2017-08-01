@@ -87,6 +87,10 @@ mutable struct CplexSolverInstance <: MOI.AbstractSolverInstance
     constraint_dual_solution::Vector{Float64}
 
     objective_constant::Float64
+
+    termination_status::MOI.TerminationStatusCode
+    primal_status::MOI.ResultStatusCode
+    dual_status::MOI.ResultStatusCode
 end
 
 function MOI.SolverInstance(s::CplexSolver)
@@ -106,7 +110,10 @@ function MOI.SolverInstance(s::CplexSolver)
         ConstraintMapping(),
         Float64[],
         Float64[],
-        0.0
+        0.0,
+        MOI.OtherError, # not solved
+        MOI.UnknownResultStatus,
+        MOI.UnknownResultStatus
     )
 end
 include(joinpath("cpx_status", "status_codes.jl"))

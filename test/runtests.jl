@@ -3,10 +3,17 @@ using Base.Test
 using CPLEX
 using MathOptInterface
 const MOI = MathOptInterface
-# include(joinpath(Pkg.dir("MathOptInterface"), "test", "function_utilities.jl"))
+
 include(joinpath(Pkg.dir("MathOptInterface"), "test", "contlinear.jl"))
 
-linear1test(CplexSolver(), 1e-5)
+linear1test(CplexSolver(), 1e-8)
+linear2test(CplexSolver(), 1e-8)
+linear3test(CplexSolver(), 1e-8)
+linear4test(CplexSolver(), 1e-8)
+linear5test(CplexSolver(), 1e-8)
+linear6test(CplexSolver(), 1e-8)
+# linear7test(CplexSolver(), 1e-8)
+# linear8test(CplexSolver(), 1e-8)
 
 # include("constants.jl")
 # include("low_level_api.jl")

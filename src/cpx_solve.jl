@@ -6,7 +6,24 @@ function optimize!(model::Model)
   end
 end
 
-cpx_get_status_code(model::Model) = @cpx_ccall(getstat, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
+cpx_getstat(model::Model) = @cpx_ccall(getstat, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
+
+function cpx_solninfo(model::Model)
+    solnmethod = Vector{Cint}(1)
+    solntype = Vector{Cint}(1)
+    primalfeas = Vector{Cint}(1)
+    dualfeas = Vector{Cint}(1)
+    @cpx_ccall_error(model.env, solninfo, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Ptr{Cint},
+                      Ptr{Cint},
+                      Ptr{Cint},
+                      Ptr{Cint}
+                      ),
+                      model.env.ptr, model.lp, solnmethod, solntype, primalfeas, dualfeas)
+    solnmethod[1], solntype[1], primalfeas[1], dualfeas[1]
+end
 
 function cpx_getobjval(model::Model)
   objval = Vector{Cdouble}(1)
@@ -23,7 +40,7 @@ end
     Variable Primal Solution
 """
 function cpx_getx(model::Model)
-    nvars = cpx_number_variables(model)
+    nvars = cpx_getnumcols(model)
     x = Vector{Cdouble}(nvars)
     cpx_getx!(model, x)
     x
@@ -44,7 +61,7 @@ end
     Variable Dual Solution
 """
 function cpx_getdj(model::Model)
-    nvars = cpx_number_variables(model)
+    nvars = cpx_getnumcols(model)
     x = Vector{Cdouble}(nvars)
     cpx_getdj!(model, x)
     x
@@ -65,7 +82,7 @@ end
     Constraint Dual Solution
 """
 function cpx_getpi(model::Model)
-    nvars = cpx_number_constraints(model)
+    nvars = cpx_getnumrows(model)
     x = Vector{Cdouble}(nvars)
     cpx_getpi!(model, x)
     x
@@ -86,7 +103,7 @@ end
     Constraint Primal Solution
 """
 function cpx_getax(model::Model)
-    n = cpx_number_constraints(model)
+    n = cpx_getnumrows(model)
     x = Vector{Cdouble}(n)
     cpx_getax!(model, x)
     x
@@ -101,4 +118,50 @@ function cpx_getax!(model::Model, x::Vector{Cdouble})
                     ),
                     model.env.ptr, model.lp, x, 0, length(x)-1)
   return x
+end
+
+"""
+    Infeasibility: Dual Farkas
+"""
+function cpx_dualfarkas(model::Model)
+    ncons = cpx_numrows(model)
+    ray = Vector{Cdouble}(ncons)
+    cpx_dualfarkas!(model, ray)
+    return ray
+end
+function cpx_dualfarkas!(model::Model, ray::Vector{Cdouble})
+  proof_p = Vector{Cdouble}(1)
+  stat = @cpx_ccall(dualfarkas, Cint, (
+                    Ptr{Void},
+                    Ptr{Void},
+                    Ptr{Cdouble},
+                    Ptr{Cdouble}
+                    ),
+                    model.env.ptr, model.lp, ray, proof_p)
+  if stat != 0
+    warn("CPLEX is unable to grab infeasible ray; consider resolving with presolve turned off")
+    throw(CplexError(model.env, stat))
+  end
+end
+
+"""
+    Unbounded Ray
+"""
+function cpx_getray(model::Model)
+    n = cpx_numcols(model)
+    ray = Vector{Cdouble}(n)
+    cpx_getray!(model, ray)
+    return ray
+end
+function cpx_getray!(model::Model, ray::Vector{Cdouble})
+    stat = @cpx_ccall(getray, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Ptr{Cdouble}
+                      ),
+                      model.env.ptr, model.lp, ray)
+    if stat != 0
+        warn("CPLEX is unable to grab unbounded ray; consider resolving with presolve turned off")
+        throw(CplexError(model.env, stat))
+    end
 end

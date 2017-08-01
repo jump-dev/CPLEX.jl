@@ -9,7 +9,7 @@ getcol(m::CplexSolverInstance, v::MOI.SingleVariable) = getcol(m, v.variable)
 getcols(m::CplexSolverInstance, ref::Vector{MOI.VariableReference}) = getcol.(m, ref)
 
 function MOI.getattribute(m::CplexSolverInstance, ::MOI.NumberOfVariables)
-    return cpx_number_variables(m.inner)
+    return cpx_getnumcols(m.inner)
 end
 
 function getvariables(m::CplexSolverInstance)
@@ -23,7 +23,7 @@ variable reference counter in the m.variablemapping, and store the column number
 in the dictionary
 =#
 function MOI.addvariable!(m::CplexSolverInstance)
-    cpx_add_variables!(m.inner, 1)
+    cpx_newcols!(m.inner, 1)
     # assumes we add columns linearly
     m.last_variable_reference += 1
     ref = MOI.VariableReference(m.last_variable_reference)
@@ -36,7 +36,7 @@ end
 
 function MOI.addvariables!(m::CplexSolverInstance, n::Int)
     previous_vars = MOI.getattribute(m, MOI.NumberOfVariables())
-    cpx_add_variables!(m.inner, n)
+    cpx_newcols!(m.inner, n)
     variable_references = MOI.VariableReference[]
     sizehint!(variable_references, n)
     for i in 1:n
@@ -64,4 +64,28 @@ function MOI.isvalid(m::CplexSolverInstance, ref::MOI.VariableReference)
         end
     end
     return false
+end
+
+function _shift_variablecols!(dict::Dict, deleted_col::Int, ref::MOI.VariableReference)
+    for (key, val) in dict
+        if val > deleted_col
+            dict[key] -= 1
+        end
+    end
+    delete!(dict, ref)
+end
+
+function MOI.delete!(m::CplexSolverInstance, ref::MOI.VariableReference)
+    col = m.variable_mapping[ref]
+    cpx_delcols!(m.inner, col, col)
+    deleteat!(m.variable_references, col)
+    deleteat!(m.variable_primal_solution, col)
+    deleteat!(m.variable_dual_solution, col)
+    _shift_variablecols!(m.variable_mapping, col, ref)
+    # deleting from a dict without the key does nothing
+    delete!(m.constraint_mapping.variable_upper_bound, ref)
+    delete!(m.constraint_mapping.variable_lower_bound, ref)
+    delete!(m.constraint_mapping.fixed_variables, ref)
+    delete!(m.constraint_mapping.interval_variables, ref)
+
 end

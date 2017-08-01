@@ -1,4 +1,4 @@
-function cpx_set_objective!(model::Model, cols::Vector{Int}, coefs::Vector{Float64})
+function cpx_chgobj!(model::Model, cols::Vector{Int}, coefs::Vector{Float64})
     @assert length(cols) == length(coefs)
     @cpx_ccall_error(model.env, chgobj, Cint, (
         Ptr{Void},
@@ -10,7 +10,7 @@ function cpx_set_objective!(model::Model, cols::Vector{Int}, coefs::Vector{Float
         model.env.ptr, model.lp, Cint(length(cols)), Cint.(cols - 1), coefs)
 end
 
-function cpx_set_sense!(model::Model, sense::Symbol)
+function cpx_chgobjsen!(model::Model, sense::Symbol)
     if sense == :Min
         @cpx_ccall_error(model.env, chgobjsen, Cint, (Ptr{Void}, Ptr{Void}, Cint), model.env.ptr, model.lp, CPX_MIN)
     elseif sense == :Max
@@ -20,7 +20,7 @@ function cpx_set_sense!(model::Model, sense::Symbol)
     end
 end
 
-function cpx_get_sense(model::Model)
+function cpx_getobjsen(model::Model)
     sense_int = @cpx_ccall(getobjsen, Cint, (Ptr{Void}, Ptr{Void},), model.env.ptr, model.lp)
     if sense_int == CPX_MIN
         return MOI.MinSense
@@ -31,8 +31,8 @@ function cpx_get_sense(model::Model)
     end
 end
 
-function cpx_get_obj(model::Model)
-    nvars = cpx_number_variables(model)
+function cpx_getobj(model::Model)
+    nvars = cpx_getnumcols(model)
     obj = Vector{Cdouble}(nvars)
     @cpx_ccall_error(model.env, getobj, Cint, (
                       Ptr{Void},

@@ -1,4 +1,4 @@
-function cpx_add_variables!(model::Model, n::Int)
+function cpx_newcols!(model::Model, n::Int)
     if n > 0
         @cpx_ccall_error(model.env, newcols, Cint, (
           Ptr{Void},
@@ -14,11 +14,11 @@ function cpx_add_variables!(model::Model, n::Int)
     end
 end
 
-function cpx_number_variables(model::Model)
+function cpx_getnumcols(model::Model)
     @cpx_ccall(getnumcols, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
 end
 
-function cpx_set_variable_bounds!(model::Model, cols::Vector{Int}, values::Vector{Float64}, sense::Vector{Cchar})
+function cpx_chgbds!(model::Model, cols::Vector{Int}, values::Vector{Float64}, sense::Vector{Cchar})
     @assert length(cols) == length(values) == length(sense)
     bounds = copy(values)
     for (i, v) in enumerate(values)
@@ -40,7 +40,7 @@ function cpx_set_variable_bounds!(model::Model, cols::Vector{Int}, values::Vecto
         model.env.ptr, model.lp, Cint(length(cols)), Cint.(cols-1), sense, bounds)
 end
 
-function cpx_get_variable_upperbound(model::Model, col::Int)
+function cpx_getub(model::Model, col::Int)
     ub = Vector{Cdouble}(1)
     @cpx_ccall_error(model.env, getub, Cint, (
         Ptr{Void},
@@ -52,7 +52,7 @@ function cpx_get_variable_upperbound(model::Model, col::Int)
         model.env.ptr, model.lp, ub, col-1, col-1)
     return ub[1]
 end
-function cpx_get_variable_lowerbound(model::Model, col::Int)
+function cpx_getlb(model::Model, col::Int)
     lb = Vector{Cdouble}(1)
     @cpx_ccall_error(model.env, getlb, Cint, (
         Ptr{Void},
@@ -63,4 +63,14 @@ function cpx_get_variable_lowerbound(model::Model, col::Int)
         ),
         model.env.ptr, model.lp, lb, col-1, col-1)
     return lb[1]
+end
+
+function cpx_delcols!(model::Model, colbegin::Int, colend::Int)
+    @cpx_ccall_error(model.env, delcols, Cint, (
+        Ptr{Void},
+        Ptr{Void},
+        Cint,
+        Cint
+        ),
+        model.env.ptr, model.lp, Cint(colbegin-1), Cint(colend-1))
 end

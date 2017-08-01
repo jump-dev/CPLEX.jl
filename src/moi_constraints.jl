@@ -25,7 +25,7 @@ function MOI.addconstraint!(m::CplexSolverInstance, v::MOI.SingleVariable, set)
     ref
 end
 function setvariablebound!(m::CplexSolverInstance, col::Int, bound::Float64, sense::Cchar)
-    cpx_set_variable_bounds!(m.inner, [col], [bound], [sense])
+    cpx_chgbds!(m.inner, [col], [bound], [sense])
 end
 function setvariablebound!(m::CplexSolverInstance, v::MOI.SingleVariable, set::LE)
     setvariablebound!(m, getcol(m, v), set.upper, Cchar('U'))
@@ -49,18 +49,18 @@ function MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintSet, c::MOI.Co
 end
 
 function get_bound_value(m::CplexSolverInstance, v::MOI.VariableReference, ::Type{LE})
-    cpx_get_variable_upperbound(m.inner, getcol(m, v))
+    cpx_getub(m.inner, getcol(m, v))
 end
 function get_bound_value(m::CplexSolverInstance, v::MOI.VariableReference, ::Type{GE})
-    cpx_get_variable_lowerbound(m.inner, getcol(m, v))
+    cpx_getlb(m.inner, getcol(m, v))
 end
 function get_bound_value(m::CplexSolverInstance, v::MOI.VariableReference, ::Type{EQ})
-    cpx_get_variable_lowerbound(m.inner, getcol(m, v))
+    cpx_getlb(m.inner, getcol(m, v))
 end
 function MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintSet, c::MOI.ConstraintReference{MOI.SingleVariable,MOI.Interval{Float64}})
     varref = constraint_storage_value(m, c)
-    lb = cpx_get_variable_lowerbound(m.inner, getcol(m, varref))
-    ub = cpx_get_variable_upperbound(m.inner, getcol(m, varref))
+    lb = cpx_getlb(m.inner, getcol(m, varref))
+    ub = cpx_getub(m.inner, getcol(m, varref))
     return Interval{Float64}(lb, ub)
 end
 
@@ -81,7 +81,7 @@ function MOI.addconstraint!(m::CplexSolverInstance, func::Linear, set::T) where 
     m.last_constraint_reference += 1
     ref = MOI.ConstraintReference{Linear, T}(m.last_constraint_reference)
     dict = constraint_storage(m, func, set)
-    dict[ref] = cpx_number_constraints(m.inner)
+    dict[ref] = cpx_getnumrows(m.inner)
     push!(m.constraint_primal_solution, NaN)
     push!(m.constraint_dual_solution, NaN)
     return ref
@@ -111,7 +111,7 @@ MOI.cangetattribute(m::CplexSolverInstance, ::MOI.NumberOfConstraints{F, S}) whe
 
 function MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintSet, c::MOI.ConstraintReference{Linear,T}) where T <: Union{LE, GE, EQ}
     row = constraint_storage_value(m, c)::Int
-    rhs = cpx_get_rhs(m.inner, row)
+    rhs = cpx_getrhs(m.inner, row)
     T(rhs)
 end
 MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintSet, ::MOI.ConstraintReference{Linear,T}) where T <: Union{LE, GE, EQ} = true
@@ -132,7 +132,7 @@ end
 function MOI.modifyconstraint!(m::CplexSolverInstance, c::MOI.ConstraintReference{Linear, S}, chg::MOI.ScalarCoefficientChange{Float64}) where S
     col = m.variable_mapping[chg.variable]
     row = constraint_storage_value(m, c)
-    cpx_chgcoef(m.inner, row, col, chg.new_coefficient)
+    cpx_chgcoef!(m.inner, row, col, chg.new_coefficient)
 end
 
 function MOI.modifyconstraint!(m::CplexSolverInstance, c::MOI.ConstraintReference{MOI.SingleVariable, S}, newset::S) where S
@@ -155,7 +155,7 @@ end
 function MOI.delete!(m::CplexSolverInstance, c::MOI.ConstraintReference{Linear, S}) where S
     dict = constraint_storage(m, c)
     row = dict[c]
-    cpx_delrows(m.inner, row, row)
+    cpx_delrows!(m.inner, row, row)
     _shift_constraintrows!(m, row)
     deleteat!(m.constraint_primal_solution, row)
     deleteat!(m.constraint_dual_solution, row)
@@ -168,3 +168,13 @@ function MOI.delete!(m::CplexSolverInstance, c::MOI.ConstraintReference{MOI.Sing
     setvariablebound!(m, MOI.SingleVariable(vref), MOI.Interval{Float64}(-Inf, Inf))
     delete!(dict, c)
 end
+
+function MOI.modifyconstraint!(m::CplexSolverInstance, c::MOI.ConstraintReference{Linear, S}, newset::S) where S
+    dict = constraint_storage(m, c)
+    row = dict[c]
+    cpx_chgcoef!(m.inner, row, 0, _newrhs(newset))
+end
+
+_newrhs(set::LE) = set.upper
+_newrhs(set::GE) = set.lower
+_newrhs(set::EQ) = set.value

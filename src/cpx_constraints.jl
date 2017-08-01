@@ -18,7 +18,7 @@ function cpx_addrows!(model::Model, cols::Vector{Int}, coefficients::Vector{Floa
         model.env.ptr, model.lp, 0, Cint(1), nnz, [rhs], [sense], [Cint(0)], Cint.(cols-1), coefficients, C_NULL, C_NULL)
 end
 
-function cpx_number_constraints(model::Model)
+function cpx_getnumrows(model::Model)
     ncons = @cpx_ccall(getnumrows, Cint, (
                        Ptr{Void},
                        Ptr{Void}
@@ -27,7 +27,7 @@ function cpx_number_constraints(model::Model)
     return ncons
 end
 
-function cpx_get_rhs(model::Model)
+function cpx_getrhs(model::Model)
     ncons = cpx_number_constraints(model)
     rhs = Vector{Cdouble}(ncons)
     @cpx_ccall_error(model.env, getrhs, Cint, (
@@ -41,7 +41,7 @@ function cpx_get_rhs(model::Model)
     return rhs
 end
 
-function cpx_get_rhs(model::Model, row::Int)
+function cpx_getrhs(model::Model, row::Int)
     rhs = Vector{Cdouble}(1)
     @cpx_ccall_error(model.env, getrhs, Cint, (
                       Ptr{Void},
@@ -54,7 +54,7 @@ function cpx_get_rhs(model::Model, row::Int)
     return rhs[1]
 end
 
-function cpx_chgcoef(model::Model, row::Int, col::Int, val::Cdouble)
+function cpx_chgcoef!(model::Model, row::Int, col::Int, val::Cdouble)
     @cpx_ccall_error(model.env, chgcoef, Cint, (
                       Ptr{Void},
                       Ptr{Void},
@@ -65,7 +65,7 @@ function cpx_chgcoef(model::Model, row::Int, col::Int, val::Cdouble)
                       model.env.ptr, model.lp, Cint(row-1), Cint(col-1), val)
 end
 
-function cpx_delrows(model::Model, rowsbegin::Int, rowsend::Int)
+function cpx_delrows!(model::Model, rowsbegin::Int, rowsend::Int)
     @cpx_ccall_error(model.env, delrows, Cint, (
                       Ptr{Void},
                       Ptr{Void},
