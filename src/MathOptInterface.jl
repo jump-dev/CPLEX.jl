@@ -1,3 +1,12 @@
+#=
+    TODO
+
+    integer
+    quadratic
+    sos
+    parameters
+    unbounded/infeasibility rays
+=#
 using MathOptInterface
 
 const MOI = MathOptInterface
@@ -5,21 +14,32 @@ const MOI = MathOptInterface
 export CplexSolver
 
 struct CplexSolver <: MOI.AbstractSolver
-    mipstart_effortlevel::Cint
     options
 end
 function CplexSolver(;mipstart_effortlevel::Cint = CPX_MIPSTART_AUTO, options...)
-    CplexSolver(mipstart_effortlevel, options)
+    CplexSolver(options)
 end
 
 MOI.getattribute(s::CplexSolver, ::MOI.SupportsDuals) = true
+MOI.getattribute(s::CplexSolver, ::MOI.SupportsAddConstraintAfterSolve) = true
+MOI.getattribute(s::CplexSolver, ::MOI.SupportsAddVariableAfterSolve) = true
+MOI.getattribute(s::CplexSolver, ::MOI.SupportsDeleteConstraint) = true
+MOI.getattribute(s::CplexSolver, ::MOI.SupportsDeleteVariable) = true
 
+# functions
 const Linear = MOI.ScalarAffineFunction{Float64}
-const LE = MOI.LessThan{Float64}
-const GE = MOI.GreaterThan{Float64}
-const EQ = MOI.EqualTo{Float64}
-const LinConstrRef{T} = MOI.ConstraintReference{Linear, T}
-const SVConstrRef{T} = MOI.ConstraintReference{MOI.SingleVariable, T}
+const SinVar = MOI.SingleVariable
+# sets
+const LE     = MOI.LessThan{Float64}
+const GE     = MOI.GreaterThan{Float64}
+const EQ     = MOI.EqualTo{Float64}
+const IV     = MOI.Interval{Float64}
+# constraint references
+const CR{F,S} = MOI.ConstraintReference{F,S}
+const LCR{S} = CR{Linear,S}
+const SVCR{S}  = CR{SinVar, S}
+# variable reference
+const VarRef = MOI.VariableReference
 
 const SUPPORTED_OBJECTIVES = [
     Linear
@@ -30,10 +50,12 @@ const SUPPORTED_CONSTRAINTS = [
     (Linear, EQ),
     (Linear, LE),
     (Linear, GE),
-    (MOI.SingleVariable, EQ),
-    (MOI.SingleVariable, LE),
-    (MOI.SingleVariable, GE),
-    (MOI.SingleVariable, MOI.Interval{Float64})
+    (SinVar, EQ),
+    (SinVar, LE),
+    (SinVar, GE),
+    (SinVar, IV),
+    (SinVar, MOI.ZeroOne),
+    (SinVar, MOI.Integer)
 ]
 
 function MOI.supportsproblem(s::CplexSolver, objective_type, constraint_types)
@@ -50,24 +72,29 @@ end
 
 struct ConstraintMapping
     # rows in constraint matrix
-    less_than::Dict{LinConstrRef{LE}, Int}
-    greater_than::Dict{LinConstrRef{GE}, Int}
-    equal_to::Dict{LinConstrRef{EQ}, Int}
+    less_than::Dict{LCR{LE}, Int}
+    greater_than::Dict{LCR{GE}, Int}
+    equal_to::Dict{LCR{EQ}, Int}
 
     # references to variable
-    variable_upper_bound::Dict{SVConstrRef{LE}, MOI.VariableReference}
-    variable_lower_bound::Dict{SVConstrRef{GE}, MOI.VariableReference}
-    fixed_variables::Dict{SVConstrRef{EQ}, MOI.VariableReference}
-    interval_variables::Dict{SVConstrRef{MOI.Interval{Float64}}, MOI.VariableReference}
+    variable_upper_bound::Dict{SVCR{LE}, VarRef}
+    variable_lower_bound::Dict{SVCR{GE}, VarRef}
+    fixed_variables::Dict{SVCR{EQ}, VarRef}
+    interval_variables::Dict{SVCR{MOI.Interval{Float64}}, VarRef}
+
+    integer_variables::Dict{SVCR{MOI.Integer}, VarRef}
+    binary_variables::Dict{SVCR{MOI.ZeroOne}, VarRef}
 end
 ConstraintMapping() = ConstraintMapping(
-    Dict{LinConstrRef{LE}, Int}(),
-    Dict{LinConstrRef{GE}, Int}(),
-    Dict{LinConstrRef{EQ}, Int}(),
-    Dict{SVConstrRef{LE}, MOI.VariableReference}(),
-    Dict{SVConstrRef{GE}, MOI.VariableReference}(),
-    Dict{SVConstrRef{EQ}, MOI.VariableReference}(),
-    Dict{SVConstrRef{MOI.Interval{Float64}}, MOI.VariableReference}()
+    Dict{LCR{LE}, Int}(),
+    Dict{LCR{GE}, Int}(),
+    Dict{LCR{EQ}, Int}(),
+    Dict{SVCR{LE}, VarRef}(),
+    Dict{SVCR{GE}, VarRef}(),
+    Dict{SVCR{EQ}, VarRef}(),
+    Dict{SVCR{IV}, VarRef}(),
+    Dict{SVCR{MOI.Integer}, VarRef}(),
+    Dict{SVCR{MOI.ZeroOne}, VarRef}()
 )
 
 mutable struct CplexSolverInstance <: MOI.AbstractSolverInstance
@@ -117,6 +144,16 @@ function MOI.SolverInstance(s::CplexSolver)
     )
 end
 include(joinpath("cpx_status", "status_codes.jl"))
+
+# a useful helper function
+function deleteref!(dict::Dict, i::Int, ref)
+    for (key, val) in dict
+        if val > i
+            dict[key] -= 1
+        end
+    end
+    delete!(dict, ref)
+end
 
 include("moi_variables.jl")
 include("moi_constraints.jl")
