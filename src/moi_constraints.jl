@@ -324,15 +324,18 @@ function MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintSet, c::VVCR{M
     @assert types == CPX_TYPE_SOS1
     return MOI.SOS1(weights)
 end
+
 function MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintSet, c::VVCR{MOI.SOS2})
     indices, weights, types = cpx_getsos(m.inner, m[c])
     @assert types == CPX_TYPE_SOS2
     return MOI.SOS2(weights)
 end
+
 MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintSet, c::VVCR{<:Union{MOI.SOS1, MOI.SOS2}}) = true
 
 function MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintFunction, c::VVCR{<:Union{MOI.SOS1, MOI.SOS2}})
     indices, weights, types = cpx_getsos(m.inner, m[c])
     return MOI.VectorOfVariables(m.variable_references[indices])
 end
+
 MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintFunction, c::VVCR{<:Union{MOI.SOS1, MOI.SOS2}}) = true

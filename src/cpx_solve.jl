@@ -172,3 +172,23 @@ function cpx_getray!(model::Model, ray::Vector{Cdouble})
         throw(CplexError(model.env, stat))
     end
 end
+
+function cpx_getbaritcnt(model::Model)
+    @cpx_ccall(getbaritcnt, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
+end
+function cpx_getitcnt(model::Model)
+    @cpx_ccall(getitcnt, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
+end
+function cpx_getnodecnt(model::Model)
+    @cpx_ccall(getnodecnt, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
+end
+function cpx_getbestobjval(model::Model)
+    ret = Vector{Cdouble}(1)
+    @cpx_ccall_error(model.env, getbestobjval, Cint, (Ptr{Void}, Ptr{Void}, Ptr{Cdouble}), model.env.ptr, model.lp, ret)
+    return ret
+end
+function cpx_getmiprelgap(model::Model)
+    ret = Vector{Cdouble}(1)
+    @cpx_ccall_error(model.env, getmiprelgap, Cint, (Ptr{Void}, Ptr{Void}, Ptr{Cdouble}), model.env.ptr, model.lp, ret)
+    return ret
+end

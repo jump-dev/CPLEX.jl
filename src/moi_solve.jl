@@ -13,12 +13,13 @@ function MOI.optimize!(m::CplexSolverInstance)
     m.primal_result_count = 0
     m.dual_result_count = 0
 
-    # reset storage
+    t = time()
     if hasinteger(m)
         cpx_mipopt!(m.inner)
     else
         cpx_lpopt!(m.inner)
     end
+    m.solvetime = time() - t
 
     # termination_status
     code = cpx_getstat(m.inner)
@@ -187,3 +188,36 @@ function _getconstraintdual(m::CplexSolverInstance, c::LCR{<: Union{LE, GE, EQ}}
     return m.constraint_dual_solution[row]
 end
 MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintDual,c::LCR{<: Union{LE, GE, EQ}}) = true
+
+
+#=
+    Solution Attributes
+=#
+
+# struct ObjectiveBound <: AbstractSolverInstanceAttribute end
+MOI.getattribute(m::CplexSolverInstance, ::MOI.ObjectiveBound) = cpx_getbestobjval(m.inner)
+MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ObjectiveBound) = true
+
+# struct RelativeGap <: AbstractSolverInstanceAttribute  end
+MOI.getattribute(m::CplexSolverInstance, ::MOI.RelativeGap) = cpx_getmiprelgap(m.inner)
+MOI.cangetattribute(m::CplexSolverInstance, ::MOI.RelativeGap) = true
+
+# struct SolveTime <: AbstractSolverInstanceAttribute end
+MOI.getattribute(m::CplexSolverInstance, ::MOI.SolveTime) = m.solvetime
+MOI.cangetattribute(m::CplexSolverInstance, ::MOI.SolveTime) = true
+
+# struct SimplexIterations <: AbstractSolverInstanceAttribute end
+MOI.getattribute(m::CplexSolverInstance, ::MOI.SimplexIterations) = cpx_getitcnt(m.inner)
+MOI.cangetattribute(m::CplexSolverInstance, ::MOI.SimplexIterations) = true
+
+# struct BarrierIterations <: AbstractSolverInstanceAttribute end
+MOI.getattribute(m::CplexSolverInstance, ::MOI.BarrierIterations) = cpx_getbaritcnt(m.inner)
+MOI.cangetattribute(m::CplexSolverInstance, ::MOI.BarrierIterations) = true
+
+# struct NodeCount <: AbstractSolverInstanceAttribute end
+MOI.getattribute(m::CplexSolverInstance, ::MOI.NodeCount) = cpx_getnodecnt(m.inner)
+MOI.cangetattribute(m::CplexSolverInstance, ::MOI.NodeCount) = true
+
+# struct RawSolver <: AbstractSolverInstanceAttribute end
+MOI.getattribute(m::CplexSolverInstance, ::MOI.RawSolver) = m.inner
+MOI.cangetattribute(m::CplexSolverInstance, ::MOI.RawSolver) = true

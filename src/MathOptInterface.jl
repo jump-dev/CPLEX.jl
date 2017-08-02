@@ -133,6 +133,8 @@ mutable struct CplexSolverInstance <: MOI.AbstractSolverInstance
     dual_status::MOI.ResultStatusCode
     primal_result_count::Int
     dual_result_count::Int
+
+    solvetime::Float64
 end
 
 function MOI.SolverInstance(s::CplexSolver)
@@ -157,7 +159,8 @@ function MOI.SolverInstance(s::CplexSolver)
         MOI.UnknownResultStatus,
         MOI.UnknownResultStatus,
         0,
-        0
+        0,
+        0.0
     )
 end
 include(joinpath("cpx_status", "status_codes.jl"))
