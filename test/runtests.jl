@@ -6,30 +6,37 @@ const MOI = MathOptInterface
 
 include(joinpath(Pkg.dir("MathOptInterface"), "test", "contlinear.jl"))
 
-linear1test(CplexSolver(), 1e-8)
-linear2test(CplexSolver(), 1e-8)
-linear3test(CplexSolver(), 1e-8)
-linear4test(CplexSolver(), 1e-8)
-linear5test(CplexSolver(), 1e-8)
-linear6test(CplexSolver(), 1e-8)
-# # linear7test(CplexSolver(), 1e-8)
-linear8test(CplexSolver(), 1e-8)
-linear9test(CplexSolver(), 1e-8)
+@testset "LP Related Tests" begin
+    linear1test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
+    linear2test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
+    linear3test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
+    linear4test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
+    linear5test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
+    linear6test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
+    # # linear7test(CplexSolver(), 1e-8)
+    linear8test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
+    linear9test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
+end
 
 include(joinpath(Pkg.dir("MathOptInterface"), "test", "intlinear.jl"))
 
-knapsacktest(CplexSolver(), 1e-8)
-int1test(CplexSolver(), 1e-8)
-int2test(CplexSolver(), 1e-8)
+@testset "MIP Related Tests" begin
+    knapsacktest(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
+    int1test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
+    int2test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
+end
 
 include(joinpath(Pkg.dir("MathOptInterface"), "test", "contquadratic.jl"))
-qpp0test(CplexSolver(), 1e-8)
-qpp1test(CplexSolver(), 1e-8)
-QP01test(CplexSolver(), 1e-8)
-# # qpp2test(CplexSolver(), 1e-8)
-qpd0test(CplexSolver(), 1e-8)
-qpd1test(CplexSolver(), 1e-8)
-socptest(CplexSolver(), 1e-8)
+
+@testset "QP Related Tests" begin
+    qpp0test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
+    qpp1test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
+    QP01test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
+    # # qpp2test(CplexSolver(), 1e-8)
+    qpd0test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
+    qpd1test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
+    socptest(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
+end
 
 # include("constants.jl")
 # include("low_level_api.jl")
