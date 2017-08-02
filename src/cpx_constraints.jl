@@ -190,3 +190,45 @@ function cpx_getsos(model::Model, idx::Int)
     )
     return indices+1, weights, types[1]
 end
+
+#=
+    Quadratic Constraints
+=#
+
+function cpx_addqconstr!(model::Model, lincol::Vector{Int}, linval::Vector{Float64}, rhs::Float64, sense::Cchar, quadrow::Vector{Int}, quadcol::Vector{Int}, quadval::Vector{Float64})
+    @assert length(lincol) == length(linval)
+    @assert length(quadrow) == length(quadcol) == length(quadval)
+    @cpx_ccall(addqconstr, Cint, (
+        Ptr{Void},    # env
+        Ptr{Void},    # model
+        Cint,         # lnnz
+        Cint,         # qnnz
+        Float64,      # rhs
+        Cchar,        # sense
+        Ptr{Cint},    # lind
+        Ptr{Float64}, # lval
+        Ptr{Cint},    # qrow
+        Ptr{Cint},    # qcol
+        Ptr{Float64}, # qval
+        Ptr{UInt8}    # name
+        ),
+        model.env.ptr, # env
+        model.lp, # model
+        Cint(length(lincol)), # lnnz
+        Cint(length(quadrow)), # qnnz
+        Cdouble(rhs), # rhs
+        sense, # sense
+        Cint.(lincol-1), # lind
+        Cdouble.(linval), # lval
+        Cint.(quadrow-1), # qrow
+        Cint.(quadcol-1), # qcol
+        Cdouble.(quadval), # qval
+        C_NULL # name
+    )
+end
+
+function cpx_getnumqconstrs(model::Model)
+    @cpx_ccall(getnumqconstrs, Cint,
+        (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp
+    )
+end

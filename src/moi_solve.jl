@@ -1,3 +1,6 @@
+function hasquadratic(m::CplexSolverInstance)
+    m.obj_is_quad || (length(cmap(m).q_less_than) + length(cmap(m).q_greater_than) + length(cmap(m).q_equal_to) > 0)
+end
 #=
     Optimize the model
 =#
@@ -16,6 +19,8 @@ function MOI.optimize!(m::CplexSolverInstance)
     t = time()
     if hasinteger(m)
         cpx_mipopt!(m.inner)
+    elseif hasquadratic(m)
+        cpx_qpopt!(m.inner)
     else
         cpx_lpopt!(m.inner)
     end

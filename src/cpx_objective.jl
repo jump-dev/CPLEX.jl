@@ -44,3 +44,25 @@ function cpx_getobj(model::Model)
                       model.env.ptr, model.lp, obj, 0, nvars-1)
     return obj
 end
+
+#=
+    Quadratic Related Functions
+=#
+
+function cpx_copyquad!(model::Model, rowidx::Vector{Int}, colidx::Vector{Int}, val::Vector{Cdouble})
+    @assert length(rowidx) == length(colidx) == length(val)
+    n = cpx_getnumcols(model)
+    Q = sparse(rowidx, colidx, val, n, n)
+    if istriu(Q) || istril(Q) || issymmetric(Q)
+        Q = Q + Q' - spdiagm(diag(Q)) # reconstruct full matrix like CPLEX wants
+    else
+        error("Matrix Q must be either symmetric or triangular")
+    end
+
+    nnz_in_row = Cint[Q.colptr[row+1] - Q.colptr[row] for row in 1:n]
+
+    @cpx_ccall_error(model.env, copyquad, Cint,
+        (Ptr{Void}, Ptr{Void}, Ptr{Int}, Ptr{Int}, Ptr{Int}, Ptr{Cdouble}),
+        model.env.ptr, model.lp, Cint.(Q.colptr[1:end-1]-1), nnz_in_row, Cint.(Q.rowval-1), Cdouble.(Q.nzval)
+    )
+end

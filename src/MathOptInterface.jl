@@ -28,6 +28,7 @@ MOI.getattribute(s::CplexSolver, ::MOI.SupportsDeleteVariable) = true
 
 # functions
 const Linear = MOI.ScalarAffineFunction{Float64}
+const Quad   = MOI.ScalarQuadraticFunction{Float64}
 const SinVar = MOI.SingleVariable
 const VecVar = MOI.VectorOfVariables
 # sets
@@ -38,20 +39,24 @@ const IV     = MOI.Interval{Float64}
 # constraint references
 const CR{F,S} = MOI.ConstraintReference{F,S}
 const LCR{S} = CR{Linear,S}
+const QCR{S} = CR{Quad,S}
 const SVCR{S}  = CR{SinVar, S}
 const VVCR{S}  = CR{VecVar, S}
 # variable reference
 const VarRef = MOI.VariableReference
 
 const SUPPORTED_OBJECTIVES = [
-    Linear
-    # ScalarQuadraticFunction{Float64}
+    Linear,
+    Quad
 ]
 
 const SUPPORTED_CONSTRAINTS = [
     (Linear, EQ),
     (Linear, LE),
     (Linear, GE),
+    (Quad, EQ),
+    (Quad, LE),
+    (Quad, GE),
     (SinVar, EQ),
     (SinVar, LE),
     (SinVar, GE),
@@ -80,6 +85,11 @@ struct ConstraintMapping
     greater_than::Dict{LCR{GE}, Int}
     equal_to::Dict{LCR{EQ}, Int}
 
+    # rows in quadratic constraint matrix
+    q_less_than::Dict{QCR{LE}, Int}
+    q_greater_than::Dict{QCR{GE}, Int}
+    q_equal_to::Dict{QCR{EQ}, Int}
+
     # references to variable
     upper_bound::Dict{SVCR{LE}, VarRef}
     lower_bound::Dict{SVCR{GE}, VarRef}
@@ -100,6 +110,9 @@ ConstraintMapping() = ConstraintMapping(
     Dict{LCR{LE}, Int}(),
     Dict{LCR{GE}, Int}(),
     Dict{LCR{EQ}, Int}(),
+    Dict{QCR{LE}, Int}(),
+    Dict{QCR{GE}, Int}(),
+    Dict{QCR{EQ}, Int}(),
     Dict{SVCR{LE}, VarRef}(),
     Dict{SVCR{GE}, VarRef}(),
     Dict{SVCR{EQ}, VarRef}(),
@@ -113,6 +126,8 @@ ConstraintMapping() = ConstraintMapping(
 mutable struct CplexSolverInstance <: MOI.AbstractSolverInstance
     inner::Model
 
+    obj_is_quad::Bool
+
     last_variable_reference::UInt64
     variable_mapping::Dict{MOI.VariableReference, Int}
     variable_references::Vector{MOI.VariableReference}
@@ -125,6 +140,9 @@ mutable struct CplexSolverInstance <: MOI.AbstractSolverInstance
 
     constraint_primal_solution::Vector{Float64}
     constraint_dual_solution::Vector{Float64}
+
+    qconstraint_primal_solution::Vector{Float64}
+    qconstraint_dual_solution::Vector{Float64}
 
     objective_constant::Float64
 
@@ -145,6 +163,7 @@ function MOI.SolverInstance(s::CplexSolver)
     end
     CplexSolverInstance(
         Model(env),
+        false,
         0,
         Dict{MOI.VariableReference, Int}(),
         MOI.VariableReference[],
@@ -152,6 +171,8 @@ function MOI.SolverInstance(s::CplexSolver)
         Float64[],
         0,
         ConstraintMapping(),
+        Float64[],
+        Float64[],
         Float64[],
         Float64[],
         0.0,

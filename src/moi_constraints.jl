@@ -10,6 +10,9 @@ end
 constrdict(m::CplexSolverInstance, ::LCR{LE})  = cmap(m).less_than
 constrdict(m::CplexSolverInstance, ::LCR{GE})  = cmap(m).greater_than
 constrdict(m::CplexSolverInstance, ::LCR{EQ})  = cmap(m).equal_to
+constrdict(m::CplexSolverInstance, ::QCR{LE})  = cmap(m).q_less_than
+constrdict(m::CplexSolverInstance, ::QCR{GE})  = cmap(m).q_greater_than
+constrdict(m::CplexSolverInstance, ::QCR{EQ})  = cmap(m).q_equal_to
 constrdict(m::CplexSolverInstance, ::SVCR{LE}) = cmap(m).upper_bound
 constrdict(m::CplexSolverInstance, ::SVCR{GE}) = cmap(m).lower_bound
 constrdict(m::CplexSolverInstance, ::SVCR{EQ}) = cmap(m).fixed_bound
@@ -367,3 +370,67 @@ function MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintFunction, c::V
 end
 
 MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintFunction, c::VVCR{<:Union{MOI.SOS1, MOI.SOS2}}) = true
+
+
+#=
+    Quadratic constraint
+=#
+
+function MOI.addconstraint!(m::CplexSolverInstance, func::Quad, set::S) where S <: Union{LE, GE, EQ}
+    addquadraticconstraint!(m, func, set)
+    m.last_constraint_reference += 1
+    ref = MOI.ConstraintReference{Quad, S}(m.last_constraint_reference)
+    dict = constrdict(m, ref)
+    dict[ref] = cpx_getnumqconstrs(m.inner)
+    push!(m.qconstraint_primal_solution, NaN)
+    push!(m.qconstraint_dual_solution, NaN)
+    return ref
+end
+
+function addquadraticconstraint!(m::CplexSolverInstance, func::Quad, set::LE)
+    addquadraticconstraint!(m, func, Cchar('L'), set.upper)
+end
+function addquadraticconstraint!(m::CplexSolverInstance, func::Quad, set::GE)
+    addquadraticconstraint!(m, func, Cchar('G'), set.lower)
+end
+function addquadraticconstraint!(m::CplexSolverInstance, func::Quad, set::EQ)
+    addquadraticconstraint!(m, func, Cchar('E'), set.value)
+end
+function addquadraticconstraint!(m::CplexSolverInstance, f::Quad, sense::Cchar, rhs::Float64)
+    if abs(f.constant) > 0
+        warn("Constant in quadratic function. Moving into set")
+    end
+    ri, ci, vi = reduceduplicates(
+        getcol.(m, f.quadratic_rowvariables),
+        getcol.(m, f.quadratic_colvariables),
+        f.quadratic_coefficients
+    )
+    cpx_addqconstr!(m.inner,
+        getcol.(m, f.affine_variables),
+        f.affine_coefficients,
+        rhs - f.constant,
+        sense,
+        ri, ci, vi
+    )
+end
+
+function reduceduplicates(rowi::Vector{T}, coli::Vector{T}, vals::Vector{S}) where T where S
+    @assert length(rowi) == length(coli) == length(vals)
+    d = Dict{Tuple{T, T},S}()
+    for (r,c,v) in zip(rowi, coli, vals)
+        if haskey(d, (r,c))
+            d[(r,c)] += v
+        else
+            d[(r,c)] = v
+        end
+    end
+    ri = Vector{T}(length(d))
+    ci = Vector{T}(length(d))
+    vi = Vector{S}(length(d))
+    for (i, (key, val)) in enumerate(d)
+        ri[i] = key[1]
+        ci[i] = key[2]
+        vi[i] = val
+    end
+    ri, ci, vi
+end

@@ -12,6 +12,13 @@ function cpx_mipopt!(model::Model)
     throw(CplexError(model.env, stat))
   end
 end
+function cpx_qpopt!(model::Model)
+  @assert is_valid(model.env)
+  stat = @cpx_ccall_intercept(model, qpopt, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
+  if stat != 0
+    throw(CplexError(model.env, stat))
+  end
+end
 
 cpx_getstat(model::Model) = @cpx_ccall(getstat, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
 
