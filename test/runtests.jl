@@ -6,14 +6,14 @@ const MOI = MathOptInterface
 
 include(joinpath(Pkg.dir("MathOptInterface"), "test", "contlinear.jl"))
 
-linear1test(CplexSolver(), 1e-8)
-linear2test(CplexSolver(), 1e-8)
-linear3test(CplexSolver(), 1e-8)
-linear4test(CplexSolver(), 1e-8)
-linear5test(CplexSolver(), 1e-8)
-linear6test(CplexSolver(), 1e-8)
+# linear1test(CplexSolver(), 1e-8)
+# linear2test(CplexSolver(), 1e-8)
+# linear3test(CplexSolver(), 1e-8)
+# linear4test(CplexSolver(), 1e-8)
+# linear5test(CplexSolver(), 1e-8)
+# linear6test(CplexSolver(), 1e-8)
 # linear7test(CplexSolver(), 1e-8)
-linear8test(CplexSolver(), 1e-8)
+# linear8test(CplexSolver(), 1e-8)
 
 include(joinpath(Pkg.dir("MathOptInterface"), "test", "intlinear.jl"))
 

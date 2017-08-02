@@ -272,11 +272,10 @@ end
 
 function MOI.addconstraint!(m::CplexSolverInstance, v::VecVar, sos::MOI.SOS1)
     _make_problem_type_integer(m.inner)
-    cpx_addsos!(m.inner, getcol.(m, v.variables), sos.weights, '1')
+    cpx_addsos!(m.inner, getcol.(m, v.variables), sos.weights, CPX_TYPE_SOS1)
     m.last_constraint_reference += 1
     ref = MOI.ConstraintReference{VecVar, MOI.SOS1}(m.last_constraint_reference)
     push!(cmap(m).sos1, ref)
-    _make_problem_type_integer(m.inner)
     ref
 end
 
@@ -293,7 +292,7 @@ end
 
 function MOI.addconstraint!(m::CplexSolverInstance, v::VecVar, sos::MOI.SOS2)
     _make_problem_type_integer(m.inner)
-    cpx_addsos!(m.inner, getcol.(m, v.variables), sos.weights, '2')
+    cpx_addsos!(m.inner, getcol.(m, v.variables), sos.weights, CPX_TYPE_SOS2)
     m.last_constraint_reference += 1
     ref = MOI.ConstraintReference{VecVar, MOI.SOS2}(m.last_constraint_reference)
     push!(cmap(m).sos2, ref)
