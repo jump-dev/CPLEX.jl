@@ -1,15 +1,13 @@
+#=
+    A list of MOI attributes that are not yet implemented
+=#
 # TODO: solver-independent parameters
 
 # TODO: supports modify objective
 
-struct SupportsConicThroughQuadratic <: AbstractSolverAttribute end
-struct ListOfVariableReferences <: AbstractSolverInstanceAttribute end
-struct ListOfConstraintReferences{F,S} <: AbstractSolverInstanceAttribute end
-struct ListOfConstraints <: AbstractSolverInstanceAttribute end
-struct VariablePrimalStart <: AbstractVariableAttribute end
-struct VariableBasisStatus <: AbstractVariableAttribute end
-struct ConstraintPrimalStart <: AbstractConstraintAttribute end
-struct ConstraintDualStart <: AbstractConstraintAttribute end
-struct ConstraintBasisStatus <: AbstractConstraintAttribute end
-# struct ConstraintFunction <: AbstractConstraintAttribute end
-# struct ConstraintSet <: AbstractConstraintAttribute end
+# struct SupportsConicThroughQuadratic <: AbstractSolverAttribute end
+# struct VariablePrimalStart <: AbstractVariableAttribute end
+# struct VariableBasisStatus <: AbstractVariableAttribute end
+# struct ConstraintPrimalStart <: AbstractConstraintAttribute end
+# struct ConstraintDualStart <: AbstractConstraintAttribute end
+# struct ConstraintBasisStatus <: AbstractConstraintAttribute end

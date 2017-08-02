@@ -20,6 +20,43 @@ constrdict(m::CplexSolverInstance, ::VVCR{MOI.SOS1}) = cmap(m).sos1
 constrdict(m::CplexSolverInstance, ::VVCR{MOI.SOS2}) = cmap(m).sos2
 
 #=
+    Get number of constraints
+=#
+
+function MOI.getattribute(m::CplexSolverInstance, ::MOI.NumberOfConstraints{F, S}) where F where S
+    length(constrdict(m, MOI.ConstraintReference{F,S}(UInt(0))))
+end
+function MOI.cangetattribute(m::CplexSolverInstance, ::MOI.NumberOfConstraints{F, S}) where F where S
+    return (F,S) in SUPPORTED_CONSTRAINTS
+end
+
+#=
+    Get list of constraint references
+=#
+
+function MOI.getattribute(m::CplexSolverInstance, ::MOI.ListOfConstraintReferences{F, S}) where F where S
+    collect(keys(constrdict(m, MOI.ConstraintReference{F,S}(UInt(0)))))
+end
+function MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ListOfConstraintReferences{F, S}) where F where S
+    return (F,S) in SUPPORTED_CONSTRAINTS
+end
+
+#=
+    Get list of constraint types in model
+=#
+
+function MOI.getattribute(m::CplexSolverInstance, ::MOI.ListOfConstraints)
+    ret = []
+    for (F,S) in SUPPORTED_CONSTRAINTS
+        if MOI.getattribute(m, MOI.NumberOfConstraints{F,S}()) > 0
+            push!(ret, (F,S))
+        end
+    end
+    ret
+end
+MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ListOfConstraints) = true
+
+#=
     Set variable bounds
 =#
 
@@ -152,15 +189,6 @@ function MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintFunction, c::L
     MOI.ScalarAffineFunction(m.variable_references[colidx+1] , coefs, 0.0)
 end
 MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintFunction, c::LCR{<: Union{LE, GE, EQ}}) = true
-
-#=
-    Get number of constraints
-=#
-
-function MOI.getattribute(m::CplexSolverInstance, ::MOI.NumberOfConstraints{F, S}) where F where S
-    length(constrdict(m, MOI.ConstraintReference{F,S}(UInt(0))))
-end
-MOI.cangetattribute(m::CplexSolverInstance, ::MOI.NumberOfConstraints{F, S}) where F where S = true
 
 #=
     Scalar Coefficient Change of Linear Constraint

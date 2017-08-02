@@ -14,6 +14,15 @@ end
 MOI.cangetattribute(m::CplexSolverInstance, ::MOI.NumberOfVariables) = true
 
 #=
+    Get variable references
+=#
+
+function MOI.getattribute(m::CplexSolverInstance, ::MOI.ListOfVariableReferences)
+    return m.variable_references
+end
+MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ListOfVariableReferences) = true
+
+#=
     Add a variable to the CplexSolverInstance
 
 Returns a MathOptInterface VariableReference. So we need to increment the
