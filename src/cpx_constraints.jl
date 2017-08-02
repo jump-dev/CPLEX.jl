@@ -138,3 +138,55 @@ function cpx_addsos!(model::Model, columns::Vector{Int}, weights::Vector{Cdouble
         C_NULL
     )
 end
+
+function cpx_delsos!(model::Model, ibegin::Int, iend::Int)
+    @cpx_ccall_error(model.env, delsos, Cint,
+        (Ptr{Void}, Ptr{Void}, Cint, Cint),
+        model.env.ptr, model.lp, Cint(ibegin-1), Cint(iend-1)
+    )
+end
+
+function cpx_getsos(model::Model, idx::Int)
+    nnz_returned = Vector{Cint}(1)
+    nnz_needed = Vector{Cint}(1)
+    types = Vector{Cchar}(1)
+
+    # call once to get space
+    @cpx_ccall(getsos, Cint, (
+            Ptr{Void},    # env
+            Ptr{Void},    # lp
+            Ptr{Cint},         # nnz
+            Ptr{Cchar},   # sostype
+            Ptr{Cint},    # sos begin
+            Ptr{Cint},    # sos indices
+            Ptr{Cdouble}, # weights
+            Cint,       # length of idices vector
+            Ptr{Cint},  # length needed
+            Cint,   # begin
+            Cint    # end
+        ),
+        model.env.ptr, model.lp, nnz_returned, types, Cint[0], C_NULL, C_NULL,
+        Cint(0), nnz_needed, Cint(idx-1), Cint(idx-1)
+    )
+
+    # now fill'
+    indices = Vector{Cint}(-nnz_needed[1])
+    weights = Vector{Cdouble}(-nnz_needed[1])
+    @cpx_ccall(getsos, Cint, (
+            Ptr{Void},    # env
+            Ptr{Void},    # lp
+            Ptr{Cint},         # nnz
+            Ptr{Cchar},   # sostype
+            Ptr{Cint},    # sos begin
+            Ptr{Cint},    # sos indices
+            Ptr{Cdouble}, # weights
+            Cint,       # length of idices vector
+            Ptr{Cint},  # length needed
+            Cint,   # begin
+            Cint    # end
+        ),
+        model.env.ptr, model.lp, nnz_returned, types, Cint[0], indices, weights,
+        Cint(length(indices)), nnz_needed, Cint(idx-1), Cint(idx-1)
+    )
+    return indices+1, weights, types[1]
+end

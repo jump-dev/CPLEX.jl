@@ -16,6 +16,9 @@ constrdict(m::CplexSolverInstance, ::SVCR{EQ}) = cmap(m).fixed_bound
 constrdict(m::CplexSolverInstance, ::SVCR{IV}) = cmap(m).interval_bound
 constrdict(m::CplexSolverInstance, ::SVCR{MOI.ZeroOne}) = cmap(m).binary
 constrdict(m::CplexSolverInstance, ::SVCR{MOI.Integer}) = cmap(m).integer
+constrdict(m::CplexSolverInstance, ::VVCR{MOI.SOS1}) = cmap(m).sos1
+constrdict(m::CplexSolverInstance, ::VVCR{MOI.SOS2}) = cmap(m).sos2
+
 #=
     Set variable bounds
 =#
@@ -243,9 +246,17 @@ function MOI.delete!(m::CplexSolverInstance, c::SVCR{MOI.ZeroOne})
     end
 end
 
+MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintSet, c::SVCR{MOI.ZeroOne}) =MOI.ZeroOne()
+MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintSet, c::SVCR{MOI.ZeroOne}) = true
+
+MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintFunction, c::SVCR{MOI.ZeroOne}) = m[c]
+MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintFunction, c::SVCR{MOI.ZeroOne}) = true
+
+
 #=
     Integer constraints
 =#
+
 function MOI.addconstraint!(m::CplexSolverInstance, v::SinVar, ::MOI.Integer)
     cpx_chgctype!(m.inner, [getcol(m, v)], ['I'])
     m.last_constraint_reference += 1
@@ -266,6 +277,13 @@ function MOI.delete!(m::CplexSolverInstance, c::SVCR{MOI.Integer})
     end
 end
 
+MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintSet, c::SVCR{MOI.Integer}) =MOI.Integer()
+MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintSet, c::SVCR{MOI.Integer}) = true
+
+MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintFunction, c::SVCR{MOI.Integer}) = m[c]
+MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintFunction, c::SVCR{MOI.Integer}) = true
+
+
 #=
     SOS constraints
 =#
@@ -275,30 +293,46 @@ function MOI.addconstraint!(m::CplexSolverInstance, v::VecVar, sos::MOI.SOS1)
     cpx_addsos!(m.inner, getcol.(m, v.variables), sos.weights, CPX_TYPE_SOS1)
     m.last_constraint_reference += 1
     ref = MOI.ConstraintReference{VecVar, MOI.SOS1}(m.last_constraint_reference)
-    push!(cmap(m).sos1, ref)
+    dict = constrdict(m, ref)
+    dict[ref] = length(cmap(m).sos1) + length(cmap(m).sos2) + 1
     ref
 end
-
-function MOI.getattribute(m::CplexSolverInstance, ::MOI.NumberOfConstraints{VecVar, MOI.SOS1})
-    length(cmap(m).sos1)
-end
-
-# function MOI.delete!(m::CplexSolverInstance, v::VecVar, sos::MOI.SOS1)
-#
-#     if !hasinteger(m)
-#         _make_problem_type_continuous(m.inner)
-#     end
-# end
 
 function MOI.addconstraint!(m::CplexSolverInstance, v::VecVar, sos::MOI.SOS2)
     _make_problem_type_integer(m.inner)
     cpx_addsos!(m.inner, getcol.(m, v.variables), sos.weights, CPX_TYPE_SOS2)
     m.last_constraint_reference += 1
     ref = MOI.ConstraintReference{VecVar, MOI.SOS2}(m.last_constraint_reference)
-    push!(cmap(m).sos2, ref)
+    dict = constrdict(m, ref)
+    dict[ref] = length(cmap(m).sos1) + length(cmap(m).sos2) + 1
     ref
 end
 
-function MOI.getattribute(m::CplexSolverInstance, ::MOI.NumberOfConstraints{VecVar, MOI.SOS2})
-    length(cmap(m).sos2)
+function MOI.delete!(m::CplexSolverInstance, c::VVCR{<:Union{MOI.SOS1, MOI.SOS2}})
+    dict = constrdict(m, c)
+    idx = dict[c]
+    cpx_delsos!(m.inner, idx, idx)
+    deleteref!(cmap(m).sos1, idx, c)
+    deleteref!(cmap(m).sos2, idx, c)
+    if !hasinteger(m)
+        _make_problem_type_continuous(m.inner)
+    end
 end
+
+function MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintSet, c::VVCR{MOI.SOS1})
+    indices, weights, types = cpx_getsos(m.inner, m[c])
+    @assert types == CPX_TYPE_SOS1
+    return MOI.SOS1(weights)
+end
+function MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintSet, c::VVCR{MOI.SOS2})
+    indices, weights, types = cpx_getsos(m.inner, m[c])
+    @assert types == CPX_TYPE_SOS2
+    return MOI.SOS2(weights)
+end
+MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintSet, c::VVCR{<:Union{MOI.SOS1, MOI.SOS2}}) = true
+
+function MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintFunction, c::VVCR{<:Union{MOI.SOS1, MOI.SOS2}})
+    indices, weights, types = cpx_getsos(m.inner, m[c])
+    return MOI.VectorOfVariables(m.variable_references[indices])
+end
+MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintFunction, c::VVCR{<:Union{MOI.SOS1, MOI.SOS2}}) = true

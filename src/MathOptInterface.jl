@@ -93,8 +93,8 @@ struct ConstraintMapping
      we can revert to the old bounds
     =#
     binary::Dict{SVCR{MOI.ZeroOne}, Tuple{VarRef, Float64, Float64}}
-    sos1::Vector{VVCR{MOI.SOS1}}
-    sos2::Vector{VVCR{MOI.SOS2}}
+    sos1::Dict{VVCR{MOI.SOS1}, Int}
+    sos2::Dict{VVCR{MOI.SOS2}, Int}
 end
 ConstraintMapping() = ConstraintMapping(
     Dict{LCR{LE}, Int}(),
@@ -106,8 +106,8 @@ ConstraintMapping() = ConstraintMapping(
     Dict{SVCR{IV}, VarRef}(),
     Dict{SVCR{MOI.Integer}, VarRef}(),
     Dict{SVCR{MOI.ZeroOne}, Tuple{VarRef, Float64, Float64}}(),
-    VVCR{MOI.SOS1}[],
-    VVCR{MOI.SOS2}[]
+    Dict{VVCR{MOI.SOS1}, Int}(),
+    Dict{VVCR{MOI.SOS2}, Int}()
 )
 
 mutable struct CplexSolverInstance <: MOI.AbstractSolverInstance
