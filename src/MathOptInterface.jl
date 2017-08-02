@@ -29,6 +29,7 @@ MOI.getattribute(s::CplexSolver, ::MOI.SupportsDeleteVariable) = true
 # functions
 const Linear = MOI.ScalarAffineFunction{Float64}
 const SinVar = MOI.SingleVariable
+const VecVar = MOI.VectorOfVariables
 # sets
 const LE     = MOI.LessThan{Float64}
 const GE     = MOI.GreaterThan{Float64}
@@ -38,6 +39,7 @@ const IV     = MOI.Interval{Float64}
 const CR{F,S} = MOI.ConstraintReference{F,S}
 const LCR{S} = CR{Linear,S}
 const SVCR{S}  = CR{SinVar, S}
+const VVCR{S}  = CR{VecVar, S}
 # variable reference
 const VarRef = MOI.VariableReference
 
@@ -55,7 +57,9 @@ const SUPPORTED_CONSTRAINTS = [
     (SinVar, GE),
     (SinVar, IV),
     (SinVar, MOI.ZeroOne),
-    (SinVar, MOI.Integer)
+    (SinVar, MOI.Integer),
+    (VecVar, MOI.SOS1),
+    (VecVar, MOI.SOS2)
 ]
 
 function MOI.supportsproblem(s::CplexSolver, objective_type, constraint_types)
@@ -89,6 +93,8 @@ struct ConstraintMapping
      we can revert to the old bounds
     =#
     binary::Dict{SVCR{MOI.ZeroOne}, Tuple{VarRef, Float64, Float64}}
+    sos1::Vector{VVCR{MOI.SOS1}}
+    sos2::Vector{VVCR{MOI.SOS2}}
 end
 ConstraintMapping() = ConstraintMapping(
     Dict{LCR{LE}, Int}(),
@@ -99,7 +105,9 @@ ConstraintMapping() = ConstraintMapping(
     Dict{SVCR{EQ}, VarRef}(),
     Dict{SVCR{IV}, VarRef}(),
     Dict{SVCR{MOI.Integer}, VarRef}(),
-    Dict{SVCR{MOI.ZeroOne}, Tuple{VarRef, Float64, Float64}}()
+    Dict{SVCR{MOI.ZeroOne}, Tuple{VarRef, Float64, Float64}}(),
+    VVCR{MOI.SOS1}[],
+    VVCR{MOI.SOS2}[]
 )
 
 mutable struct CplexSolverInstance <: MOI.AbstractSolverInstance

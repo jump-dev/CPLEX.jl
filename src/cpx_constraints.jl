@@ -112,3 +112,29 @@ function cpx_getrows(model::Model, row::Int)
                       model.env.ptr, model.lp, nnz_returned, [Cint(0)], colidx, coef, Cint(nnz), space_needed, Cint(row-1), Cint(row-1))
     return colidx, coef
 end
+
+function cpx_addsos!(model::Model, columns::Vector{Int}, weights::Vector{Cdouble}, sostype::Char)
+    @assert length(columns) == length(weights)
+    @assert sostype == '1' || sostype == '2'
+    @cpx_ccall_error(model.env, addsos, Cint, (
+            Ptr{Void},    # env
+            Ptr{Void},    # lp
+            Cint,         # numsos
+            Cint,         # nnz
+            Ptr{Cchar},   # sostype
+            Ptr{Cint},    # sos begin
+            Ptr{Cint},    # sos indices
+            Ptr{Cdouble}, # weights
+            Ptr{Ptr{Cchar}} # names
+        ),
+        model.env.ptr,
+        model.lp,
+        Cint(1),
+        Cint(length(weights)),
+        [Cchar(sostype)],
+        [Cint(0)],
+        Cint.(columns),
+        Cdouble.(weights),
+        C_NULL
+    )
+end
