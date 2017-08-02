@@ -192,10 +192,10 @@ end
 function cpx_getbestobjval(model::Model)
     ret = Vector{Cdouble}(1)
     @cpx_ccall_error(model.env, getbestobjval, Cint, (Ptr{Void}, Ptr{Void}, Ptr{Cdouble}), model.env.ptr, model.lp, ret)
-    return ret
+    return ret[1]
 end
 function cpx_getmiprelgap(model::Model)
     ret = Vector{Cdouble}(1)
     @cpx_ccall_error(model.env, getmiprelgap, Cint, (Ptr{Void}, Ptr{Void}, Ptr{Cdouble}), model.env.ptr, model.lp, ret)
-    return ret
+    return ret[1]
 end
