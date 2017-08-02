@@ -169,7 +169,64 @@ function addlinearconstraint!(m::CplexSolverInstance, func::Linear, sense::Cchar
     if abs(func.constant) > eps(Float64)
         warn("Constant in scalar function moved into set.")
     end
-    cpx_addrows!(m.inner, getcol.(m, func.variables), func.coefficients, sense, rhs - func.constant)
+    cpx_addrows!(m.inner, [1], getcol.(m, func.variables), func.coefficients, [sense], [rhs - func.constant])
+end
+
+#=
+    Add linear constraints (plural)
+=#
+
+function MOI.addconstraints!(m::CplexSolverInstance, func::Vector{Linear}, set::Vector{S}) where S <: Union{LE, GE, EQ}
+    @assert length(func) == length(set)
+    numrows = cpx_getnumrows(m.inner)
+    addlinearconstraints!(m, func, set)
+    crefs = Vector{MOI.ConstraintReference{Linear, S}}(length(func))
+    for i in 1:length(func)
+        m.last_constraint_reference += 1
+        ref = MOI.ConstraintReference{Linear, S}(m.last_constraint_reference)
+        dict = constrdict(m, ref)
+        dict[ref] = numrows + i
+        push!(m.constraint_primal_solution, NaN)
+        push!(m.constraint_dual_solution, NaN)
+        crefs[i] = ref
+    end
+    return crefs
+end
+
+function addlinearconstraints!(m::CplexSolverInstance, func::Vector{Linear}, set::Vector{LE})
+    addlinearconstraints!(m, func, fill(Cchar('L'), length(func)), [s.upper for s in set])
+end
+function addlinearconstraints!(m::CplexSolverInstance, func::Vector{Linear}, set::Vector{GE})
+    addlinearconstraints!(m, func, fill(Cchar('G'), length(func)), [s.lower for s in set])
+end
+function addlinearconstraints!(m::CplexSolverInstance, func::Vector{Linear}, set::Vector{EQ})
+    addlinearconstraints!(m, func, fill(Cchar('E'), length(func)), [s.value for s in set])
+end
+
+function addlinearconstraints!(m::CplexSolverInstance, func::Vector{Linear}, sense::Vector{Cchar}, rhs::Vector{Float64})
+    # loop through once to get number of non-zeros and to move rhs across
+    nnz = 0
+    for (i, f) in enumerate(func)
+        if abs(f.constant) > eps(Float64)
+            warn("Constant in scalar function moved into set.")
+            rhs[i] -= f.constant
+        end
+        nnz += length(f.coefficients)
+    end
+
+    rowbegins = Vector{Int}(length(func))   # index of start of each row
+    column_indices = Vector{Int}(nnz)       # flattened columns for each function
+    nnz_vals = Vector{Float64}(nnz)         # corresponding non-zeros
+    cnt = 1
+    for (fi, f) in enumerate(func)
+        rowbegins[fi] = cnt
+        for (var, coef) in zip(f.variables, f.coefficients)
+            column_indices[cnt] = getcol(m, var)
+            nnz_vals[cnt] = coef
+            cnt += 1
+        end
+    end
+    cpx_addrows!(m.inner, rowbegins, column_indices, nnz_vals, sense, rhs)
 end
 
 #=

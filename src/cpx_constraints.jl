@@ -1,4 +1,4 @@
-function cpx_addrows!(model::Model, cols::Vector{Int}, coefficients::Vector{Float64}, sense::Cchar, rhs::Float64)
+function cpx_addrows!(model::Model, rowidxbegins::Vector{Int}, cols::Vector{Int}, coefficients::Vector{Float64}, sense::Vector{Cchar}, rhs::Vector{Float64})
     @assert length(cols) == length(coefficients)
     nnz = Cint(length(cols))
     @cpx_ccall(addrows, Cint, (
@@ -15,7 +15,7 @@ function cpx_addrows!(model::Model, cols::Vector{Int}, coefficients::Vector{Floa
         Ptr{Ptr{Cchar}},  # col names
         Ptr{Ptr{Cchar}}   # row names
         ),
-        model.env.ptr, model.lp, 0, Cint(1), nnz, [rhs], [sense], [Cint(0)], Cint.(cols-1), coefficients, C_NULL, C_NULL)
+        model.env.ptr, model.lp, 0, Cint(length(rowidxbegins)), nnz, Cdouble.(rhs), sense, Cint.(rowidxbegins-1), Cint.(cols-1), coefficients, C_NULL, C_NULL)
 end
 
 function cpx_getnumrows(model::Model)
