@@ -1,6 +1,15 @@
 function hasquadratic(m::CplexSolverInstance)
     m.obj_is_quad || (length(cmap(m).q_less_than) + length(cmap(m).q_greater_than) + length(cmap(m).q_equal_to) > 0)
 end
+
+function getterminationstatus(status::Cint)
+    if haskey(TERMINATION_STATUS_MAP, status)
+        return TERMINATION_STATUS_MAP[status]
+    else
+        error("Status $(status) has not been mapped to a MOI termination status.")
+    end
+end
+
 #=
     Optimize the model
 =#
@@ -28,8 +37,7 @@ function MOI.optimize!(m::CplexSolverInstance)
 
     # termination_status
     code = cpx_getstat(m.inner)
-    status_symbol = getstatussymbol(code)
-    m.termination_status = getterminationstatus(status_symbol)
+    m.termination_status = getterminationstatus(code)
 
     # get some more information about solution
     mthd, soltype, prifeas, dualfeas = cpx_solninfo(m.inner)

@@ -157,9 +157,9 @@ end
 
 function MOI.SolverInstance(s::CplexSolver)
     env = Env()
-    set_param!(env, "CPX_PARAM_SCRIND", 1) # output logs to stdout by default
+    cpx_setparam!(env, CPX_PARAM_SCRIND, 1) # output logs to stdout by default
     for (name,value) in s.options
-        set_param!(env, string(name), value)
+        cpx_setparam!(env, string(name), value)
     end
     CplexSolverInstance(
         Model(env),
@@ -184,7 +184,6 @@ function MOI.SolverInstance(s::CplexSolver)
         0.0
     )
 end
-include(joinpath("cpx_status", "status_codes.jl"))
 
 # a useful helper function
 function deleteref!(dict::Dict, i::Int, ref)
@@ -200,6 +199,9 @@ function problemtype(m::CplexSolverInstance)
     code = cpx_getprobtype(m.inner)
     PROB_TYPE_MAP[code]
 end
+
+include(joinpath("cpx_defines", "status_codes.jl"))
+
 include("moi_variables.jl")
 include("moi_constraints.jl")
 include("moi_objective.jl")

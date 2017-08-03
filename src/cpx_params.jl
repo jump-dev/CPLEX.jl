@@ -1,5 +1,3 @@
-# const CPX_INFBOUND = 1e20
-# const CPX_STR_PARAM_MAX = 512
 const PARAM_TYPES = Dict{Int, DataType}(
     0 => Void,
     1 => Cint,
@@ -7,58 +5,62 @@ const PARAM_TYPES = Dict{Int, DataType}(
     3 => Cchar,
     4 => Clonglong
 )
-function get_param_type(env::Env, indx::Int)
+function cpx_getparamtype(env::Env, indx::Cint)
     ptype = Vector{Cint}(1)
     @cpx_ccall_error(env, getparamtype, Cint, (Ptr{Void}, Cint, Ptr{Cint}),
-        env.ptr, convert(Cint,indx), ptype)
+        env.ptr, indx, ptype)
     if haskey(PARAM_TYPES, ptype[1])
         return PARAM_TYPES[ptype[1]]
     else
         error("Parameter type not recognized")
     end
 end
-get_param_type(env::Env, name::String) = get_param_type(env, paramName2Indx[name])
+cpx_getparamtype(env::Env, name::String) = cpx_getparamtype(env, CPX_PARAMS[name])
 
-function getparam(::Type{Cint}, env::Env, pindx::Cint)
+function cpx_getparam(::Type{Cint}, env::Env, pindx::Cint)
     ret = Vector{Cint}(1)
     @cpx_ccall_error(env, getintparam, Cint, (Ptr{Void}, Cint, Ptr{Cint}), env.ptr, pindx, ret)
     return ret[1]
 end
-function getparam(::Type{Cdouble}, env::Env, pindx::Cint)
+function cpx_getparam(::Type{Cdouble}, env::Env, pindx::Cint)
     ret = Vector{Cdouble}(1)
     @cpx_ccall_error(env, getdblparam, Cint, (Ptr{Void}, Cint, Ptr{Cint}), env.ptr, pindx, ret)
     return ret[1]
 end
-function getparam(::Type{Clonglong}, env::Env, pindx::Cint)
+function cpx_getparam(::Type{Clonglong}, env::Env, pindx::Cint)
     ret = Vector{Clonglong}(1)
     @cpx_ccall_error(env, getlongparam, Cint, (Ptr{Void}, Cint, Ptr{Clonglong}), env.ptr, pindx, ret)
     return ret[1]
 end
-function getparam(::Type{Cchar}, env::Env, pindx::Cint)
+function cpx_getparam(::Type{Cchar}, env::Env, pindx::Cint)
     ret = Vector{Cchar}(CPX_STR_PARAM_MAX)
     @cpx_ccall_error(env, getstrparam, Cint, (Ptr{Void}, Cint, Ptr{Cchar}), env.ptr, pindx, ret)
     return bytestring(pointer(ret))
 end
-getparam(T, env::Env, pindx::Cint) = warn("Trying to get a parameter of unknown type; doing nothing.")
-get_param(env::Env, pindx::Int) = get_param(get_param_type(env, pindx), env, convert(Cint, pindx))
-get_param(env::Env, pname::String) = get_param(env, paramName2Indx[pname])
+cpx_getparam(T, env::Env, pindx::Cint) = warn("Trying to get a parameter of unknown type; doing nothing.")
+
+cpx_getparam(env::Env, pindx::Cint) = cpx_getparam(cpx_getparamtype(env, pindx), env, pindx)
+
+get_param(env::Env, pname::String) = get_param(env, CPX_PARAMS[pname])
 
 
-function set_param!(::Type{Cint}, env::Env, pindx::Cint, val)
+function cpx_setparam!(::Type{Cint}, env::Env, pindx::Cint, val)
     @cpx_ccall_error(env, setintparam, Cint, (Ptr{Void}, Cint, Cint), env.ptr, pindx, convert(Cint, val))
 end
-function set_param!(::Type{Cdouble}, env::Env, pindx::Cint, val)
+function cpx_setparam!(::Type{Cdouble}, env::Env, pindx::Cint, val)
     @cpx_ccall_error(env, getdblparam, Cint, (Ptr{Void}, Cint, Cdouble), env.ptr, pindx, float(val))
 end
-function set_param!(::Type{Clonglong}, env::Env, pindx::Cint, val)
+function cpx_setparam!(::Type{Clonglong}, env::Env, pindx::Cint, val)
     @cpx_ccall_error(env, getlongparam, Cint, (Ptr{Void}, Cint, Clonglong), env.ptr, pindx, convert(Clonglong, val))
 end
-function set_param!(::Type{Cchar}, env::Env, pindx::Int, val)
+function cpx_setparam!(::Type{Cchar}, env::Env, pindx::Int, val)
     @cpx_ccall_error(env, getstrparam, Cint, (Ptr{Void}, Cint, Cstring), env.ptr, pindx, String(val))
 end
-set_param!(T, env::Env, pindx::Cint, val) = warn("Trying to set a parameter of unknown type; doing nothing.")
-set_param!(env::Env, pindx::Int, val) = set_param!(get_param_type(env, pindx), env, convert(Cint, pindx), val)
-set_param!(env::Env, pname::String, val) = set_param!(env, paramName2Indx[pname], val)
+cpx_setparam!(T, env::Env, pindx::Cint, val) = warn("Trying to set a parameter of unknown type; doing nothing.")
+
+cpx_setparam!(env::Env, pindx::Cint, val) = cpx_setparam!(cpx_getparamtype(env, pindx), env, pindx, val)
+
+cpx_setparam!(env::Env, pname::String, val) = cpx_setparam!(env, CPX_PARAMS[pname], val)
 
 
 
