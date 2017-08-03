@@ -74,7 +74,7 @@ function MOI.optimize!(m::CplexSolverInstance)
         optimization sense. This isn't the same as the MOI convention so we need
         to correct that.
     =#
-    if MOI.getattribute(m, MOI.Sense()) == MOI.MaxSense
+    if MOI.getattribute(m, MOI.ObjectiveSense()) == MOI.MaxSense
         m.constraint_dual_solution *= -1
         m.variable_dual_solution *= -1
     end

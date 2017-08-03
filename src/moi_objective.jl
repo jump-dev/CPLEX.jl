@@ -30,8 +30,8 @@ end
     Get the objective sense
 =#
 
-MOI.getattribute(m::CplexSolverInstance,::MOI.Sense) = cpx_getobjsen(m.inner)
-MOI.cangetattribute(m::CplexSolverInstance, ::MOI.Sense) = true
+MOI.getattribute(m::CplexSolverInstance,::MOI.ObjectiveSense) = cpx_getobjsen(m.inner)
+MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ObjectiveSense) = true
 
 #=
     Get the objective function

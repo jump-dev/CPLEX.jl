@@ -115,7 +115,7 @@ end
 
 function cpx_addsos!(model::Model, columns::Vector{Int}, weights::Vector{Cdouble}, sostype::Cchar)
     @assert length(columns) == length(weights)
-    # @assert sostype == '1' || sostype == '2'
+    @assert sostype == CPX_TYPE_SOS1 || sostype == CPX_TYPE_SOS2
     @cpx_ccall_error(model.env, addsos, Cint, (
             Ptr{Void},    # env
             Ptr{Void},    # lp

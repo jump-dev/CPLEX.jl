@@ -24,12 +24,9 @@ module CPLEX
     if startswith(v,"12.6")
         include(joinpath("cpx_defines", "cpx_defines_1261.jl"))
         include(joinpath("cpx_defines", "cpx_params_1261.jl"))
-    elseif startswith(v,"12.7.1")
-        include(joinpath("cpx_defines", "cpx_defines_1261.jl"))
-        include(joinpath("cpx_defines", "cpx_params_1261.jl"))
     elseif startswith(v,"12.7")
-        include(joinpath("cpx_defines", "cpx_defines_1261.jl"))
-        include(joinpath("cpx_defines", "cpx_params_1261.jl"))
+        include(joinpath("cpx_defines", "cpx_defines_1270.jl"))
+        include(joinpath("cpx_defines", "cpx_params_1270.jl"))
     else
         error("Unsupported CPLEX version $v. Only 12.6 and 12.7 are currently supported.")
     end

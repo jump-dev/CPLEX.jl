@@ -2,6 +2,9 @@
     This file can be used to build new parameter file for versions of CPLEX.
     Typically the cpxconst.h file is bound at
     %CPLEX_STUDIO_DIRXXXX%/cplex/include/ilcplex where XXXX is the version number.
+
+    You will probably need to edit the cpx_defines file to remove the duplicate
+    CPX_VERSIONSTRING entry to annoying warnings.
 =#
 const rINT_DEFINE = r"\#define\s+(CPX[a-zA-Z0-9\_]+)\s+([0-9\-]+)[\r\n]+"
 const rDOUBLE_DEFINE = r"\#define\s+(CPX[a-zA-Z0-9\_]+)\s+([0-9\-]+\.[0-9]+E[\-\+][0-9]+)[\r\n]+"
@@ -56,5 +59,5 @@ end
 
 # Example calls
 
-# build_defines_file("cpxconst.h", "cpx_defines_1261.jl")
-# build_params_file("cpxconst.h", "cpx_params_1261.jl")
+build_defines_file("cpxconst.h", "cpx_defines_1270.jl")
+build_params_file("cpxconst.h", "cpx_params_1270.jl")
