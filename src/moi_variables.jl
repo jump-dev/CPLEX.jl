@@ -93,3 +93,16 @@ function MOI.delete!(m::CplexSolverInstance, ref::MOI.VariableReference)
     delete!(cmap(m).interval_bound, ref)
 
 end
+
+#=
+    MIP starts
+=#
+function MOI.setattribute!(m::CplexSolverInstance, ::MOI.VariablePrimalStart, ref::MOI.VariableReference, val::Float64)
+    cpx_addmipstarts!(m.inner, [getcol(m, ref)], [val])
+end
+MOI.cansetattribute(m::CplexSolverInstance, ::MOI.VariablePrimalStart, ::MOI.VariableReference) = true
+
+function MOI.setattribute!(m::CplexSolverInstance, ::MOI.VariablePrimalStart, refs::Vector{MOI.VariableReference}, vals::Vector{Float64})
+    cpx_addmipstarts!(m.inner, getcol.(m, refs), vals)
+end
+MOI.cansetattribute(m::CplexSolverInstance, ::MOI.VariablePrimalStart, ::Vector{MOI.VariableReference}) = true

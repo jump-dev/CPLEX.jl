@@ -1,5 +1,8 @@
 function cpx_newcols!(model::Model, n::Int)
     if n > 0
+        for i in 1:n
+            push!(model.mipstarts, NaN)
+        end
         @cpx_ccall_error(model.env, newcols, Cint, (
           Ptr{Void},
           Ptr{Void},
@@ -76,7 +79,7 @@ function cpx_delcols!(model::Model, colbegin::Int, colend::Int)
 end
 
 
-function cpx_chgctype!(model::Model, vidx::Vector{Int}, vtype::Vector{Char})
+function cpx_chgctype!(model::Model, vidx::Vector{Int}, vtype::Vector{Cchar})
     @cpx_ccall_error(model.env, chgctype, Cint, (
                       Ptr{Void},
                       Ptr{Void},
@@ -99,4 +102,30 @@ function cpx_getctype(model::Model)
                       ),
                       model.env.ptr, model.lp, vartypes, 0, nvars-1)
     return Char.(vartypes)
+end
+
+#=
+    Ref https://github.com/JuliaOpt/CPLEX.jl/pull/114 and
+    https://github.com/JuliaOpt/CPLEX.jl/issues/117
+
+    Basically, mipstarts can only be added to a model if the problem type is
+    integer. However the user might want to set the mip start before the call
+    to integer. Therefore we need to record them in the Model object and run
+    again before calling mipopt
+
+=#
+function cpx_addmipstarts!(model::Model, cols::Vector{Int}, vals::Vector{Float64}, effortlevel::Cint=CPX_MIPSTART_AUTO)
+    @assert length(cols) == length(vals)
+    for (i, v) in zip(cols, vals)
+        model.mipstarts[i] = v
+    end
+    if PROB_TYPE_MAP[cpx_getprobtype(model)] in INTEGER_PROBLEM_TYPES
+        # otherwise problem is not yet integer and we can ignore
+        @cpx_ccall_error(model.env, addmipstarts, Cint,
+            (Ptr{Void}, Ptr{Void}, Cint, Cint, Ptr{Cint}, Ptr{Cint},
+            Ptr{Cdouble}, Ptr{Cint}, Ptr{Ptr{Cchar}}),
+            model.env.ptr, model.lp, Cint(1), Cint(length(cols)), Cint[0],
+            Cint.(cols-1), Cdouble.(vals), Cint[effortlevel], C_NULL
+        )
+    end
 end

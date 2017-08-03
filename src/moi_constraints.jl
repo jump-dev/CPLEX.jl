@@ -310,7 +310,7 @@ end
  we can revert to the old bounds
 =#
 function MOI.addconstraint!(m::CplexSolverInstance, v::SinVar, ::MOI.ZeroOne)
-    cpx_chgctype!(m.inner, [getcol(m, v)], ['B'])
+    cpx_chgctype!(m.inner, [getcol(m, v)], [CPX_BINARY])
     ub = cpx_getub(m.inner, getcol(m, v))
     lb = cpx_getlb(m.inner, getcol(m, v))
     m.last_constraint_reference += 1
@@ -325,7 +325,7 @@ end
 function MOI.delete!(m::CplexSolverInstance, c::SVCR{MOI.ZeroOne})
     dict = constrdict(m, c)
     (v, lb, ub) = dict[c]
-    cpx_chgctype!(m.inner, [getcol(m, v)], ['C'])
+    cpx_chgctype!(m.inner, [getcol(m, v)], [CPX_CONTINUOUS])
     setvariablebound!(m, getcol(m, v), ub, Cchar('U'))
     setvariablebound!(m, getcol(m, v), lb, Cchar('L'))
     delete!(dict, c)
@@ -346,7 +346,7 @@ MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintFunction, c::SVCR{MO
 =#
 
 function MOI.addconstraint!(m::CplexSolverInstance, v::SinVar, ::MOI.Integer)
-    cpx_chgctype!(m.inner, [getcol(m, v)], ['I'])
+    cpx_chgctype!(m.inner, [getcol(m, v)], [CPX_INTEGER])
     m.last_constraint_reference += 1
     ref = MOI.ConstraintReference{SinVar, MOI.Integer}(m.last_constraint_reference)
     dict = constrdict(m, ref)
@@ -358,7 +358,7 @@ end
 function MOI.delete!(m::CplexSolverInstance, c::SVCR{MOI.Integer})
     dict = constrdict(m, c)
     v = dict[c]
-    cpx_chgctype!(m.inner, [getcol(m, v)], ['C'])
+    cpx_chgctype!(m.inner, [getcol(m, v)], [CPX_CONTINUOUS])
     delete!(dict, c)
     if !hasinteger(m)
         _make_problem_type_continuous(m.inner)

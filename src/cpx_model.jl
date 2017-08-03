@@ -1,12 +1,17 @@
-type Model
+mutable struct Model
     env::Env # Cplex environment
     lp::Ptr{Void} # Cplex problem (lp)
     terminator::Vector{Cint}
+    #=
+        See the comment above cpx_addmipstarts!
+    =#
+    mipstarts::Vector{Cdouble}
+    mipstart_effort::Cint
 end
 
 function Model(env::Env, lp::Ptr{Void})
     notify_new_model(env)
-    model = Model(env, lp, Cint[0])
+    model = Model(env, lp, Cint[0], Cdouble[], CPX_MIPSTART_AUTO)
     finalizer(model, m -> begin
                               free_problem(m)
                               notify_freed_model(env)
@@ -87,51 +92,27 @@ function _make_problem_type_continuous(model::Model)
     end
 end
 
-#
-#
-# function read_model(model::Model, filename::String)
-#     stat = @cpx_ccall(readcopyprob, Cint, (Ptr{Void}, Ptr{Void}, Ptr{Cchar}, Ptr{Cchar}), model.env.ptr, model.lp, filename, C_NULL)
-#     if stat != 0
-#         throw(CplexError(model.env, stat))
-#     end
-# end
-#
-# function write_model(model::Model, filename::String)
-#     if endswith(filename,".mps")
-#         filetype = "MPS"
-#     elseif endswith(filename,".lp")
-#         filetype = "LP"
-#     else
-#         error("Unrecognized file extension: $filename (Only .mps and .lp are supported)")
-#     end
-#     stat = @cpx_ccall(writeprob, Cint, (Ptr{Void}, Ptr{Void}, Ptr{Cchar}, Ptr{Cchar}), model.env.ptr, model.lp, filename, filetype)
-#     if stat != 0
-#         throw(CplexError(model.env, stat))
-#     end
-# end
+
+# TODO: test
+function cpx_readcopyprob(model::Model, filename::String)
+    @cpx_ccall_error(model.env, readcopyprob, Cint, (Ptr{Void}, Ptr{Void}, Ptr{Cchar}, Ptr{Cchar}), model.env.ptr, model.lp, filename, C_NULL)
+end
+
+
+function cpx_writeprob(model::Model, filename::String)
+    if endswith(filename,".mps")
+        filetype = "MPS"
+    elseif endswith(filename,".lp")
+        filetype = "LP"
+    else
+        error("Unrecognized file extension: $filename (Only .mps and .lp are supported)")
+    end
+    @cpx_ccall_error(model.env, writeprob, Cint, (Ptr{Void}, Ptr{Void}, Ptr{Cchar}, Ptr{Cchar}), model.env.ptr, model.lp, filename, filetype)
+end
 #
 # ## TODO: deep copy model, reset model
 #
-# set_warm_start!(model::Model, x::Vector{Float64}, effortlevel::Integer = CPX_MIPSTART_AUTO) = set_warm_start!(model, Cint[1:length(x);], x, effortlevel)
-#
-# function set_warm_start!(model::Model, indx::IVec, val::FVec, effortlevel::Integer)
-#     stat = @cpx_ccall(addmipstarts, Cint, (
-#                       Ptr{Void},
-#                       Ptr{Void},
-#                       Cint,
-#                       Cint,
-#                       Ptr{Cint},
-#                       Ptr{Cint},
-#                       Ptr{Cdouble},
-#                       Ptr{Cint},
-#                       Ptr{Ptr{Cchar}}
-#                       ),
-#                       model.env.ptr, model.lp, 1, length(indx), Cint[0], indx -Cint(1), val, Cint[effortlevel], C_NULL)
-#     if stat != 0
-#         throw(CplexError(model.env, stat))
-#     end
-# end
-#
+
 function free_problem(model::Model)
     tmp = Ptr{Void}[model.lp]
     @cpx_ccall_error(model.env, freeprob, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, tmp)

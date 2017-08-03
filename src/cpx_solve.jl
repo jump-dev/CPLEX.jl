@@ -6,11 +6,20 @@ function cpx_lpopt!(model::Model)
   end
 end
 function cpx_mipopt!(model::Model)
-  @assert is_valid(model.env)
-  stat = @cpx_ccall_intercept(model, mipopt, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
-  if stat != 0
-    throw(CplexError(model.env, stat))
-  end
+    #=
+        See the comment above cpx_addmipstarts!
+    =#
+    cols = [i for i in 1:length(model.mipstarts) if !isnan(model.mipstarts[i])]
+    vals = [model.mipstarts[i] for i in 1:length(model.mipstarts) if !isnan(model.mipstarts[i])]
+    if length(cols) > 0
+        cpx_addmipstarts!(model, cols, vals, model.mipstart_effort)
+    end
+
+    @assert is_valid(model.env)
+    stat = @cpx_ccall_intercept(model, mipopt, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
 end
 function cpx_qpopt!(model::Model)
   @assert is_valid(model.env)
