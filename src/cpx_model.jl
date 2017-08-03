@@ -13,10 +13,10 @@ function Model(env::Env, lp::Ptr{Void})
     notify_new_model(env)
     model = Model(env, lp, Cint[0], Cdouble[], CPX_MIPSTART_AUTO)
     finalizer(model, m -> begin
-                              free_problem(m)
+                              cpx_freeprob(m)
                               notify_freed_model(env)
                           end)
-    set_terminate(model)
+    cpx_setterminate(model)
     model
 end
 
@@ -113,12 +113,12 @@ end
 # ## TODO: deep copy model, reset model
 #
 
-function free_problem(model::Model)
+function cpx_freeprob(model::Model)
     tmp = Ptr{Void}[model.lp]
     @cpx_ccall_error(model.env, freeprob, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, tmp)
 end
 
-function set_terminate(model::Model)
+function cpx_setterminate(model::Model)
     @cpx_ccall_error(model.env, setterminate, Cint, (Ptr{Void},Ptr{Cint}), model.env.ptr, model.terminator)
 end
 

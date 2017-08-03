@@ -12,15 +12,12 @@ module CPLEX
         error("CPLEX not properly installed. Please run Pkg.build(\"CPLEX\")")
     end
 
-    ### imports
     import Base: convert, unsafe_convert, show, copy
-
-    using Compat
 
     include("cpx_common.jl")
     include("cpx_env.jl")
 
-    v = version()
+    v = cpx_version()
     if startswith(v,"12.6")
         include(joinpath("cpx_defines", "cpx_defines_1261.jl"))
         include(joinpath("cpx_defines", "cpx_params_1261.jl"))
@@ -31,17 +28,8 @@ module CPLEX
         error("Unsupported CPLEX version $v. Only 12.6 and 12.7 are currently supported.")
     end
 
-
     include("cpx_model.jl")
     include("cpx_params.jl")
-    # include("cpx_vars.jl")
-    # include("cpx_constrs.jl")
-    # include("cpx_quad.jl")
-    # include("cpx_solve.jl")
-    # include("cpx_callbacks.jl")
-    # include("cpx_highlevel.jl")
-
-
     include("cpx_variables.jl")
     include("cpx_constraints.jl")
     include("cpx_objective.jl")
