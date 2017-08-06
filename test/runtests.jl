@@ -4,6 +4,11 @@ using CPLEX
 using MathOptInterface
 const MOI = MathOptInterface
 
+# @testset "Basic CPLEX Only tests" begin
+#     s = CplexSolver(logfile="abc.txt")
+#     m = MOI.SolverInstance(s)
+# end
+
 include(joinpath(Pkg.dir("MathOptInterface"), "test", "contlinear.jl"))
 
 @testset "LP Related Tests" begin

@@ -3,6 +3,12 @@
 =#
 
 function MOI.setobjective!(m::CplexSolverInstance, sense::MOI.OptimizationSense, objf::Linear)
+    if m.obj_is_quad
+        # previous objective was quadratic...
+        m.obj_is_quad = false
+        # zero quadratic part
+        cpx_copyquad!(m.inner, Int[], Int[], Float64[])
+    end
     cpx_chgobj!(m.inner, getcol.(m, objf.variables), objf.coefficients)
     setsense!(m, sense)
     m.objective_constant = objf.constant

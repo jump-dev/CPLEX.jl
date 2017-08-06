@@ -14,10 +14,12 @@ const MOI = MathOptInterface
 export CplexSolver
 
 struct CplexSolver <: MOI.AbstractSolver
+    mipstart_effortlevel::Cint
+    logfile::String
     options
 end
-function CplexSolver(;mipstart_effortlevel::Cint = CPX_MIPSTART_AUTO, options...)
-    CplexSolver(options)
+function CplexSolver(;mipstart_effortlevel::Cint = CPX_MIPSTART_AUTO, logfile::String="", options...)
+    CplexSolver(mipstart_effortlevel, logfile, options)
 end
 
 MOI.getattribute(s::CplexSolver, ::MOI.SupportsDuals) = true
@@ -161,7 +163,7 @@ function MOI.SolverInstance(s::CplexSolver)
     for (name,value) in s.options
         cpx_setparam!(env, string(name), value)
     end
-    CplexSolverInstance(
+    csi = CplexSolverInstance(
         Model(env),
         false,
         0,
@@ -183,6 +185,11 @@ function MOI.SolverInstance(s::CplexSolver)
         0,
         0.0
     )
+    csi.inner.mipstart_effort = s.mipstart_effortlevel
+    if s.logfile != ""
+        cpx_setlogfile!(env, s.logfile)
+    end
+    return csi
 end
 
 # a useful helper function
