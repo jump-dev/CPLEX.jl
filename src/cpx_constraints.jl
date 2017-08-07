@@ -131,7 +131,7 @@ function cpx_addsos!(model::Model, columns::Vector{Int}, weights::Vector{Cdouble
         model.lp,
         Cint(1),
         Cint(length(weights)),
-        [Cchar(sostype)],
+        [sostype],
         [Cint(0)],
         Cint.(columns-1),
         Cdouble.(weights),
@@ -144,6 +144,12 @@ function cpx_delsos!(model::Model, ibegin::Int, iend::Int)
         (Ptr{Void}, Ptr{Void}, Cint, Cint),
         model.env.ptr, model.lp, Cint(ibegin-1), Cint(iend-1)
     )
+end
+
+function cpx_getnumsos(model::Model)
+    @cpx_ccall(getnumsos, Cint,
+        (Ptr{Void}, Ptr{Void}),
+        model.env.ptr, model.lp)
 end
 
 function cpx_getsos(model::Model, idx::Int)

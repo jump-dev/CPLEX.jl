@@ -10,15 +10,23 @@ end
 constrdict(m::CplexSolverInstance, ::LCR{LE})  = cmap(m).less_than
 constrdict(m::CplexSolverInstance, ::LCR{GE})  = cmap(m).greater_than
 constrdict(m::CplexSolverInstance, ::LCR{EQ})  = cmap(m).equal_to
+
+constrdict(m::CplexSolverInstance, ::VLCR{MOI.Nonnegatives})  = cmap(m).nonnegatives
+constrdict(m::CplexSolverInstance, ::VLCR{MOI.Nonpositives}) = cmap(m).nonpositives
+constrdict(m::CplexSolverInstance, ::VLCR{MOI.Zeros})         = cmap(m).zeros
+
 constrdict(m::CplexSolverInstance, ::QCR{LE})  = cmap(m).q_less_than
 constrdict(m::CplexSolverInstance, ::QCR{GE})  = cmap(m).q_greater_than
 constrdict(m::CplexSolverInstance, ::QCR{EQ})  = cmap(m).q_equal_to
+
 constrdict(m::CplexSolverInstance, ::SVCR{LE}) = cmap(m).upper_bound
 constrdict(m::CplexSolverInstance, ::SVCR{GE}) = cmap(m).lower_bound
 constrdict(m::CplexSolverInstance, ::SVCR{EQ}) = cmap(m).fixed_bound
 constrdict(m::CplexSolverInstance, ::SVCR{IV}) = cmap(m).interval_bound
+
 constrdict(m::CplexSolverInstance, ::SVCR{MOI.ZeroOne}) = cmap(m).binary
 constrdict(m::CplexSolverInstance, ::SVCR{MOI.Integer}) = cmap(m).integer
+
 constrdict(m::CplexSolverInstance, ::VVCR{MOI.SOS1}) = cmap(m).sos1
 constrdict(m::CplexSolverInstance, ::VVCR{MOI.SOS2}) = cmap(m).sos2
 
@@ -490,4 +498,61 @@ function reduceduplicates(rowi::Vector{T}, coli::Vector{T}, vals::Vector{S}) whe
         vi[i] = val
     end
     ri, ci, vi
+end
+
+#=
+    Vector valued constraints
+=#
+
+
+function MOI.addconstraint!(m::CplexSolverInstance, func::VecLin, set::S) where S <: Union{MOI.Nonnegatives, MOI.Nonpositives, MOI.Zeros}
+    @assert MOI.dimension(set) == length(func.constant)
+
+    nrows = cpx_getnumrows(m.inner)
+    addlinearconstraint!(m, func, getsense(set))
+    nrows2 = cpx_getnumrows(m.inner)
+
+    m.last_constraint_reference += 1
+    ref = MOI.ConstraintReference{VecLin, S}(m.last_constraint_reference)
+
+    dict = constrdict(m, ref)
+    dict[ref] = collect(nrows+1:nrows2)
+    for i in 1:MOI.dimension(set)
+        push!(m.constraint_primal_solution, NaN)
+        push!(m.constraint_dual_solution, NaN)
+    end
+    ref
+end
+
+getsense(::MOI.Zeros)        = Cchar('E')
+getsense(::MOI.Nonpositives) = Cchar('L')
+getsense(::MOI.Nonnegatives) = Cchar('G')
+
+function addlinearconstraint!(m::CplexSolverInstance, func::VecLin, sense::Cchar)
+    @assert length(func.outputindex) == length(func.variables) == length(func.coefficients)
+    # get list of unique rows
+    rows = unique(func.outputindex)
+    @assert length(rows) == length(func.constant)
+    # sort into row order
+    pidx = sortperm(func.outputindex)
+    cols = getcol.(m, func.variables)[pidx]
+    vals = func.coefficients[pidx]
+    # loop through to gte starting position of each row
+    rowbegins = Vector{Int}(length(rows))
+    rowbegins[1] = 1
+    cnt = 1
+    for i in 2:length(pidx)
+        if func.outputindex[pidx[i]] != func.outputindex[pidx[i-1]]
+            cnt += 1
+            rowbegins[cnt] = i
+        end
+    end
+    cpx_addrows!(m.inner, rowbegins, cols, vals, fill(sense, length(rows)), -func.constant)
+end
+
+function MOI.modifyconstraint!(m::CplexSolverInstance, ref::VLCR{<: Union{MOI.Nonnegatives, MOI.Nonpositives, MOI.Zeros}}, chg::MOI.VectorConstantChange{Float64})
+    @assert length(chg.new_constant) == length(m[ref])
+    for (r, v) in zip(m[ref], chg.new_constant)
+        cpx_chgcoef!(m.inner, r, 0, -v)
+    end
 end

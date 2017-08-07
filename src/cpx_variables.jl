@@ -87,7 +87,7 @@ function cpx_chgctype!(model::Model, vidx::Vector{Int}, vtype::Vector{Cchar})
                       Ptr{Cint},
                       Ptr{Cchar}
                       ),
-                      model.env.ptr, model.lp, length(vtype), Cint.(vidx), Cchar.(vtype))
+                      model.env.ptr, model.lp, length(vtype), Cint.(vidx-1), Cchar.(vtype))
 end
 
 function cpx_getctype(model::Model)

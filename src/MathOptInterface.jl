@@ -33,6 +33,7 @@ const Linear = MOI.ScalarAffineFunction{Float64}
 const Quad   = MOI.ScalarQuadraticFunction{Float64}
 const SinVar = MOI.SingleVariable
 const VecVar = MOI.VectorOfVariables
+const VecLin = MOI.VectorAffineFunction{Float64}
 # sets
 const LE     = MOI.LessThan{Float64}
 const GE     = MOI.GreaterThan{Float64}
@@ -41,6 +42,7 @@ const IV     = MOI.Interval{Float64}
 # constraint references
 const CR{F,S} = MOI.ConstraintReference{F,S}
 const LCR{S} = CR{Linear,S}
+const VLCR{S} = CR{VecLin,S}
 const QCR{S} = CR{Quad,S}
 const SVCR{S}  = CR{SinVar, S}
 const VVCR{S}  = CR{VecVar, S}
@@ -66,7 +68,10 @@ const SUPPORTED_CONSTRAINTS = [
     (SinVar, MOI.ZeroOne),
     (SinVar, MOI.Integer),
     (VecVar, MOI.SOS1),
-    (VecVar, MOI.SOS2)
+    (VecVar, MOI.SOS2),
+    (VecLin, MOI.Nonnegatives),
+    (VecLin, MOI.Nonpositives),
+    (VecLin, MOI.Zeros)
 ]
 
 function MOI.supportsproblem(s::CplexSolver, objective_type, constraint_types)
@@ -86,6 +91,11 @@ struct ConstraintMapping
     less_than::Dict{LCR{LE}, Int}
     greater_than::Dict{LCR{GE}, Int}
     equal_to::Dict{LCR{EQ}, Int}
+
+    # vectors of rows in constraint matrix
+    nonnegatives::Dict{VLCR{MOI.Nonnegatives}, Vector{Int}}
+    nonpositives::Dict{VLCR{MOI.Nonpositives}, Vector{Int}}
+    zeros::Dict{VLCR{MOI.Zeros}, Vector{Int}}
 
     # rows in quadratic constraint matrix
     q_less_than::Dict{QCR{LE}, Int}
@@ -112,6 +122,9 @@ ConstraintMapping() = ConstraintMapping(
     Dict{LCR{LE}, Int}(),
     Dict{LCR{GE}, Int}(),
     Dict{LCR{EQ}, Int}(),
+    Dict{VLCR{MOI.Nonnegatives}, Vector{Int}}(),
+    Dict{VLCR{MOI.Nonpositives}, Vector{Int}}(),
+    Dict{VLCR{MOI.Zeros}, Vector{Int}}(),
     Dict{QCR{LE}, Int}(),
     Dict{QCR{GE}, Int}(),
     Dict{QCR{EQ}, Int}(),

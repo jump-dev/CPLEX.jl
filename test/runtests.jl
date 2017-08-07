@@ -12,35 +12,22 @@ const MOI = MathOptInterface
 include(joinpath(Pkg.dir("MathOptInterface"), "test", "contlinear.jl"))
 
 @testset "LP Related Tests" begin
-    linear1test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
-    linear2test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
-    linear3test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
-    linear4test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
-    linear5test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
-    linear6test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
-    # # linear7test(CplexSolver(), 1e-8)
-    linear8test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
-    linear9test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
+    # run all MOI cont linear tests
+    contlineartest(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
 end
 
 include(joinpath(Pkg.dir("MathOptInterface"), "test", "intlinear.jl"))
 
 @testset "MIP Related Tests" begin
-    knapsacktest(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
-    int1test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
-    int2test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
+    # run all MOI int linear tests
+    intlineartest(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
 end
 
 include(joinpath(Pkg.dir("MathOptInterface"), "test", "contquadratic.jl"))
 
 @testset "QP Related Tests" begin
-    qpp0test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
-    qpp1test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
-    QP01test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
-    # # qpp2test(CplexSolver(), 1e-8)
-    qpd0test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
-    qpd1test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
-    socptest(CplexSolver(CPX_PARAM_SCRIND=0), 1e-8)
+    # run all MOI cont quadratic tests
+    contquadratictests(CplexSolver(CPX_PARAM_SCRIND=0), 1e-4)
 end
 
 # include("constants.jl")
