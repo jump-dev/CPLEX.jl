@@ -327,6 +327,15 @@ function MOI.modifyconstraint!(m::CplexSolverInstance, c::LCR{S}, newset::S) whe
     cpx_chgcoef!(m.inner, m[c], 0, _newrhs(newset))
 end
 
+function MOI.modifyconstraint!(m::CplexSolverInstance, c::LCR{IV}, set::IV)
+    # the column 0 (or -1 in 0-index) is the rhs.
+    # a range constraint has the RHS value of the lower limit of the range, and
+    # a rngval equal to upper-lower.
+    row = m[c]
+    cpx_chgcoef!(m.inner, row, 0, set.lower)
+    cpx_chgrngval!(m.inner, [row], [set.upper - set.lower])
+end
+
 #=
     Delete a linear constraint
 =#
