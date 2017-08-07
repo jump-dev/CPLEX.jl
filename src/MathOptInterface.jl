@@ -58,6 +58,7 @@ const SUPPORTED_CONSTRAINTS = [
     (Linear, EQ),
     (Linear, LE),
     (Linear, GE),
+    (Linear, IV),
     (Quad, EQ),
     (Quad, LE),
     (Quad, GE),
@@ -94,6 +95,7 @@ struct ConstraintMapping
     less_than::Dict{LCR{LE}, Int}
     greater_than::Dict{LCR{GE}, Int}
     equal_to::Dict{LCR{EQ}, Int}
+    interval::Dict{LCR{IV}, Int}
 
     # vectors of rows in constraint matrix
     nonnegatives::Dict{VLCR{MOI.Nonnegatives}, Vector{Int}}
@@ -130,6 +132,7 @@ ConstraintMapping() = ConstraintMapping(
     Dict{LCR{LE}, Int}(),
     Dict{LCR{GE}, Int}(),
     Dict{LCR{EQ}, Int}(),
+    Dict{LCR{IV}, Int}(),
     Dict{VLCR{MOI.Nonnegatives}, Vector{Int}}(),
     Dict{VLCR{MOI.Nonpositives}, Vector{Int}}(),
     Dict{VLCR{MOI.Zeros}, Vector{Int}}(),

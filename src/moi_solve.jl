@@ -172,11 +172,11 @@ MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintDual, c::SVCR{<: Uni
     Constraint Primal solution
 =#
 
-function MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintPrimal, c::LCR{<: Union{LE, GE, EQ}})
+function MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintPrimal, c::LCR{<: Union{LE, GE, EQ, IV}})
     row = m[c]
     return m.constraint_primal_solution[row]
 end
-MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintPrimal,c::LCR{<: Union{LE, GE, EQ}}) = true
+MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintPrimal,c::LCR{<: Union{LE, GE, EQ, IV}}) = true
 
 
 # vector valued constraint duals
@@ -187,26 +187,18 @@ MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintPrimal,c::VLCR{<: Un
     Constraint Dual solution
 =#
 
-function MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintDual, c::LCR{LE})
-    dual = _getconstraintdual(m, c)
-    @assert dual <= 0.0
-    return dual
-end
-function MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintDual, c::LCR{GE})
-    dual = _getconstraintdual(m, c)
-    @assert dual >= 0.0
-    return dual
-end
-function MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintDual, c::LCR{<: Union{LE, GE, EQ}})
-    _getconstraintdual(m, c)
-end
+_checkdualsense(::LCR{LE}, dual) = dual <= 0.0
+_checkdualsense(::LCR{GE}, dual) = dual >= 0.0
+_checkdualsense(::LCR{IV}, dual) = true
+_checkdualsense(::LCR{EQ}, dual) = true
 
-function _getconstraintdual(m::CplexSolverInstance, c::LCR{<: Union{LE, GE, EQ}})
+function MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintDual, c::LCR{<: Union{LE, GE, EQ, IV}})
     row = m[c]
-    return m.constraint_dual_solution[row]
+    dual = m.constraint_dual_solution[row]
+    @assert _checkdualsense(c, dual)
+    return dual
 end
-
-MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintDual,c::LCR{<: Union{LE, GE, EQ}}) = true
+MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintDual,c::LCR{<: Union{LE, GE, EQ, IV}}) = true
 
 # vector valued constraint duals
 MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintDual, c::VLCR{<: Union{MOI.Zeros, MOI.Nonnegatives, MOI.Nonpositives}}) = m.constraint_dual_solution[m[c]]

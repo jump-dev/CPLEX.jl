@@ -10,6 +10,7 @@ end
 constrdict(m::CplexSolverInstance, ::LCR{LE})  = cmap(m).less_than
 constrdict(m::CplexSolverInstance, ::LCR{GE})  = cmap(m).greater_than
 constrdict(m::CplexSolverInstance, ::LCR{EQ})  = cmap(m).equal_to
+constrdict(m::CplexSolverInstance, ::LCR{IV})  = cmap(m).interval
 
 constrdict(m::CplexSolverInstance, ::VLCR{MOI.Nonnegatives})  = cmap(m).nonnegatives
 constrdict(m::CplexSolverInstance, ::VLCR{MOI.Nonpositives}) = cmap(m).nonpositives
@@ -187,7 +188,7 @@ end
     Add linear constraints
 =#
 
-function MOI.addconstraint!(m::CplexSolverInstance, func::Linear, set::T) where T <: Union{LE, GE, EQ}
+function MOI.addconstraint!(m::CplexSolverInstance, func::Linear, set::T) where T <: Union{LE, GE, EQ, IV}
     addlinearconstraint!(m, func, set)
     m.last_constraint_reference += 1
     ref = MOI.ConstraintReference{Linear, T}(m.last_constraint_reference)
@@ -208,6 +209,11 @@ function addlinearconstraint!(m::CplexSolverInstance, func::Linear, set::EQ)
     addlinearconstraint!(m, func, Cchar('E'), set.value)
 end
 
+function addlinearconstraint!(m::CplexSolverInstance, func::Linear, set::IV)
+    addlinearconstraint!(m, func, Cchar('R'), set.lower)
+    cpx_chgrngval!(m.inner, [cpx_getnumrows(m.inner)], [set.upper - set.lower])
+end
+
 function addlinearconstraint!(m::CplexSolverInstance, func::Linear, sense::Cchar, rhs)
     if abs(func.constant) > eps(Float64)
         warn("Constant in scalar function moved into set.")
@@ -219,7 +225,7 @@ end
     Add linear constraints (plural)
 =#
 
-function MOI.addconstraints!(m::CplexSolverInstance, func::Vector{Linear}, set::Vector{S}) where S <: Union{LE, GE, EQ}
+function MOI.addconstraints!(m::CplexSolverInstance, func::Vector{Linear}, set::Vector{S}) where S <: Union{LE, GE, EQ, IV}
     @assert length(func) == length(set)
     numrows = cpx_getnumrows(m.inner)
     addlinearconstraints!(m, func, set)
@@ -244,6 +250,13 @@ function addlinearconstraints!(m::CplexSolverInstance, func::Vector{Linear}, set
 end
 function addlinearconstraints!(m::CplexSolverInstance, func::Vector{Linear}, set::Vector{EQ})
     addlinearconstraints!(m, func, fill(Cchar('E'), length(func)), [s.value for s in set])
+end
+
+function addlinearconstraints!(m::CplexSolverInstance, func::Vector{Linear}, set::Vector{IV})
+    numrows = cpx_getnumrows(m.inner)
+    addlinearconstraints!(m, func, fill(Cchar('R'), length(func)), [s.lower for s in set])
+    numrows2 = cpx_getnumrows(m.inner)
+    cpx_chgrngval!(m.inner, collect(numrows+1:numrows2), [s.upper - s.lower for s in set])
 end
 
 function addlinearconstraints!(m::CplexSolverInstance, func::Vector{Linear}, sense::Vector{Cchar}, rhs::Vector{Float64})
@@ -286,18 +299,18 @@ MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintSet, ::LCR{<: Union{
     Constraint function of Linear function
 =#
 
-function MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintFunction, c::LCR{<: Union{LE, GE, EQ}})
+function MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintFunction, c::LCR{<: Union{LE, GE, EQ, IV}})
     # TODO more efficiently
     colidx, coefs = cpx_getrows(m.inner, m[c])
     MOI.ScalarAffineFunction(m.variable_references[colidx+1] , coefs, 0.0)
 end
-MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintFunction, c::LCR{<: Union{LE, GE, EQ}}) = true
+MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintFunction, c::LCR{<: Union{LE, GE, EQ, IV}}) = true
 
 #=
     Scalar Coefficient Change of Linear Constraint
 =#
 
-function MOI.modifyconstraint!(m::CplexSolverInstance, c::LCR{<: Union{LE, GE, EQ}}, chg::MOI.ScalarCoefficientChange{Float64})
+function MOI.modifyconstraint!(m::CplexSolverInstance, c::LCR{<: Union{LE, GE, EQ, IV}}, chg::MOI.ScalarCoefficientChange{Float64})
     col = m.variable_mapping[chg.variable]
     cpx_chgcoef!(m.inner, m[c], col, chg.new_coefficient)
 end
@@ -318,12 +331,13 @@ end
     Delete a linear constraint
 =#
 
-function deleteref!(m::CplexSolverInstance, row::Int, ref::LCR{<: Union{LE, GE, EQ}})
+function deleteref!(m::CplexSolverInstance, row::Int, ref::LCR{<: Union{LE, GE, EQ, IV}})
     deleteref!(cmap(m).less_than, row, ref)
     deleteref!(cmap(m).greater_than, row, ref)
     deleteref!(cmap(m).equal_to, row, ref)
+    deleteref!(cmap(m).interval, row, ref)
 end
-function MOI.delete!(m::CplexSolverInstance, c::LCR{<: Union{LE, GE, EQ}})
+function MOI.delete!(m::CplexSolverInstance, c::LCR{<: Union{LE, GE, EQ, IV}})
     dict = constrdict(m, c)
     row = dict[c]
     cpx_delrows!(m.inner, row, row)

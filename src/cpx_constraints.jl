@@ -18,6 +18,18 @@ function cpx_addrows!(model::Model, rowidxbegins::Vector{Int}, cols::Vector{Int}
         model.env.ptr, model.lp, 0, Cint(length(rowidxbegins)), nnz, Cdouble.(rhs), sense, Cint.(rowidxbegins-1), Cint.(cols-1), coefficients, C_NULL, C_NULL)
 end
 
+#=
+    A ranged constraint has the form
+     lb <= f(x) <= ub
+     this is implemented by adding a row f(x) 'R' lb, and changing the rngval
+     to ub-lb
+=#
+function cpx_chgrngval!(model::Model, rows::Vector{<:Integer}, vals::Vector{<:Real})
+    @cpx_ccall_error(model.env, chgrngval, Cint, (
+          Ptr{Void}, Ptr{Void}, Cint, Ptr{Cint}, Ptr{Cdouble}),
+          model.env.ptr, model.lp, Cint(length(rows)), Cint.(rows-1), Cdouble.(vals))
+end
+
 function cpx_getnumrows(model::Model)
     ncons = @cpx_ccall(getnumrows, Cint, (
                        Ptr{Void},
