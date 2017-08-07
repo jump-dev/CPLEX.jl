@@ -24,11 +24,23 @@ constrdict(m::CplexSolverInstance, ::SVCR{GE}) = cmap(m).lower_bound
 constrdict(m::CplexSolverInstance, ::SVCR{EQ}) = cmap(m).fixed_bound
 constrdict(m::CplexSolverInstance, ::SVCR{IV}) = cmap(m).interval_bound
 
+constrdict(m::CplexSolverInstance, ::VVCR{MOI.Nonnegatives}) = cmap(m).vv_nonnegatives
+constrdict(m::CplexSolverInstance, ::VVCR{MOI.Nonpositives}) = cmap(m).vv_nonpositives
+constrdict(m::CplexSolverInstance, ::VVCR{MOI.Zeros}) = cmap(m).vv_zeros
+
 constrdict(m::CplexSolverInstance, ::SVCR{MOI.ZeroOne}) = cmap(m).binary
 constrdict(m::CplexSolverInstance, ::SVCR{MOI.Integer}) = cmap(m).integer
 
 constrdict(m::CplexSolverInstance, ::VVCR{MOI.SOS1}) = cmap(m).sos1
 constrdict(m::CplexSolverInstance, ::VVCR{MOI.SOS2}) = cmap(m).sos2
+
+
+getsense(::MOI.Zeros)        = Cchar('E')
+getsense(::MOI.Nonpositives) = Cchar('L')
+getsense(::MOI.Nonnegatives) = Cchar('G')
+getboundsense(::MOI.Nonpositives) = Cchar('U')
+getboundsense(::MOI.Nonnegatives) = Cchar('L')
+
 
 #=
     Get number of constraints
@@ -146,6 +158,29 @@ function MOI.delete!(m::CplexSolverInstance, c::SVCR{S}) where S <: Union{LE, GE
     vref = dict[c]
     setvariablebound!(m, MOI.SingleVariable(vref), MOI.Interval{Float64}(-Inf, Inf))
     delete!(dict, c)
+end
+
+#=
+    Vector valued bounds
+=#
+function setvariablebounds!(m::CplexSolverInstance, func::VecVar, set::S)  where S <: Union{MOI.Nonnegatives, MOI.Nonpositives}
+    n = MOI.dimension(set)
+    cpx_chgbds!(m.inner, getcol.(m, func.variables), fill(0.0, n), fill(getboundsense(set), n))
+end
+function setvariablebounds!(m::CplexSolverInstance, func::VecVar, set::MOI.Zeros)
+    n = MOI.dimension(set)
+    cpx_chgbds!(m.inner, getcol.(m, func.variables), fill(0.0, n), fill(Cchar('L'), n))
+    cpx_chgbds!(m.inner, getcol.(m, func.variables), fill(0.0, n), fill(Cchar('U'), n))
+end
+
+function MOI.addconstraint!(m::CplexSolverInstance, func::VecVar, set::S) where S <: Union{MOI.Nonnegatives, MOI.Nonpositives, MOI.Zeros}
+    @assert length(func.variables) == MOI.dimension(set)
+    setvariablebounds!(m, func, set)
+    m.last_constraint_reference += 1
+    ref = MOI.ConstraintReference{VecVar, S}(m.last_constraint_reference)
+    dict = constrdict(m, ref)
+    dict[ref] = func.variables
+    return ref
 end
 
 #=
@@ -523,10 +558,6 @@ function MOI.addconstraint!(m::CplexSolverInstance, func::VecLin, set::S) where 
     end
     ref
 end
-
-getsense(::MOI.Zeros)        = Cchar('E')
-getsense(::MOI.Nonpositives) = Cchar('L')
-getsense(::MOI.Nonnegatives) = Cchar('G')
 
 function addlinearconstraint!(m::CplexSolverInstance, func::VecLin, sense::Cchar)
     @assert length(func.outputindex) == length(func.variables) == length(func.coefficients)

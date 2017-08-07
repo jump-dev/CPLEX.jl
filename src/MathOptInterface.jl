@@ -69,6 +69,9 @@ const SUPPORTED_CONSTRAINTS = [
     (SinVar, MOI.Integer),
     (VecVar, MOI.SOS1),
     (VecVar, MOI.SOS2),
+    (VecVar, MOI.Nonnegatives),
+    (VecVar, MOI.Nonpositives),
+    (VecVar, MOI.Zeros),
     (VecLin, MOI.Nonnegatives),
     (VecLin, MOI.Nonpositives),
     (VecLin, MOI.Zeros)
@@ -108,6 +111,11 @@ struct ConstraintMapping
     fixed_bound::Dict{SVCR{EQ}, VarRef}
     interval_bound::Dict{SVCR{MOI.Interval{Float64}}, VarRef}
 
+    # vectors of rows in constraint matrix
+    vv_nonnegatives::Dict{VVCR{MOI.Nonnegatives}, Vector{VarRef}}
+    vv_nonpositives::Dict{VVCR{MOI.Nonpositives}, Vector{VarRef}}
+    vv_zeros::Dict{VVCR{MOI.Zeros}, Vector{VarRef}}
+
     integer::Dict{SVCR{MOI.Integer}, VarRef}
     #=
      for some reason CPLEX doesn't respect bounds on a binary variable, so we
@@ -132,6 +140,9 @@ ConstraintMapping() = ConstraintMapping(
     Dict{SVCR{GE}, VarRef}(),
     Dict{SVCR{EQ}, VarRef}(),
     Dict{SVCR{IV}, VarRef}(),
+    Dict{VVCR{MOI.Nonnegatives}, Vector{VarRef}}(),
+    Dict{VVCR{MOI.Nonpositives}, Vector{VarRef}}(),
+    Dict{VVCR{MOI.Zeros}, Vector{VarRef}}(),
     Dict{SVCR{MOI.Integer}, VarRef}(),
     Dict{SVCR{MOI.ZeroOne}, Tuple{VarRef, Float64, Float64}}(),
     Dict{VVCR{MOI.SOS1}, Int}(),

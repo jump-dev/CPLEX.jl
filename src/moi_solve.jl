@@ -178,6 +178,11 @@ function MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintPrimal, c::LCR
 end
 MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintPrimal,c::LCR{<: Union{LE, GE, EQ}}) = true
 
+
+# vector valued constraint duals
+MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintPrimal, c::VLCR{<: Union{MOI.Zeros, MOI.Nonnegatives, MOI.Nonpositives}}) = m.constraint_primal_solution[m[c]]
+MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintPrimal,c::VLCR{<: Union{MOI.Zeros, MOI.Nonnegatives, MOI.Nonpositives}}) = true
+
 #=
     Constraint Dual solution
 =#
@@ -200,8 +205,12 @@ function _getconstraintdual(m::CplexSolverInstance, c::LCR{<: Union{LE, GE, EQ}}
     row = m[c]
     return m.constraint_dual_solution[row]
 end
+
 MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintDual,c::LCR{<: Union{LE, GE, EQ}}) = true
 
+# vector valued constraint duals
+MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintDual, c::VLCR{<: Union{MOI.Zeros, MOI.Nonnegatives, MOI.Nonpositives}}) = m.constraint_dual_solution[m[c]]
+MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintDual,c::VLCR{<: Union{MOI.Zeros, MOI.Nonnegatives, MOI.Nonpositives}}) = true
 
 #=
     Solution Attributes

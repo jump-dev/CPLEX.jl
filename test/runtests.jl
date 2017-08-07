@@ -30,23 +30,18 @@ include(joinpath(Pkg.dir("MathOptInterface"), "test", "contquadratic.jl"))
     contquadratictests(CplexSolver(CPX_PARAM_SCRIND=0), 1e-4)
 end
 
-# include("constants.jl")
-# include("low_level_api.jl")
-# @testset "LP" begin
-#     include("lp_01.jl")
-#     include("lp_02.jl")
-#     include("lp_03.jl")
-# end
-# include("mip_01.jl")
-# @testset "QP" begin
-#     include("qp_01.jl")
-#     include("qp_02.jl")
-# end
-# include("qcqp_01.jl")
-# include("env.jl")
-# include("sos.jl")
-# include("problemtype.jl")
-# include("miqcp.jl")
-# @testset "MathProgBase" begin
-#     include("mathprog.jl")
-# end
+include(joinpath(Pkg.dir("MathOptInterface"), "test", "contconic.jl"))
+
+@testset "Conic Related Tests" begin
+    # run some MOI cont conic tests
+    lin1test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-4)
+    lin2test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-4)
+
+    # requires conic duals
+    lin1atest(CplexSolver(CPX_PARAM_SCRIND=0), 1e-4)
+    lin2atest(CplexSolver(CPX_PARAM_SCRIND=0), 1e-4)
+
+    #requires infeasibility certificates
+    # lin3test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-4)
+    # lin4test(CplexSolver(CPX_PARAM_SCRIND=0), 1e-4)
+end
