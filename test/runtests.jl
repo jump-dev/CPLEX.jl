@@ -13,7 +13,7 @@ include(joinpath(Pkg.dir("MathOptInterface"), "test", "contlinear.jl"))
 
 @testset "LP Related Tests" begin
     # run all MOI cont linear tests
-    contlineartest(CplexSolver(CPX_PARAM_SCRIND=0))
+    contlineartest(CplexSolver(CPX_PARAM_SCRIND=0, CPX_PARAM_PREIND=0))
 end
 
 include(joinpath(Pkg.dir("MathOptInterface"), "test", "intlinear.jl"))

@@ -29,6 +29,14 @@ function cpx_qpopt!(model::Model)
   end
 end
 
+function cpx_dualopt!(model::Model)
+  @assert is_valid(model.env)
+  stat = @cpx_ccall_intercept(model, dualopt, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
+  if stat != 0
+    throw(CplexError(model.env, stat))
+  end
+end
+
 cpx_getstat(model::Model) = @cpx_ccall(getstat, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
 
 function cpx_solninfo(model::Model)

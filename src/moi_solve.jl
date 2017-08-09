@@ -58,16 +58,11 @@ function MOI.optimize!(m::CplexSolverInstance)
         m.dual_result_count = 1
     end
 
-    # TODO: handle the case where we can find a proof of infeasibility etc.
-    # if m.termination_status == MOI.InfeasibleNoResult
-    #     cpx_dualfarkas!(m.inner, m.constraint_primal_solution)
-    #     m.termination_status = MOI.Success
-    #     m.primal_status = MOI.InfeasibilityCertificate
-    # elseif m.termination_status == MOI.UnboundedNoResult
-    #     cpx_getray!(m.inner, m.variable_primal_solution)
-    #     m.termination_status = MOI.Success
-    #     m.termination_status = MOI.ReductionCertificate
-    # end
+    if code == CPX_STAT_INFEASIBLE
+        solvefordualfarkas!(m)
+    elseif code == CPX_STAT_UNBOUNDED
+        solveforunboundedray!(m)
+    end
 
     #=
         CPLEX has the dual convention that the sign of the dual depends on the
@@ -80,12 +75,30 @@ function MOI.optimize!(m::CplexSolverInstance)
     end
 end
 
+function solvefordualfarkas!(m::CplexSolverInstance)
+    cpx_dualopt!(m.inner)
+    code = cpx_getstat(m.inner)
+    @assert code == CPX_STAT_INFEASIBLE
+    cpx_dualfarkas!(m.inner, m.constraint_dual_solution)
+    m.dual_status = MOI.InfeasibilityCertificate
+    m.termination_status = MOI.Success
+    m.dual_result_count = 1
+end
+
+function solveforunboundedray!(m::CplexSolverInstance)
+    code = cpx_getstat(m.inner)
+    @assert code == CPX_STAT_UNBOUNDED
+    cpx_getray!(m.inner, m.variable_primal_solution)
+    m.primal_status = MOI.InfeasibilityCertificate
+    m.termination_status = MOI.Success
+    m.primal_result_count = 1
+end
+
 #=
     Result Count
-    TODO: improve
 =#
 function MOI.getattribute(m::CplexSolverInstance, ::MOI.ResultCount)
-    m.primal_result_count
+    max(m.primal_result_count, m.dual_result_count)
 end
 MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ResultCount) = true
 

@@ -1,12 +1,3 @@
-#=
-    TODO
-
-    integer
-    quadratic
-    sos
-    parameters
-    unbounded/infeasibility rays
-=#
 using MathOptInterface
 
 const MOI = MathOptInterface
