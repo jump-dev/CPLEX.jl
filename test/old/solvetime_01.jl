@@ -13,7 +13,7 @@
 using CPLEX
 using JuMP
 
-m = Model(solver=CplexSolver())
+m = Model(solver=CplexMPBSolver())
 @variable(m, 5 >= x >= 0)
 @variable(m, 10 >= y >= 0, Int)
 @variable(m, z, Bin)

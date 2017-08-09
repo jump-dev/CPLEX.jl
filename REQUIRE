@@ -1,2 +1,3 @@
 julia 0.6
-MathOptInterface
+MathOptInterface 0.0 0.1
+MathProgBase 0.5 0.7

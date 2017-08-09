@@ -1,3 +1,7 @@
+#=
+
+    Contained in the new cpx_env file
+
 type Env
     ptr::Ptr{Void}
     num_models::Int
@@ -40,6 +44,8 @@ function notify_freed_model(env::Env)
     end
 end
 
+=#
+
 function close_CPLEX(env::Env)
     tmp = Ptr{Void}[env.ptr]
     stat = @cpx_ccall(closeCPLEX, Cint, (Ptr{Void},), tmp)
@@ -81,6 +87,7 @@ function version(env::Env = Env())
     end
 end
 
+#=
 type CplexError <: Exception
   code::Int
   msg::String
@@ -89,3 +96,4 @@ type CplexError <: Exception
     new(convert(Cint, code), get_error_msg(env, code))
   end
 end
+=#

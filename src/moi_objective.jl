@@ -10,7 +10,7 @@ function MOI.setobjective!(m::CplexSolverInstance, sense::MOI.OptimizationSense,
         cpx_copyquad!(m.inner, Int[], Int[], Float64[])
     end
     cpx_chgobj!(m.inner, getcol.(m, objf.variables), objf.coefficients)
-    setsense!(m, sense)
+    _setsense!(m, sense)
     m.objective_constant = objf.constant
     nothing
 end
@@ -19,7 +19,7 @@ end
     Set the objective sense
 =#
 
-function setsense!(m::CplexSolverInstance, sense::MOI.OptimizationSense)
+function _setsense!(m::CplexSolverInstance, sense::MOI.OptimizationSense)
     if sense == MOI.MinSense
         cpx_chgobjsen!(m.inner, :Min)
     elseif sense == MOI.MaxSense
@@ -75,7 +75,7 @@ function MOI.setobjective!(m::CplexSolverInstance, sense::MOI.OptimizationSense,
         getcol.(m, objf.quadratic_colvariables),
         objf.quadratic_coefficients
     )
-    setsense!(m, sense)
+    _setsense!(m, sense)
     m.objective_constant = objf.constant
     nothing
 end

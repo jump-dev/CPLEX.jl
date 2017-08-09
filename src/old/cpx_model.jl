@@ -1,3 +1,7 @@
+#=
+
+    This is all covered in the new cpx_model file
+
 type Model
     env::Env # Cplex environment
     lp::Ptr{Void} # Cplex problem (lp)
@@ -28,7 +32,7 @@ function Model(env::Env, name::String="CPLEX.jl")
     end
     return Model(env, tmp)
 end
-
+=#
 function read_model(model::Model, filename::String)
     stat = @cpx_ccall(readcopyprob, Cint, (Ptr{Void}, Ptr{Void}, Ptr{Cchar}, Ptr{Cchar}), model.env.ptr, model.lp, filename, C_NULL)
     if stat != 0
@@ -189,4 +193,6 @@ function set_terminate(model::Model)
     end
 end
 
+#=
 terminate(model::Model) = (model.terminator[1] = 1)
+=#

@@ -1,6 +1,10 @@
 mutable struct Model
     env::Env # Cplex environment
     lp::Ptr{Void} # Cplex problem (lp)
+    has_int::Bool # problem has integer variables?
+    has_qc::Bool # problem has quadratic constraints?
+    has_sos::Bool # problem has Special Ordered Sets?
+    callback::Any
     terminator::Vector{Cint}
     #=
         See the comment above cpx_addmipstarts!
@@ -11,7 +15,7 @@ end
 
 function Model(env::Env, lp::Ptr{Void})
     notify_new_model(env)
-    model = Model(env, lp, Cint[0], Cdouble[], CPX_MIPSTART_AUTO)
+    model = Model(env, lp, false, false, false, nothing, Cint[0], Cdouble[], CPX_MIPSTART_AUTO)
     finalizer(model, m -> begin
                               cpx_freeprob(m)
                               notify_freed_model(env)

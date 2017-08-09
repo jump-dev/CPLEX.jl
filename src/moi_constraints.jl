@@ -36,11 +36,11 @@ constrdict(m::CplexSolverInstance, ::VVCR{MOI.SOS1}) = cmap(m).sos1
 constrdict(m::CplexSolverInstance, ::VVCR{MOI.SOS2}) = cmap(m).sos2
 
 
-getsense(::MOI.Zeros)        = Cchar('E')
-getsense(::MOI.Nonpositives) = Cchar('L')
-getsense(::MOI.Nonnegatives) = Cchar('G')
-getboundsense(::MOI.Nonpositives) = Cchar('U')
-getboundsense(::MOI.Nonnegatives) = Cchar('L')
+_getsense(::MOI.Zeros)        = Cchar('E')
+_getsense(::MOI.Nonpositives) = Cchar('L')
+_getsense(::MOI.Nonnegatives) = Cchar('G')
+_getboundsense(::MOI.Nonpositives) = Cchar('U')
+_getboundsense(::MOI.Nonnegatives) = Cchar('L')
 
 
 #=
@@ -166,7 +166,7 @@ end
 =#
 function setvariablebounds!(m::CplexSolverInstance, func::VecVar, set::S)  where S <: Union{MOI.Nonnegatives, MOI.Nonpositives}
     n = MOI.dimension(set)
-    cpx_chgbds!(m.inner, getcol.(m, func.variables), fill(0.0, n), fill(getboundsense(set), n))
+    cpx_chgbds!(m.inner, getcol.(m, func.variables), fill(0.0, n), fill(_getboundsense(set), n))
 end
 function setvariablebounds!(m::CplexSolverInstance, func::VecVar, set::MOI.Zeros)
     n = MOI.dimension(set)
@@ -567,7 +567,7 @@ function MOI.addconstraint!(m::CplexSolverInstance, func::VecLin, set::S) where 
     @assert MOI.dimension(set) == length(func.constant)
 
     nrows = cpx_getnumrows(m.inner)
-    addlinearconstraint!(m, func, getsense(set))
+    addlinearconstraint!(m, func, _getsense(set))
     nrows2 = cpx_getnumrows(m.inner)
 
     m.last_constraint_reference += 1

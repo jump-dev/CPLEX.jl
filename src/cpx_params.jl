@@ -41,7 +41,7 @@ cpx_getparam(T, env::Env, pindx::Cint) = warn("Trying to get a parameter of unkn
 
 cpx_getparam(env::Env, pindx::Cint) = cpx_getparam(cpx_getparamtype(env, pindx), env, pindx)
 
-get_param(env::Env, pname::String) = get_param(env, CPX_PARAMS[pname])
+cpx_getparam(env::Env, pname::String) = cpx_getparam(env, CPX_PARAMS[pname])
 
 
 function cpx_setparam!(::Type{Cint}, env::Env, pindx::Cint, val)

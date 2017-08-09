@@ -1,3 +1,5 @@
+#=
+
 # makes calling C functions a bit easier
 macro cpx_ccall(func, args...)
     f = "CPX$(func)"
@@ -43,7 +45,7 @@ macro cpx_ccall_intercept(model, func, args...)
         ret
     end
 end
-
+=#
 const GChars = Union{Cchar, Char}
 const IVec = Vector{Cint}
 const FVec = Vector{Cdouble}
