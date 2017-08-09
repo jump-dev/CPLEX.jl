@@ -47,8 +47,13 @@ function MOI.optimize!(m::CplexSolverInstance)
         # primal solution exists
         cpx_getx!(m.inner, m.variable_primal_solution)
         cpx_getax!(m.inner, m.constraint_primal_solution)
-        m.primal_status = MOI.FeasiblePoint
         m.primal_result_count = 1
+        # CPLEX can return infeasible points
+        if m.termination_status == MOI.InfeasibleNoResult
+            m.primal_status = MOI.InfeasiblePoint
+        else
+            m.primal_status = MOI.FeasiblePoint
+        end
     end
     if soltype == CPX_BASIC_SOLN || soltype == CPX_NONBASIC_SOLN
         # dual solution exists

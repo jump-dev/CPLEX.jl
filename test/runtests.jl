@@ -34,12 +34,13 @@ include(joinpath(Pkg.dir("MathOptInterface"), "test", "contconic.jl"))
 
 @testset "Conic Related Tests" begin
     # run some MOI cont conic tests
+
     lin1tests(CplexSolver(CPX_PARAM_SCRIND=0))
     lin2tests(CplexSolver(CPX_PARAM_SCRIND=0))
 
-    #requires infeasibility certificates
-    # lin3test(CplexSolver(CPX_PARAM_SCRIND=0))
-    # lin4test(CplexSolver(CPX_PARAM_SCRIND=0))
+    # turn presolve off for certificates
+    lin3test(CplexSolver(CPX_PARAM_SCRIND=0, CPX_PARAM_PREIND=0))
+    lin4test(CplexSolver(CPX_PARAM_SCRIND=0, CPX_PARAM_PREIND=0))
 end
 
 @testset "Legacy Tests" begin
