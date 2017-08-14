@@ -250,3 +250,14 @@ function cpx_getnumqconstrs(model::Model)
         (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp
     )
 end
+
+#=
+    sense modification
+=#
+function cpx_chgsense!(model::Model, rows::Vector{Int}, newsenses::Vector{Cchar})
+    @assert length(rows) == length(newsenses)
+    @cpx_ccall_error(model.env, chgsense, Cint,
+        (Ptr{Void}, Ptr{Void}, Cint, Ptr{Cint}, Ptr{Cchar}),
+        model.env.ptr, model.lp, Cint(length(rows)), Cint.(rows-1), newsenses
+    )
+end

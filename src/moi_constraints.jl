@@ -36,13 +36,25 @@ constrdict(m::CplexSolverInstance, ::VVCR{MOI.SOS1}) = cmap(m).sos1
 constrdict(m::CplexSolverInstance, ::VVCR{MOI.SOS2}) = cmap(m).sos2
 
 
+_getsense(::EQ) = Cchar('E')
+_getsense(::LE) = Cchar('L')
+_getsense(::GE) = Cchar('G')
 _getsense(::MOI.Zeros)        = Cchar('E')
 _getsense(::MOI.Nonpositives) = Cchar('L')
 _getsense(::MOI.Nonnegatives) = Cchar('G')
 _getboundsense(::MOI.Nonpositives) = Cchar('U')
 _getboundsense(::MOI.Nonnegatives) = Cchar('L')
+_getrhs(set::LE) = set.upper
+_getrhs(set::GE) = set.lower
+_getrhs(set::EQ) = set.value
 
-
+function MOI.isvalid(m::CplexSolverInstance, ref::CR{F,S}) where F where S
+    dict = constrdict(m, ref)
+    if haskey(dict, ref)
+        return true
+    end
+    return false
+end
 #=
     Get number of constraints
 =#
@@ -199,14 +211,8 @@ function MOI.addconstraint!(m::CplexSolverInstance, func::Linear, set::T) where 
     return ref
 end
 
-function addlinearconstraint!(m::CplexSolverInstance, func::Linear, set::LE)
-    addlinearconstraint!(m, func, Cchar('L'), set.upper)
-end
-function addlinearconstraint!(m::CplexSolverInstance, func::Linear, set::GE)
-    addlinearconstraint!(m, func, Cchar('G'), set.lower)
-end
-function addlinearconstraint!(m::CplexSolverInstance, func::Linear, set::EQ)
-    addlinearconstraint!(m, func, Cchar('E'), set.value)
+function addlinearconstraint!(m::CplexSolverInstance, func::Linear, set::S) where S <: Union{LE, GE, EQ}
+    addlinearconstraint!(m, func, _getsense(set), _getrhs(set))
 end
 
 function addlinearconstraint!(m::CplexSolverInstance, func::Linear, set::IV)
@@ -242,14 +248,8 @@ function MOI.addconstraints!(m::CplexSolverInstance, func::Vector{Linear}, set::
     return crefs
 end
 
-function addlinearconstraints!(m::CplexSolverInstance, func::Vector{Linear}, set::Vector{LE})
-    addlinearconstraints!(m, func, fill(Cchar('L'), length(func)), [s.upper for s in set])
-end
-function addlinearconstraints!(m::CplexSolverInstance, func::Vector{Linear}, set::Vector{GE})
-    addlinearconstraints!(m, func, fill(Cchar('G'), length(func)), [s.lower for s in set])
-end
-function addlinearconstraints!(m::CplexSolverInstance, func::Vector{Linear}, set::Vector{EQ})
-    addlinearconstraints!(m, func, fill(Cchar('E'), length(func)), [s.value for s in set])
+function addlinearconstraints!(m::CplexSolverInstance, func::Vector{Linear}, set::Vector{S}) where S <: Union{LE, GE, EQ, IV}
+    addlinearconstraints!(m, func, fill(_getsense(set[1]), length(func)), [_getrhs(s) for s in set])
 end
 
 function addlinearconstraints!(m::CplexSolverInstance, func::Vector{Linear}, set::Vector{IV})
@@ -319,12 +319,9 @@ end
     Change RHS of linear constraint without modifying sense
 =#
 
-_newrhs(set::LE) = set.upper
-_newrhs(set::GE) = set.lower
-_newrhs(set::EQ) = set.value
 function MOI.modifyconstraint!(m::CplexSolverInstance, c::LCR{S}, newset::S) where S
     # the column 0 (or -1 in 0-index) is the rhs.
-    cpx_chgcoef!(m.inner, m[c], 0, _newrhs(newset))
+    cpx_chgcoef!(m.inner, m[c], 0, _getrhs(newset))
 end
 
 function MOI.modifyconstraint!(m::CplexSolverInstance, c::LCR{IV}, set::IV)
@@ -510,15 +507,10 @@ function MOI.addconstraint!(m::CplexSolverInstance, func::Quad, set::S) where S 
     return ref
 end
 
-function addquadraticconstraint!(m::CplexSolverInstance, func::Quad, set::LE)
-    addquadraticconstraint!(m, func, Cchar('L'), set.upper)
+function addquadraticconstraint!(m::CplexSolverInstance, func::Quad, set::S) where S<: Union{LE, GE, EQ}
+    addquadraticconstraint!(m, func, _getsense(set), _getrhs(set))
 end
-function addquadraticconstraint!(m::CplexSolverInstance, func::Quad, set::GE)
-    addquadraticconstraint!(m, func, Cchar('G'), set.lower)
-end
-function addquadraticconstraint!(m::CplexSolverInstance, func::Quad, set::EQ)
-    addquadraticconstraint!(m, func, Cchar('E'), set.value)
-end
+
 function addquadraticconstraint!(m::CplexSolverInstance, f::Quad, sense::Cchar, rhs::Float64)
     if abs(f.constant) > 0
         warn("Constant in quadratic function. Moving into set")
@@ -610,3 +602,28 @@ function MOI.modifyconstraint!(m::CplexSolverInstance, ref::VLCR{<: Union{MOI.No
         cpx_chgcoef!(m.inner, r, 0, -v)
     end
 end
+
+#=
+    Transform constraint
+=#
+function MOI.transformconstraint!(m::CplexSolverInstance, ref::LCR{S}, newset::S) where S
+    error("Cannot transform constraint of same set. use `modifyconstraint!` instead.")
+end
+function MOI.transformconstraint!(m::CplexSolverInstance, ref::LCR{S1}, newset::S2) where S1 where S2 <: Union{LE, GE, EQ}
+    dict = constrdict(m, ref)
+    row = dict[ref]
+    cpx_chgsense!(m.inner, [row], [_getsense(newset)])
+    m.last_constraint_reference += 1
+    ref2 = MOI.ConstraintReference{Linear, S2}(m.last_constraint_reference)
+    dict2 = constrdict(m, ref2)
+    dict2[ref2] = row
+    delete!(dict, ref)
+    return ref2
+end
+
+# function MOI.cantransformconstraint(m::CplexSolverInstance, ref::LCR{S}, newset::S) where S
+#     false
+# end
+# function MOI.cantransformconstraint(m::CplexSolverInstance, ref::LCR{S1}, newset::S2) where S1 where S2 <: Union{LE, GE, EQ}
+#     true
+# end
