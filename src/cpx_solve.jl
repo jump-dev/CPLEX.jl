@@ -44,26 +44,19 @@ function cpx_solninfo(model::Model)
     solntype = Vector{Cint}(1)
     primalfeas = Vector{Cint}(1)
     dualfeas = Vector{Cint}(1)
-    @cpx_ccall_error(model.env, solninfo, Cint, (
-                      Ptr{Void},
-                      Ptr{Void},
-                      Ptr{Cint},
-                      Ptr{Cint},
-                      Ptr{Cint},
-                      Ptr{Cint}
-                      ),
-                      model.env.ptr, model.lp, solnmethod, solntype, primalfeas, dualfeas)
+    @cpx_ccall_error(model.env, solninfo, Cint,
+        (Ptr{Void}, Ptr{Void}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}),
+        model.env.ptr, model.lp, solnmethod, solntype, primalfeas, dualfeas
+    )
     solnmethod[1], solntype[1], primalfeas[1], dualfeas[1]
 end
 
 function cpx_getobjval(model::Model)
-  objval = Vector{Cdouble}(1)
-  @cpx_ccall_error(model.env, getobjval, Cint, (
-                    Ptr{Void},
-                    Ptr{Void},
-                    Ptr{Cdouble}
-                    ),
-                    model.env.ptr, model.lp, objval)
+    objval = Vector{Cdouble}(1)
+    @cpx_ccall_error(model.env, getobjval, Cint,
+        (Ptr{Void}, Ptr{Void}, Ptr{Cdouble}),
+        model.env.ptr, model.lp, objval
+    )
   return objval[1]
 end
 
@@ -77,15 +70,10 @@ function cpx_getx(model::Model)
     x
 end
 function cpx_getx!(model::Model, x::Vector{Cdouble})
-  @cpx_ccall_error(model.env, getx, Cint, (
-                    Ptr{Void},
-                    Ptr{Void},
-                    Ptr{Cdouble},
-                    Cint,
-                    Cint
-                    ),
-                    model.env.ptr, model.lp, x, 0, length(x)-1)
-  return x
+  @cpx_ccall_error(model.env, getx, Cint,
+      (Ptr{Void}, Ptr{Void}, Ptr{Cdouble}, Cint, Cint),
+      model.env.ptr, model.lp, x, 0, length(x)-1
+  )
 end
 
 """
@@ -98,15 +86,10 @@ function cpx_getdj(model::Model)
     x
 end
 function cpx_getdj!(model::Model, x::Vector{Cdouble})
-  @cpx_ccall_error(model.env, getdj, Cint, (
-                    Ptr{Void},
-                    Ptr{Void},
-                    Ptr{Cdouble},
-                    Cint,
-                    Cint
-                    ),
-                    model.env.ptr, model.lp, x, 0, length(x)-1)
-  return x
+    @cpx_ccall_error(model.env, getdj, Cint,
+        (Ptr{Void}, Ptr{Void}, Ptr{Cdouble}, Cint, Cint),
+        model.env.ptr, model.lp, x, 0, length(x)-1
+    )
 end
 
 """
@@ -119,15 +102,10 @@ function cpx_getpi(model::Model)
     x
 end
 function cpx_getpi!(model::Model, x::Vector{Cdouble})
-  @cpx_ccall_error(model.env, getpi, Cint, (
-                    Ptr{Void},
-                    Ptr{Void},
-                    Ptr{Cdouble},
-                    Cint,
-                    Cint
-                    ),
-                    model.env.ptr, model.lp, x, 0, length(x)-1)
-  return x
+  @cpx_ccall_error(model.env, getpi, Cint,
+      (Ptr{Void}, Ptr{Void}, Ptr{Cdouble}, Cint, Cint),
+      model.env.ptr, model.lp, x, 0, length(x)-1
+  )
 end
 
 """
@@ -140,15 +118,10 @@ function cpx_getax(model::Model)
     x
 end
 function cpx_getax!(model::Model, x::Vector{Cdouble})
-  @cpx_ccall_error(model.env, getax, Cint, (
-                    Ptr{Void},
-                    Ptr{Void},
-                    Ptr{Cdouble},
-                    Cint,
-                    Cint
-                    ),
-                    model.env.ptr, model.lp, x, 0, length(x)-1)
-  return x
+  @cpx_ccall_error(model.env, getax, Cint,
+      (Ptr{Void}, Ptr{Void}, Ptr{Cdouble}, Cint, Cint),
+      model.env.ptr, model.lp, x, 0, length(x)-1
+  )
 end
 
 """
@@ -161,14 +134,11 @@ function cpx_dualfarkas(model::Model)
     return ray
 end
 function cpx_dualfarkas!(model::Model, ray::Vector{Cdouble})
-  proof_p = Vector{Cdouble}(1)
-  stat = @cpx_ccall(dualfarkas, Cint, (
-                    Ptr{Void},
-                    Ptr{Void},
-                    Ptr{Cdouble},
-                    Ptr{Cdouble}
-                    ),
-                    model.env.ptr, model.lp, ray, proof_p)
+    proof_p = Vector{Cdouble}(1)
+    stat = @cpx_ccall(dualfarkas, Cint,
+        (Ptr{Void}, Ptr{Void}, Ptr{Cdouble}, Ptr{Cdouble}),
+        model.env.ptr, model.lp, ray, proof_p
+    )
   if stat != 0
     warn("CPLEX is unable to grab infeasible ray; consider resolving with presolve turned off")
     throw(CplexError(model.env, stat))
@@ -185,12 +155,10 @@ function cpx_getray(model::Model)
     return ray
 end
 function cpx_getray!(model::Model, ray::Vector{Cdouble})
-    stat = @cpx_ccall(getray, Cint, (
-                      Ptr{Void},
-                      Ptr{Void},
-                      Ptr{Cdouble}
-                      ),
-                      model.env.ptr, model.lp, ray)
+    stat = @cpx_ccall(getray, Cint,
+        (Ptr{Void}, Ptr{Void}, Ptr{Cdouble}),
+        model.env.ptr, model.lp, ray
+    )
     if stat != 0
         warn("CPLEX is unable to grab unbounded ray; consider resolving with presolve turned off")
         throw(CplexError(model.env, stat))

@@ -49,18 +49,23 @@ function MOI.optimize!(m::CplexSolverInstance)
         cpx_getax!(m.inner, m.constraint_primal_solution)
         m.primal_result_count = 1
         # CPLEX can return infeasible points
-        if m.termination_status == MOI.InfeasibleNoResult
-            m.primal_status = MOI.InfeasiblePoint
-        else
+        if prifeas > 0
             m.primal_status = MOI.FeasiblePoint
+        else
+            m.primal_status = MOI.InfeasiblePoint
         end
     end
     if soltype == CPX_BASIC_SOLN || soltype == CPX_NONBASIC_SOLN
         # dual solution exists
         cpx_getdj!(m.inner, m.variable_dual_solution)
         cpx_getpi!(m.inner, m.constraint_dual_solution)
-        m.dual_status = MOI.FeasiblePoint
         m.dual_result_count = 1
+        # dual solution may not be feasible
+        if dualfeas > 0
+            m.dual_status = MOI.FeasiblePoint
+        else
+            m.dual_status = MOI.InfeasiblePoint
+        end
     end
 
     if code == CPX_STAT_INFEASIBLE
@@ -82,17 +87,19 @@ end
 
 function solvefordualfarkas!(m::CplexSolverInstance)
     cpx_dualopt!(m.inner)
-    code = cpx_getstat(m.inner)
-    @assert code == CPX_STAT_INFEASIBLE
-    cpx_dualfarkas!(m.inner, m.constraint_dual_solution)
-    m.dual_status = MOI.InfeasibilityCertificate
-    m.termination_status = MOI.Success
-    m.dual_result_count = 1
+    @assert cpx_getstat(m.inner) == CPX_STAT_INFEASIBLE
+    mthd, soltype, prifeas, dualfeas = cpx_solninfo(m.inner)
+    if dualfeas > 0
+        # ensure we have a dual feasible solution
+        cpx_dualfarkas!(m.inner, m.constraint_dual_solution)
+        m.dual_status = MOI.InfeasibilityCertificate
+        m.termination_status = MOI.Success
+        m.dual_result_count = 1
+    end
 end
 
 function solveforunboundedray!(m::CplexSolverInstance)
-    code = cpx_getstat(m.inner)
-    @assert code == CPX_STAT_UNBOUNDED
+    @assert cpx_getstat(m.inner) == CPX_STAT_UNBOUNDED
     cpx_getray!(m.inner, m.variable_primal_solution)
     m.primal_status = MOI.InfeasibilityCertificate
     m.termination_status = MOI.Success
