@@ -161,6 +161,7 @@ MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintFunction, c::SVCR{<:
 function MOI.modifyconstraint!(m::CplexSolverInstance, c::SVCR{S}, newset::S) where S<: Union{LE, GE, EQ, IV}
     setvariablebound!(m, MOI.SingleVariable(m[c]), newset)
 end
+MOI.canmodifyconstraint(m::CplexSolverInstance, c::SVCR{S}, newset::S) where S<: Union{LE, GE, EQ, IV} = true
 
 #=
     Delete a variable bound
@@ -172,6 +173,7 @@ function MOI.delete!(m::CplexSolverInstance, c::SVCR{S}) where S <: Union{LE, GE
     setvariablebound!(m, MOI.SingleVariable(vref), MOI.Interval{Float64}(-Inf, Inf))
     delete!(dict, c)
 end
+MOI.candelete(m::CplexSolverInstance, c::SVCR{S}) where S <: Union{LE, GE, EQ, IV} = true
 
 #=
     Vector valued bounds
@@ -314,15 +316,17 @@ function MOI.modifyconstraint!(m::CplexSolverInstance, c::LCR{<: Union{LE, GE, E
     col = m.variable_mapping[chg.variable]
     cpx_chgcoef!(m.inner, m[c], col, chg.new_coefficient)
 end
+MOI.canmodifyconstraint(m::CplexSolverInstance, c::LCR{<: Union{LE, GE, EQ, IV}}, chg::MOI.ScalarCoefficientChange{Float64}) = true
 
 #=
     Change RHS of linear constraint without modifying sense
 =#
 
-function MOI.modifyconstraint!(m::CplexSolverInstance, c::LCR{S}, newset::S) where S
+function MOI.modifyconstraint!(m::CplexSolverInstance, c::LCR{S}, newset::S) where S <: Union{LE, GE, EQ}
     # the column 0 (or -1 in 0-index) is the rhs.
     cpx_chgcoef!(m.inner, m[c], 0, _getrhs(newset))
 end
+MOI.canmodifyconstraint(m::CplexSolverInstance, c::LCR{S}, newset::S) where S <: Union{LE, GE, EQ} = true
 
 function MOI.modifyconstraint!(m::CplexSolverInstance, c::LCR{IV}, set::IV)
     # the column 0 (or -1 in 0-index) is the rhs.
@@ -332,6 +336,7 @@ function MOI.modifyconstraint!(m::CplexSolverInstance, c::LCR{IV}, set::IV)
     cpx_chgcoef!(m.inner, row, 0, set.lower)
     cpx_chgrngval!(m.inner, [row], [set.upper - set.lower])
 end
+MOI.canmodifyconstraint(m::CplexSolverInstance, c::LCR{IV}, set::IV) = true
 
 #=
     Delete a linear constraint
@@ -351,6 +356,7 @@ function MOI.delete!(m::CplexSolverInstance, c::LCR{<: Union{LE, GE, EQ, IV}})
     deleteat!(m.constraint_dual_solution, row)
     deleteref!(m, row, c)
 end
+MOI.candelete(m::CplexSolverInstance, c::LCR{<: Union{LE, GE, EQ, IV}}) = true
 
 #=
     MIP related constraints
@@ -396,6 +402,7 @@ function MOI.delete!(m::CplexSolverInstance, c::SVCR{MOI.ZeroOne})
         _make_problem_type_continuous(m.inner)
     end
 end
+MOI.candelete(m::CplexSolverInstance, c::SVCR{MOI.ZeroOne}) = true
 
 MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintSet, c::SVCR{MOI.ZeroOne}) =MOI.ZeroOne()
 MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintSet, c::SVCR{MOI.ZeroOne}) = true
@@ -427,6 +434,7 @@ function MOI.delete!(m::CplexSolverInstance, c::SVCR{MOI.Integer})
         _make_problem_type_continuous(m.inner)
     end
 end
+MOI.candelete(m::CplexSolverInstance, c::SVCR{MOI.Integer}) = true
 
 MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintSet, c::SVCR{MOI.Integer}) =MOI.Integer()
 MOI.cangetattribute(m::CplexSolverInstance, ::MOI.ConstraintSet, c::SVCR{MOI.Integer}) = true
@@ -469,6 +477,7 @@ function MOI.delete!(m::CplexSolverInstance, c::VVCR{<:Union{MOI.SOS1, MOI.SOS2}
         _make_problem_type_continuous(m.inner)
     end
 end
+MOI.candelete(m::CplexSolverInstance, c::VVCR{<:Union{MOI.SOS1, MOI.SOS2}}) = true
 
 function MOI.getattribute(m::CplexSolverInstance, ::MOI.ConstraintSet, c::VVCR{MOI.SOS1})
     indices, weights, types = cpx_getsos(m.inner, m[c])
@@ -602,6 +611,7 @@ function MOI.modifyconstraint!(m::CplexSolverInstance, ref::VLCR{<: Union{MOI.No
         cpx_chgcoef!(m.inner, r, 0, -v)
     end
 end
+MOI.canmodifyconstraint(m::CplexSolverInstance, ref::VLCR{<: Union{MOI.Nonnegatives, MOI.Nonpositives, MOI.Zeros}}, chg::MOI.VectorConstantChange{Float64}) = true
 
 #=
     Transform constraint
@@ -620,7 +630,6 @@ function MOI.transformconstraint!(m::CplexSolverInstance, ref::LCR{S1}, newset::
     delete!(dict, ref)
     return ref2
 end
-
 # function MOI.cantransformconstraint(m::CplexSolverInstance, ref::LCR{S}, newset::S) where S
 #     false
 # end

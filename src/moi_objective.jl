@@ -59,6 +59,7 @@ function MOI.modifyobjective!(m::CplexSolverInstance, chg::MOI.ScalarCoefficient
     # 0 row is the objective
     cpx_chgcoef!(m.inner, 0, col, chg.new_coefficient)
 end
+MOI.canmodifyobjective(m::CplexSolverInstance, chg::MOI.ScalarCoefficientChange{Float64}) = true
 
 #=
     Set quadratic objective

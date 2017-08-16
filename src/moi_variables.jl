@@ -93,6 +93,7 @@ function MOI.delete!(m::CplexSolverInstance, ref::MOI.VariableReference)
     delete!(cmap(m).interval_bound, ref)
 
 end
+MOI.candelete(m::CplexSolverInstance, ref::MOI.VariableReference) = true
 
 #=
     MIP starts
