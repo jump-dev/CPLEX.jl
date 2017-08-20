@@ -630,9 +630,9 @@ function MOI.transformconstraint!(m::CplexSolverInstance, ref::LCR{S1}, newset::
     delete!(dict, ref)
     return ref2
 end
-# function MOI.cantransformconstraint(m::CplexSolverInstance, ref::LCR{S}, newset::S) where S
-#     false
-# end
-# function MOI.cantransformconstraint(m::CplexSolverInstance, ref::LCR{S1}, newset::S2) where S1 where S2 <: Union{LE, GE, EQ}
-#     true
-# end
+function MOI.cantransformconstraint(m::CplexSolverInstance, ref::LCR{S}, newset::S) where S
+    false
+end
+function MOI.cantransformconstraint(m::CplexSolverInstance, ref::LCR{S1}, newset::S2) where S1 where S2 <: Union{LE, GE, EQ}
+    true
+end
