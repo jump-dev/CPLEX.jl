@@ -45,7 +45,10 @@ echo $LD_LIBRARY_PATH
 ```
 is the path to the CPLEX installation. If it's not, did you follow step 2 above?
 
-#### If you're on Linux or Windows
+Hint: on OS X the path should probably be something like
+`/Users/[username]/Applications/IBM/ILOG/CPLEX_Studio[version number]/cplex/bin/x86-64_osx/`
+
+#### If you're on Linux
 
 The most common problem is not setting `CPLEX_STUDIO_BINARIES` correctly. Open a Julia prompt and check that the output of
 ```julia
