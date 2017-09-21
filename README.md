@@ -30,7 +30,7 @@ NOTE: CPLEX [does not officially support linking to their dynamic C library](htt
 Note for windows
 ----------------
 
-Currently, CPLEX.jl is compatible only with 64-bit CPLEX and 64-bit Julia on Windows. CPLEX.jl attempts to automatically find the CPLEX library based on the ``CPLEX_STUDIO_BINARIES`` environmental variable set by the CPLEX installer.
+Currently, CPLEX.jl is compatible only with 64-bit CPLEX and 64-bit Julia on Windows. CPLEX.jl attempts to automatically find the CPLEX library based on the `CPLEX_STUDIO_BINARIES` environmental variable set by the CPLEX installer.
 
 Help! I got `LoadError: Unable to locate CPLEX installation`
 ----------------------------------
@@ -56,8 +56,12 @@ julia> ENV["CPLEX_STUDIO_BINARIES"]
 ```
 is the path to the CPLEX installation. If you get a `key "CPLEX_STUDIO_BINARIES" not found` error, make sure the environment variable is set correctly, or just set it from within the Julia prompt
 ```julia
-julia> ENV["CPLEX_STUDIO_BINARIES"] = "path/to/cplex/installation
+julia> ENV["CPLEX_STUDIO_BINARIES"] = "path/to/cplex/installation"
 julia> Pkg.build("CPLEX")
+```
+Another alternative is to run
+```
+CPLEX_STUDIO_BINARIES="path/to/cplex/installation" julia -e 'Pkg.build("CPLEX")'
 ```
 
 Parameters
