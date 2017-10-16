@@ -27,12 +27,42 @@ NOTE: CPLEX [does not officially support linking to their dynamic C library](htt
 
 4. Check that your version is included in ``deps/build.jl`` in the aliases for the library dependency; if not, open an issue.
 
-
 Note for windows
 ----------------
 
-Currently, CPLEX.jl is compatible only with 64-bit CPLEX and 64-bit Julia on Windows. CPLEX.jl attemps to automatically find the CPLEX library based on the ``CPLEX_STUDIO_BINARIES`` environmental variable set by the CPLEX installer.
+Currently, CPLEX.jl is compatible only with 64-bit CPLEX and 64-bit Julia on Windows. CPLEX.jl attempts to automatically find the CPLEX library based on the `CPLEX_STUDIO_BINARIES` environmental variable set by the CPLEX installer.
 
+Help! I got `LoadError: Unable to locate CPLEX installation`
+----------------------------------
+
+Which version of CPLEX are you trying to install? Currently CPLEX.jl only supports 1260, 1261, 1262, 1263, 1270, and 1271. If it's not one of those, [file an issue](https://github.com/JuliaOpt/CPLEX.jl/issues/new) with the version number you'd like to support. Some steps need to be taken (like checking for new or renamed parameters) before CPLEX.jl can support new versions.
+
+#### If you're on OS X or Linux
+
+The most common problem is not setting `LD_LIBRARY_PATH` correctly. Open a terminal and check the output of
+```
+echo $LD_LIBRARY_PATH
+```
+is the path to the CPLEX installation. If it's not, did you follow step 2 above?
+
+Hint: on OS X the path should probably be something like
+`/Users/[username]/Applications/IBM/ILOG/CPLEX_Studio[version number]/cplex/bin/x86-64_osx/`
+
+#### If you're on Linux
+
+The most common problem is not setting `CPLEX_STUDIO_BINARIES` correctly. Open a Julia prompt and check that the output of
+```julia
+julia> ENV["CPLEX_STUDIO_BINARIES"]
+```
+is the path to the CPLEX installation. If you get a `key "CPLEX_STUDIO_BINARIES" not found` error, make sure the environment variable is set correctly, or just set it from within the Julia prompt
+```julia
+julia> ENV["CPLEX_STUDIO_BINARIES"] = "path/to/cplex/installation"
+julia> Pkg.build("CPLEX")
+```
+Another alternative is to run
+```
+CPLEX_STUDIO_BINARIES="path/to/cplex/installation" julia -e 'Pkg.build("CPLEX")'
+```
 
 Parameters
 ----------
