@@ -1,4 +1,4 @@
-export CplexSolver
+export CplexMPBSolver
 
 type CplexMathProgModel <: AbstractLinearQuadraticModel
     inner::Model
@@ -26,16 +26,17 @@ function CplexMathProgModel(;mipstart_effortlevel::Cint = CPX_MIPSTART_AUTO, opt
     return m
 end
 
-type CplexSolver <: AbstractMathProgSolver
+type CplexMPBSolver <: AbstractMathProgSolver
     options
 end
-CplexSolver(;kwargs...) = CplexSolver(kwargs)
-LinearQuadraticModel(s::CplexSolver) = CplexMathProgModel(;s.options...)
+CplexMPBSolver(;kwargs...) = CplexMPBSolver(kwargs)
 
-ConicModel(s::CplexSolver) = LPQPtoConicBridge(LinearQuadraticModel(s))
-supportedcones(::CplexSolver) = [:Free,:Zero,:NonNeg,:NonPos,:SOC]
+LinearQuadraticModel(s::CplexMPBSolver) = CplexMathProgModel(;s.options...)
 
-function setparameters!(s::CplexSolver; mpboptions...)
+ConicModel(s::CplexMPBSolver) = LPQPtoConicBridge(LinearQuadraticModel(s))
+supportedcones(::CplexMPBSolver) = [:Free,:Zero,:NonNeg,:NonPos,:SOC]
+
+function setparameters!(s::CplexMPBSolver; mpboptions...)
     opts = collect(Any,s.options)
     for (optname, optval) in mpboptions
         if optname == :TimeLimit
