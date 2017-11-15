@@ -41,7 +41,6 @@ module CPLEX
     include("cpx_constraints.jl")
     include("cpx_objective.jl")
     include("cpx_solve.jl")
-    #include("MathOptInterface.jl")
 
     #=
         Include the old MPB layer with associated functions
