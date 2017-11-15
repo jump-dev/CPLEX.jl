@@ -1,7 +1,7 @@
 using CPLEX, MathProgBase, Base.Test
 
 @testset "Use loadproblem! twice" begin
-    solver = CplexSolver()
+    solver = CplexMPBSolver()
     # Check that the env for each model is the same
     m = MathProgBase.LinearQuadraticModel(solver)
     env = m.inner.env

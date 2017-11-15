@@ -1,24 +1,30 @@
 using Base.Test
-using MathProgBase
+# using MathProgBase
 using CPLEX
 
-include("constants.jl")
-include("low_level_api.jl")
-@testset "LP" begin
-    include("lp_01.jl")
-    include("lp_02.jl")
-    include("lp_03.jl")
-end
-include("mip_01.jl")
-@testset "QP" begin
-    include("qp_01.jl")
-    include("qp_02.jl")
-end
-include("qcqp_01.jl")
-include("env.jl")
-include("sos.jl")
-include("problemtype.jl")
-include("miqcp.jl")
-@testset "MathProgBase" begin
-    include("mathprog.jl")
+@testset "Legacy Tests" begin
+    @testset "Low level" begin
+        include(joinpath("old", "constants.jl"))
+        include(joinpath("old", "low_level_api.jl"))
+        include(joinpath("old", "env.jl"))
+        include(joinpath("old", "problemtype.jl"))
+    end
+    @testset "LP" begin
+        include(joinpath("old", "lp_01.jl"))
+        include(joinpath("old", "lp_02.jl"))
+        include(joinpath("old", "lp_03.jl"))
+    end
+    @testset "MIP" begin
+        include(joinpath("old", "mip_01.jl"))
+        include(joinpath("old", "sos.jl"))
+    end
+    @testset "QP" begin
+        include(joinpath("old", "qp_01.jl"))
+        include(joinpath("old", "qp_02.jl"))
+        include(joinpath("old", "qcqp_01.jl"))
+        include(joinpath("old", "miqcp.jl"))
+    end
+    @testset "MathProgBase" begin
+        include(joinpath("old", "mathprog.jl"))
+    end
 end
