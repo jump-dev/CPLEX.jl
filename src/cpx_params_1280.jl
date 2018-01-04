@@ -1,4 +1,4 @@
-const CPX_PARAMS = Dict{String, Cint}(
+const paramName2Indx = Dict(
 "CPX_PARAM_ADVIND" => Cint(1001),
 "CPX_PARAM_AGGFILL" => Cint(1002),
 "CPX_PARAM_AGGIND" => Cint(1003),
