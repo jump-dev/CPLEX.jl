@@ -35,7 +35,7 @@ Currently, CPLEX.jl is compatible only with 64-bit CPLEX and 64-bit Julia on Win
 Help! I got `LoadError: Unable to locate CPLEX installation`
 ----------------------------------
 
-Which version of CPLEX are you trying to install? Currently CPLEX.jl only supports 1260, 1261, 1262, 1263, 1270, and 1271. If it's not one of those, [file an issue](https://github.com/JuliaOpt/CPLEX.jl/issues/new) with the version number you'd like to support. Some steps need to be taken (like checking for new or renamed parameters) before CPLEX.jl can support new versions.
+Which version of CPLEX are you trying to install? Currently CPLEX.jl only supports 1260, 1261, 1262, 1263, 1270, 1271, and 1280. If it's not one of those, [file an issue](https://github.com/JuliaOpt/CPLEX.jl/issues/new) with the version number you'd like to support. Some steps need to be taken (like checking for new or renamed parameters) before CPLEX.jl can support new versions.
 
 #### If you're on OS X or Linux
 

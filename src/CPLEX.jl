@@ -93,8 +93,11 @@ module CPLEX
     elseif startswith(v,"12.7")
         include("full_defines_127.jl")
         include("cpx_params_127.jl")
+    elseif startswith(v,"12.8")
+        include("full_defines_1280.jl")
+        include("cpx_params_1280.jl")
     else
-        error("Unsupported CPLEX version $v. Only 12.6 and 12.7 are currently supported.")
+        error("Unsupported CPLEX version $v. Only 12.6, 12.7 and 12.8 are currently supported.")
     end
     include("cpx_model.jl")
     include("cpx_params.jl")
