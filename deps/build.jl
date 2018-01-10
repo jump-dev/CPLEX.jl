@@ -31,7 +31,7 @@ for v in reverse(cpxvers)
     end
 end
 
-wincpxvers = ["126","1261","1262","1263","127","1270","1271","1280"]
+wincpxvers = ["126","1261","1262","1263","127","1270","1271","128","1280"]
 if is_windows()
     for v in reverse(wincpxvers)
         env = base_env * v
