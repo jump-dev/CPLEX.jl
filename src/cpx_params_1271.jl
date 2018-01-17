@@ -1,4 +1,4 @@
-# grep "#define" cpxconst.h | grep "CPX_PARAM_" | awk '{ printf("\"%s\" => %s,\n",$2,$3) }'
+# grep "#define" cpxconst.h | grep "CPX_PARAM_|CPXPARAM" | awk '{ printf("\"%s\" => %s,\n",$2,$3) }'
 const paramName2Indx = Dict(
 "CPX_PARAM_ADVIND" => 1001,
 "CPX_PARAM_AGGFILL" => 1002,
