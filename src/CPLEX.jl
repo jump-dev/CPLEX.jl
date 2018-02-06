@@ -2,6 +2,10 @@ __precompile__()
 
 module CPLEX
 
+    if VERSION >= v"0.7.0-DEV.3382"
+        using Libdl
+    end
+
     if is_apple()
         Libdl.dlopen("libstdc++",Libdl.RTLD_GLOBAL)
     end
