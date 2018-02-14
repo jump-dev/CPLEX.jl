@@ -21,7 +21,7 @@ end
 
 base_env = "CPLEX_STUDIO_BINARIES"
 
-cpxvers = ["1260","1261","1262","1263","1270", "1271","128"]
+cpxvers = ["1260","1261","1262","1263","1270", "1271","128","1280"]
 
 libnames = String["cplex"]
 for v in reverse(cpxvers)
