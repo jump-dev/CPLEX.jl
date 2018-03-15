@@ -99,7 +99,7 @@ function subtour(cb)
         end
         println(expr)
         readline(STDIN)
-        @addlazyconstraint(cb, expr >= 2)
+        @lazyconstraint(cb, expr >= 2)
         break
       end
     end
