@@ -11,9 +11,9 @@ function cpx_chgobj!(model::Model, cols::Vector{Int}, coefs::Vector{Float64})
 end
 
 function cpx_chgobjsen!(model::Model, sense::Symbol)
-    if sense == :Min
+    if sense == :Min || sense == :min
         @cpx_ccall_error(model.env, chgobjsen, Cint, (Ptr{Void}, Ptr{Void}, Cint), model.env.ptr, model.lp, CPX_MIN)
-    elseif sense == :Max
+    elseif sense == :Max || sense == :max
         @cpx_ccall_error(model.env, chgobjsen, Cint, (Ptr{Void}, Ptr{Void}, Cint), model.env.ptr, model.lp, CPX_MAX)
     else
         error("Unrecognized objective sense $sense")

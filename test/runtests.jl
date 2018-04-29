@@ -28,3 +28,7 @@ using CPLEX
         include(joinpath("old", "mathprog.jl"))
     end
 end
+
+@testset "MathOptInterface" begin
+    include("MOIWrapper.jl")
+end

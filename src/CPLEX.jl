@@ -15,7 +15,7 @@ module CPLEX
     import Base: convert, unsafe_convert, show, copy
 
     using MathOptInterface
-    
+
     const MOI = MathOptInterface
 
     include("cpx_common.jl")
@@ -41,6 +41,8 @@ module CPLEX
     include("cpx_constraints.jl")
     include("cpx_objective.jl")
     include("cpx_solve.jl")
+
+    include("MOIWrapper.jl")
 
     #=
         Include the old MPB layer with associated functions
