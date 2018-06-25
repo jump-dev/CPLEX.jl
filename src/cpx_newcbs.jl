@@ -1,35 +1,9 @@
 @enum CbSolStrat CPXCALLBACKSOLUTION_CHECKFEAS CPXCALLBACKSOLUTION_PROPAGATE
-#this function calls a callback function with its own parameters.
-#Need to figure out how to pass the function callback as a parameter, then pass cplex context pointer to callback()
+
 type GenCallbackData
-    cbdata::Ptr{Void}
+    # cbdata::Ptr{Void}
     ncol::Cint
     obj::Any
-end
-
-function cplex_callback_wrapper(context_::Ptr{Void},where::Clong,userdata_::Ptr{void})
-    if (where==CPX_CALLBACKCONTEXT_RELAXATION)
-        status=rounddownheur(context,userdata)
-    else
-        println("ERROR: Callback called in an unexpected context.")
-        return convert(Cint,1)
-    end
-    return convert(Cint,0)
-end
-
-function setcallbackfunc(model::Model,where::Clong,callback::Cint,userdata_::Ptr{Void})
-    cplex_callback_c=cfunction(cplex_callback_function, Cint,(Ptr{Void},Clong,Ptr{Void}))
-    stat=@cpx_ccall(callbacksetfunc, Cint,(
-    Ptr{Void},
-    Ptr{Void},
-    Clong,
-    Cint,
-    Ptr{Void}
-    ),
-    model.env.ptr,model.lp,where,cplex_callback_c,userdata_)
-    if stat != 0
-        throw(CplexError(model.env.ptr, stat))
-    end
 end
 
 function cbgetrelaxedpoint(context_::Ptr{Void},x::Vector{Cdouble},start::Cint,final::Cint,obj_::Ptr{Void})
@@ -40,7 +14,7 @@ function cbgetrelaxedpoint(context_::Ptr{Void},x::Vector{Cdouble},start::Cint,fi
     Ptr{Cint},
     Ptr{Void}
     ),
-    context,x,start,final,obj_)
+    context_,x,start,final,obj_)
     if stat!=0
         throw(CplexError(model.env.ptr,stat))
     end
@@ -97,4 +71,29 @@ function rounddownheur(context_::Ptr{Void},userdata_::Ptr{Void})
     end
 
     return status
+end
+
+function cplex_callback_wrapper(context_::Ptr{Void},where::Clong,userdata_::Ptr{void})
+    if (where==CPX_CALLBACKCONTEXT_RELAXATION)
+        status=rounddownheur(context_,userdata_)
+    else
+        println("ERROR: Callback called in an unexpected context.")
+        return convert(Cint,1)
+    end
+    return convert(Cint,0)
+end
+
+function setcallbackfunc(model::Model,where::Clong,userdata_::Ptr{Void})
+    cplex_callback_c=cfunction(cplex_callback_function, Cint,(Ptr{Void},Clong,Ptr{Void}))
+    stat=@cpx_ccall(callbacksetfunc, Cint,(
+    Ptr{Void},
+    Ptr{Void},
+    Clong,
+    Cint,
+    Ptr{Void}
+    ),
+    model.env.ptr,model.lp,where,cplex_callback_c,userdata_)
+    if stat != 0
+        throw(CplexError(model.env.ptr, stat))
+    end
 end
