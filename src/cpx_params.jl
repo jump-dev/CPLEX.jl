@@ -4,7 +4,7 @@
 function get_param_type(env::Env, indx::Int)
   ptype = Vector{Cint}(1)
   stat = @cpx_ccall(getparamtype, Cint, (
-                    Ptr{Void},
+                    Ptr{Nothing},
                     Cint,
                     Ptr{Cint}
                     ),
@@ -34,13 +34,13 @@ get_param_type(env::Env, name::String) = get_param_type(env, paramName2Indx[name
 function set_param!(env::Env, _pindx::Int, val, ptype::Symbol)
   pindx = convert(Cint, _pindx)
   if ptype == :Int
-    stat = @cpx_ccall(setintparam, Cint, (Ptr{Void}, Cint, Cint), env.ptr, pindx, convert(Cint,val))
+    stat = @cpx_ccall(setintparam, Cint, (Ptr{Nothing}, Cint, Cint), env.ptr, pindx, convert(Cint,val))
   elseif ptype == :Double
-    stat = @cpx_ccall(setdblparam, Cint, (Ptr{Void}, Cint, Cdouble), env.ptr, pindx, float(val))
+    stat = @cpx_ccall(setdblparam, Cint, (Ptr{Nothing}, Cint, Cdouble), env.ptr, pindx, float(val))
   elseif ptype == :String
-    stat = @cpx_ccall(setstrparam, Cint, (Ptr{Void}, Cint, Cstring), env.ptr, pindx, String(val))
+    stat = @cpx_ccall(setstrparam, Cint, (Ptr{Nothing}, Cint, Cstring), env.ptr, pindx, String(val))
   elseif ptype == :Long
-    stat = @cpx_ccall(setlongparam, Cint, (Ptr{Void}, Cint, Clonglong), env.ptr, pindx, convert(Clonglong, val))
+    stat = @cpx_ccall(setlongparam, Cint, (Ptr{Nothing}, Cint, Clonglong), env.ptr, pindx, convert(Clonglong, val))
   elseif ptype == :None
     warn("Trying to set a parameter of type None; doing nothing")
   else
@@ -64,28 +64,28 @@ set_param!(env::Env, pname::String, val) = set_param!(env, paramName2Indx[pname]
 function get_param(env::Env, pindx::Int, ptype::Symbol)
   if ptype == :Int
     val_int = Vector{Cint}(1)
-    stat = @cpx_ccall(getintparam, Cint, (Ptr{Void}, Cint, Ptr{Cint}), env.ptr, convert(Cint,pindx), val_int)
+    stat = @cpx_ccall(getintparam, Cint, (Ptr{Nothing}, Cint, Ptr{Cint}), env.ptr, convert(Cint,pindx), val_int)
     if stat != 0
       throw(CplexError(env, stat))
     end
     return val_int[1]
   elseif ptype == :Double
     val_double = Vector{Cdouble}(1)
-    stat = @cpx_ccall(getdblparam, Cint, (Ptr{Void}, Cint, Ptr{Cdouble}), env.ptr, convert(Cint,pindx), val_double)
+    stat = @cpx_ccall(getdblparam, Cint, (Ptr{Nothing}, Cint, Ptr{Cdouble}), env.ptr, convert(Cint,pindx), val_double)
     if stat != 0
       throw(CplexError(env, stat))
     end
     return val_double[1]
   elseif ptype == :String
     buf = Vector{Cchar}(CPX_STR_PARAM_MAX) # max str param length is 512 in Cplex 12.51
-    stat = @cpx_ccall(getstrparam, Cint, (Ptr{Void}, Cint, Ptr{Cchar}), env.ptr, convert(Cint,pindx), buf)
+    stat = @cpx_ccall(getstrparam, Cint, (Ptr{Nothing}, Cint, Ptr{Cchar}), env.ptr, convert(Cint,pindx), buf)
     if stat != 0
       throw(CplexError(env, stat))
     end
     return bytestring(pointer(buf))
   elseif ptype == :Long
     val_long = Vector{Clonglong}(1)
-    stat = @cpx_ccall(getlongparam, Cint, (Ptr{Void}, Cint, Ptr{Clonglong}), env.ptr, convert(Cint,pindx), val_long)
+    stat = @cpx_ccall(getlongparam, Cint, (Ptr{Nothing}, Cint, Ptr{Clonglong}), env.ptr, convert(Cint,pindx), val_long)
     if stat != 0
       throw(CplexError(env, stat))
     end
@@ -109,8 +109,8 @@ function tune_param(model::Model, intfixed::Dict, dblfixed::Dict, strfixed::Dict
   dblkeys = Cint[k for k in keys(dblfixed)]
   strkeys = Cint[k for k in keys(strfixed)]
   tune_stat = Vector{Cint}(1)
-  stat = @cpx_ccall(tuneparam, Cint, (Ptr{Void},
-                         Ptr{Void},
+  stat = @cpx_ccall(tuneparam, Cint, (Ptr{Nothing},
+                         Ptr{Nothing},
                          Cint,
                          Ptr{Cint},
                          Ptr{Cint},

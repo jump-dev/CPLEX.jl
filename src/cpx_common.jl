@@ -24,13 +24,13 @@ macro cpx_ccall_intercept(model, func, args...)
     f = "CPX$(func)"
     args = map(esc,args)
     quote
-        ccall(:jl_exit_on_sigint, Void, (Cint,), convert(Cint,0))
+        ccall(:jl_exit_on_sigint, Nothing, (Cint,), convert(Cint,0))
         ret = try
             $(Expr(:macrocall, Symbol("@cpx_ccall"), esc(func), args...))
         catch ex
             println("Caught exception")
             if !isinteractive()
-                ccall(:jl_exit_on_sigint, Void, (Cint,), convert(Cint,1))
+                ccall(:jl_exit_on_sigint, Nothing, (Cint,), convert(Cint,1))
             end
             if isa(ex, InterruptException)
                 model.terminator[1] = 1
@@ -38,7 +38,7 @@ macro cpx_ccall_intercept(model, func, args...)
             rethrow(ex)
         end
         if !isinteractive()
-            ccall(:jl_exit_on_sigint, Void, (Cint,), convert(Cint,1))
+            ccall(:jl_exit_on_sigint, Nothing, (Cint,), convert(Cint,1))
         end
         ret
     end
