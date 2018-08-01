@@ -10,7 +10,7 @@ export setbranchcallback,
        rejectincumbent,
        nobranches
 
-type CPLEXcb
+mutable struct CPLEXcb
     branchcallback
     incumbentcallback
 end

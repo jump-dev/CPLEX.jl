@@ -1,6 +1,6 @@
 export CplexSolver
 
-type CplexMathProgModel <: AbstractLinearQuadraticModel
+mutable struct CplexMathProgModel <: AbstractLinearQuadraticModel
     inner::Model
     lazycb
     cutcb
@@ -26,7 +26,7 @@ function CplexMathProgModel(;mipstart_effortlevel::Cint = CPX_MIPSTART_AUTO, opt
     return m
 end
 
-type CplexSolver <: AbstractMathProgSolver
+mutable struct CplexSolver <: AbstractMathProgSolver
     options
 end
 CplexSolver(;kwargs...) = CplexSolver(kwargs)
@@ -492,14 +492,14 @@ function cbprocessincumbent!(d::CplexCallbackData,accept::Bool)
     nothing
 end
 
-type CplexLazyCallbackData <: CplexCallbackData
+mutable struct CplexLazyCallbackData <: CplexCallbackData
     cbdata::CallbackData
     state::Symbol
     where::Cint
     userinteraction_p::Ptr{Cint}
 end
 
-type CplexCutCallbackData <: CplexCallbackData
+mutable struct CplexCutCallbackData <: CplexCallbackData
     cbdata::CallbackData
     state::Symbol
     where::Cint
@@ -546,7 +546,7 @@ function mastercallback(env::Ptr{Nothing}, cbdata::Ptr{Nothing}, wherefrom::Cint
     return convert(Cint, 0)
 end
 
-type CplexHeuristicCallbackData <: CplexCallbackData
+mutable struct CplexHeuristicCallbackData <: CplexCallbackData
     cbdata::CallbackData
     state::Symbol
     where::Cint
@@ -661,14 +661,14 @@ function setmathprogheuristiccallback!(model::CplexMathProgModel)
     nothing
 end
 
-immutable BranchingChoice
+struct BranchingChoice
     indices::Vector{Cint}
     bounds::Vector{Cdouble}
     lu::Vector{Cchar}
 end
 export BranchingChoice
 
-type CplexBranchCallbackData <: CplexCallbackData
+struct CplexBranchCallbackData <: CplexCallbackData
     cbdata::CallbackData
     state::Symbol
     where::Cint
@@ -759,7 +759,7 @@ function setmathprogbranchcallback!(model::CplexMathProgModel)
     nothing
 end
 
-type CplexIncumbentCallbackData <: CplexCallbackData
+mutable struct CplexIncumbentCallbackData <: CplexCallbackData
     cbdata::CallbackData
     state::Symbol
     where::Cint
@@ -829,7 +829,7 @@ function setmathprogincumbentcallback!(model::CplexMathProgModel)
     nothing
 end
 
-type CplexInfoCallbackData <: CplexCallbackData
+mutable struct CplexInfoCallbackData <: CplexCallbackData
     cbdata::CallbackData
     state::Symbol
     where::Cint
