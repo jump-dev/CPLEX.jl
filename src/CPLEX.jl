@@ -120,8 +120,8 @@ module CPLEX
         try
             eval(current_module(), Expr(:import,:JuMP))
             include("JuMPfunctions.jl")
-		catch e
-			rethrow(e)
+        catch e
+            rethrow(e)
         end
     end
 end
