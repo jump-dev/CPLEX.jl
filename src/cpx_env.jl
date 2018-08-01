@@ -1,10 +1,10 @@
-type Env
+mutable struct Env
     ptr::Ptr{Void}
     num_models::Int
     finalize_called::Bool
 
     function Env()
-      stat = Vector{Cint}(1)
+      stat = Vector{Cint}(undef, 1)
       tmp = @cpx_ccall(openCPLEX, Ptr{Void}, (Ptr{Cint},), stat)
       if tmp == C_NULL
           error("CPLEX: Error creating environment")

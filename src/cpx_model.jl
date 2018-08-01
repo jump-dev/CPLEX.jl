@@ -1,4 +1,4 @@
-type Model
+mutable struct Model
     env::Env # Cplex environment
     lp::Ptr{Void} # Cplex problem (lp)
     has_int::Bool # problem has integer variables?
