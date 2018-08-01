@@ -54,8 +54,8 @@ const CoeffMat = Union{Matrix{Cdouble}, SparseMatrixCSC{Cdouble}}
 const GCharOrVec = Union{Cchar, Char, Vector{Cchar}, Vector{Char}}
 
 # empty vector & matrix (for the purpose of supplying default arguments)
-const emptyfvec = Vector{Float64}(0)
-const emptyfmat = Matrix{Float64}(0, 0)
+const emptyfvec = Vector{Float64}(undef, 0)
+const emptyfmat = Matrix{Float64}(undef, 0, 0)
 
 cchar(c::Cchar) = c
 cchar(c::Char) = convert(Cchar, c)
