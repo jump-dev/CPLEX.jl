@@ -1,6 +1,7 @@
 function optimize!(model::Model)
   @assert is_valid(model.env)
-  stat = (if model.has_int
+  stat = (
+  if model.has_int
     @cpx_ccall_intercept(model, mipopt, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
   elseif model.has_qc
     @cpx_ccall_intercept(model, qpopt, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
@@ -80,9 +81,29 @@ function get_objval(model::Model)
   return objval[1]
 end
 
-function get_solution(model::Model)
-  nvars = num_var(model)
-  x = Vector{Cdouble}(nvars)
+function get_solution_info(model::Model)    
+  solnmethod_p = [Cint(-1)]
+  solntype_p = [Cint(-1)]
+  pfeasind_p = [Cint(-1)]
+  dfeasind_p = [Cint(-1)]
+  stat = @cpx_ccall(solninfo, Cint, (
+                    Ptr{Void},
+                    Ptr{Void},
+                    Ptr{Cint},
+                    Ptr{Cint},
+                    Ptr{Cint},
+                    Ptr{Cint}
+                    ),
+                    model.env.ptr, model.lp, solnmethod_p, solntype_p, 
+                    pfeasind_p, dfeasind_p)
+  if stat != 0
+    throw(CplexError(model.env, stat))
+  end
+  return (solnmethod_p[1], solntype_p[1], pfeasind_p[1], dfeasind_p[1])
+end
+
+function fill_solution(model::Model, x::FVec)
+  nvars = num_var(model)  
   stat = @cpx_ccall(getx, Cint, (
                     Ptr{Void},
                     Ptr{Void},
@@ -94,13 +115,17 @@ function get_solution(model::Model)
   if stat != 0
     throw(CplexError(model.env, stat))
   end
+end
+
+function get_solution(model::Model)
+  nvars = num_var(model)
+  x = Vector{Cdouble}(nvars)
+  fill_solution(model, x)
   return x
 end
 
-function get_reduced_costs(model::Model)
+function fill_reduced_costs(model::Model, p::FVec)
     nvars = num_var(model)
-    p = Vector{Cdouble}(nvars)
-    status = Vector{Cint}(1)
     stat = @cpx_ccall(getdj, Cint, (
                       Ptr{Void},
                       Ptr{Void},
@@ -111,14 +136,18 @@ function get_reduced_costs(model::Model)
                       model.env.ptr, model.lp, p, 0, nvars-1)
     if stat != 0
        throw(CplexError(model.env, stat))
-   end
-   return p
+    end
 end
 
-function get_constr_duals(model::Model)
+function get_reduced_costs(model::Model)
+    nvars = num_var(model)
+    p = Vector{Cdouble}(nvars)
+    fill_reduced_costs(model, p)
+    return p
+end
+
+function fill_constr_duals(model::Model, p::FVec)
     ncons = num_constr(model)
-    p = Vector{Cdouble}(ncons)
-    status = Vector{Cint}(1)
     stat = @cpx_ccall(getpi, Cint, (
                       Ptr{Void},
                       Ptr{Void},
@@ -129,25 +158,36 @@ function get_constr_duals(model::Model)
                       model.env.ptr, model.lp, p, 0, ncons-1)
     if stat != 0
        throw(CplexError(model.env, stat))
-   end
-   return p
+    end
+end
+
+function get_constr_duals(model::Model)
+    ncons = num_constr(model)
+    p = Vector{Cdouble}(ncons)
+    fill_constr_duals(model, p)
+    return p
+end
+
+function fill_constr_solution(model::Model, Ax::FVec)
+    ncons = num_constr(model)
+    stat = @cpx_ccall(getax, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Ptr{Cdouble},
+                      Cint,
+                      Cint
+                      ),
+                      model.env.ptr, model.lp, Ax, 0, ncons-1)
+    if stat != 0
+      throw(CplexError(model.env, stat))
+    end
 end
 
 function get_constr_solution(model::Model)
-  ncons = num_constr(model)
-  Ax = Vector{Cdouble}(ncons)
-  stat = @cpx_ccall(getax, Cint, (
-                    Ptr{Void},
-                    Ptr{Void},
-                    Ptr{Cdouble},
-                    Cint,
-                    Cint
-                    ),
-                    model.env.ptr, model.lp, Ax, 0, ncons-1)
-  if stat != 0
-    throw(CplexError(model.env, stat))
-  end
-  return Ax
+    ncons = num_constr(model)
+    Ax = Vector{Cdouble}(ncons)
+    fill_constr_solution(model, Ax)
+    return Ax
 end
 
 function get_infeasibility_ray(model::Model)

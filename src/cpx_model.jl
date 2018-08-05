@@ -78,6 +78,21 @@ function set_sense!(model::Model, sense)
     end
 end
 
+function get_obj(model::Model, sized_obj::FVec)
+    nvars = num_var(model)
+    stat = @cpx_ccall(getobj, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Ptr{Cdouble},
+                      Cint,
+                      Cint
+                      ),
+                      model.env.ptr, model.lp, sized_obj, 0, nvars-1)
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+end
+
 function get_obj(model::Model)
     nvars = num_var(model)
     obj = Vector{Cdouble}(nvars)
@@ -149,6 +164,21 @@ function set_obj!(model::Model, c::Vector)
                         Ptr{Cdouble}
                         ),
                         model.env.ptr, model.lp, nvars, Cint[0:nvars-1;], float(c))
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+end
+
+function set_obj!(model::Model, indices::IVec, values::FVec)
+    nvars = length(indices)
+    stat = @cpx_ccall(chgobj, Cint, (
+                        Ptr{Void},
+                        Ptr{Void},
+                        Cint,
+                        Ptr{Cint},
+                        Ptr{Cdouble}
+                        ),
+                        model.env.ptr, model.lp, nvars, indices .- 1, values)
     if stat != 0
         throw(CplexError(model.env, stat))
     end

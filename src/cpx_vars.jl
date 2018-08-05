@@ -78,6 +78,22 @@ function add_var!(model::Model, constridx::Vector, constrcoef::Vector, l::Vector
     return add_var!(model, ivec(constridx), fvec(constrcoef), fvec(l), fvec(u), fvec(objcoef))
 end
 
+function get_varLB(model::Model, col::Cint)
+    lb = Vector{Cdouble}(1)
+    stat = @cpx_ccall(getlb, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Ptr{Cdouble},
+                      Cint,
+                      Cint
+                      ),
+                      model.env.ptr, model.lp, lb, col-1, col-1)
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+    return lb[1]
+end
+
 function get_varLB(model::Model)
     nvars = num_var(model)
     lb = Vector{Cdouble}(nvars)
@@ -93,6 +109,22 @@ function get_varLB(model::Model)
         throw(CplexError(model.env, stat))
     end
     return lb
+end
+
+function chgbds(model::Model, indices::IVec, lu::CVec, bd::FVec)    
+    cnt = length(indices)
+    stat = @cpx_ccall(chgbds, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Cint,
+                      Ptr{Cint},
+                      Ptr{Cchar},
+                      Ptr{Cdouble}
+                      ),
+                      model.env.ptr, model.lp, cnt, indices, lu, bd)
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
 end
 
 function set_varLB!(model::Model, l::FVec)
@@ -114,6 +146,22 @@ function set_varLB!(model::Model, l::FVec)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
+end
+
+function get_varUB(model::Model, col::Cint)
+    ub = Vector{Cdouble}(1)
+    stat = @cpx_ccall(getub, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Ptr{Cdouble},
+                      Cint,
+                      Cint
+                      ),
+                      model.env.ptr, model.lp, ub, col-1, col-1)
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+    return ub[1]
 end
 
 function get_varUB(model::Model)
@@ -154,6 +202,20 @@ function set_varUB!(model::Model, u::FVec)
     end
 end
 
+function chg_ctype!(model::Model, indices::IVec, types::CVec)
+    nvars = length(indices)
+    stat = @cpx_ccall(chgctype, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Cint,
+                      Ptr{Cint},
+                      Ptr{Cchar}
+                      ),
+                      model.env.ptr, model.lp, nvars, indices .- 1, types)
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end    
+end
 
 function set_vartype!(model::Model, vtype::Vector{Char})
     nvars = num_var(model)
@@ -212,6 +274,19 @@ function set_varname!(model::Model, idx::Integer, name::String)
                       Ptr{Ptr{UInt8}}
                       ),
                       model.env.ptr, model.lp, 1, Cint[idx-1], [pointer(s)])
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+end
+
+function del_cols!(model::Model, first::Cint, last::Cint)
+    stat = @cpx_ccall(delcols, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Cint,
+                      Cint
+                      ),
+                      model.env.ptr, model.lp, first-1, last-1)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
