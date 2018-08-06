@@ -5,7 +5,7 @@ const MOIT = MathOptInterface.Test
 
 @testset "Unit Tests" begin
     config = MOIT.TestConfig()
-    solver = CplexOptimizer()
+    solver = CPLEX.Optimizer()
 
     MOIT.unittest(solver, config, [
         "solve_affine_interval", # not implemented
@@ -21,7 +21,7 @@ end
 @testset "Linear tests" begin
     linconfig = MOIT.TestConfig()
     @testset "Default Solver"  begin
-        solver = CplexOptimizer()
+        solver = CPLEX.Optimizer()
         MOIT.contlineartest(solver, linconfig, ["linear10","linear11",
                 "linear12", "linear8a","linear8b","linear8c"])
     end
@@ -29,7 +29,7 @@ end
 
 @testset "Integer Linear tests" begin
     intconfig = MOIT.TestConfig()
-    solver = CplexOptimizer()
+    solver = CPLEX.Optimizer()
     MOIT.intlineartest(solver, intconfig, ["int2", "int3"]) 
     # 3 is ranged, 2 has sos
 end

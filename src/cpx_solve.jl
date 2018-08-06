@@ -102,7 +102,7 @@ function get_solution_info(model::Model)
   return (solnmethod_p[1], solntype_p[1], pfeasind_p[1], dfeasind_p[1])
 end
 
-function fill_solution(model::Model, x::FVec)
+function get_solution!(model::Model, x::FVec)
   nvars = num_var(model)  
   stat = @cpx_ccall(getx, Cint, (
                     Ptr{Void},
@@ -120,11 +120,11 @@ end
 function get_solution(model::Model)
   nvars = num_var(model)
   x = Vector{Cdouble}(nvars)
-  fill_solution(model, x)
+  get_solution!(model, x)
   return x
 end
 
-function fill_reduced_costs(model::Model, p::FVec)
+function get_reduced_costs!(model::Model, p::FVec)
     nvars = num_var(model)
     stat = @cpx_ccall(getdj, Cint, (
                       Ptr{Void},
@@ -142,11 +142,11 @@ end
 function get_reduced_costs(model::Model)
     nvars = num_var(model)
     p = Vector{Cdouble}(nvars)
-    fill_reduced_costs(model, p)
+    get_reduced_costs!(model, p)
     return p
 end
 
-function fill_constr_duals(model::Model, p::FVec)
+function get_constr_duals!(model::Model, p::FVec)
     ncons = num_constr(model)
     stat = @cpx_ccall(getpi, Cint, (
                       Ptr{Void},
@@ -164,11 +164,11 @@ end
 function get_constr_duals(model::Model)
     ncons = num_constr(model)
     p = Vector{Cdouble}(ncons)
-    fill_constr_duals(model, p)
+    get_constr_duals!(model, p)
     return p
 end
 
-function fill_constr_solution(model::Model, Ax::FVec)
+function get_constr_solution!(model::Model, Ax::FVec)
     ncons = num_constr(model)
     stat = @cpx_ccall(getax, Cint, (
                       Ptr{Void},
@@ -186,7 +186,7 @@ end
 function get_constr_solution(model::Model)
     ncons = num_constr(model)
     Ax = Vector{Cdouble}(ncons)
-    fill_constr_solution(model, Ax)
+    get_constr_solution!(model, Ax)
     return Ax
 end
 
