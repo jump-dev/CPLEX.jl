@@ -1,4 +1,4 @@
-function add_rows!(model::Model, cbegins::IVec, inds::IVec, coeffs::FVec, 
+function c_api_addrows(model::Model, cbegins::IVec, inds::IVec, coeffs::FVec, 
                    rel::CVec, rhs::FVec)
     
     nnz   = length(inds)
@@ -43,7 +43,7 @@ function add_constrs!(model::Model, cbegins::IVec, inds::IVec, coeffs::FVec,
         end
     end
     
-    add_rows!(model, cbegins, inds, coeffs, rel, rhs)
+    c_api_addrows(model, cbegins, inds, coeffs, rel, rhs)
 end
 
 add_constr!(model::Model, coef::Vector, sense::Char, rhs) = add_constrs!(model, [1], collect(1:length(coef)), coef, [sense], [rhs])
@@ -140,7 +140,7 @@ function add_rangeconstrs!(model::Model, A::CoeffMat, lb::Vector, ub::Vector)
     add_rangeconstrs_t!(model, transpose(A), lb, ub)
 end
 
-function num_constr(model::Model)
+function c_api_getnumrows(model::Model)
     ncons = @cpx_ccall(getnumrows, Cint, (
                        Ptr{Void},
                        Ptr{Void}
@@ -148,6 +148,7 @@ function num_constr(model::Model)
                        model.env.ptr, model.lp)
     return ncons
 end
+num_constr = c_api_getnumrows # Needed by MathProgBase Interface
 
 function get_constr_senses(model::Model)
     ncons = num_constr(model)
@@ -166,7 +167,7 @@ function get_constr_senses(model::Model)
     return senses
 end
 
-function chg_sense!(model::Model, indices::IVec, senses::CVec)
+function c_api_chgsense(model::Model, indices::IVec, senses::CVec)
     ncons = length(IVec)
     stat = @cpx_ccall(chgsense, Cint, (
                       Ptr{Void},
@@ -175,7 +176,8 @@ function chg_sense!(model::Model, indices::IVec, senses::CVec)
                       Ptr{Cint},
                       Ptr{Cchar}
                       ),
-                      model.env.ptr, model.lp, ncons, indices .- 1, senses)
+                      model.env.ptr, model.lp, ncons, 
+                      indices .- Cint(1), senses)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
@@ -190,15 +192,16 @@ function set_constr_senses!(model::Model, senses::Vector)
                       Ptr{Cint},
                       Ptr{Cchar}
                       ),
-                      model.env.ptr, model.lp, ncons, Cint[0:ncons-1;], convert(Vector{Cchar},senses))
+                      model.env.ptr, model.lp, ncons, Cint[0:ncons-1;], 
+                      convert(Vector{Cchar},senses))
     if stat != 0
         throw(CplexError(model.env, stat))
     end
 end
 
-function get_rhs(model::Model, row::Cint)
+function c_api_getrhs(model::Model, row_start::Cint, row_end::Cint)
     ncons = 1
-    rhs = Vector{Cdouble}(1)
+    rhs = Vector{Cdouble}(row_end - row_start + 1)
     stat = @cpx_ccall(getrhs, Cint, (
                       Ptr{Void},
                       Ptr{Void},
@@ -206,11 +209,12 @@ function get_rhs(model::Model, row::Cint)
                       Cint,
                       Cint
                       ),
-                      model.env.ptr, model.lp, rhs, row-1, row-1)
+                      model.env.ptr, model.lp, rhs, 
+                      row_start - Cint(1), row_end - Cint(1))
     if stat != 0
         throw(CplexError(model.env, stat))
     end
-    return rhs[1]
+    return rhs
 end
     
 function get_rhs(model::Model)
@@ -230,7 +234,7 @@ function get_rhs(model::Model)
     return rhs
 end
 
-function chg_rhs(model::Model, indices::IVec, rhs::FVec)
+function c_api_chgrhs(model::Model, indices::IVec, rhs::FVec)
     ncons = length(indices)
     @assert ncons == length(rhs)
     stat = @cpx_ccall(chgrhs, Cint, (
@@ -240,7 +244,7 @@ function chg_rhs(model::Model, indices::IVec, rhs::FVec)
                       Ptr{Cint},
                       Ptr{Cdouble}
                       ),
-                      model.env.ptr, model.lp, ncons, indices .- 1, rhs)
+                      model.env.ptr, model.lp, ncons, indices .- Cint(1), rhs)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
@@ -352,15 +356,15 @@ function get_nnz(model::Model)
   return ret
 end
 
-function get_rows(model::Model, mbegin::Cint, mend::Cint)
-  nzcnt_p = Vector{Cint}(1)
-  m = mend - mbegin + 1   
-  nnz = get_nnz(model)  
-  rmatbeg = Vector{Cint}(m+1)
-  rmatind = Vector{Cint}(nnz)
-  rmatval = Vector{Cdouble}(nnz)
-  surplus_p = Vector{Cint}(1)
-  stat = @cpx_ccall(getrows, Cint, (
+function c_api_getrows(model::Model, mbegin::Cint, mend::Cint)
+    nzcnt_p = Vector{Cint}(1)
+    m = mend - mbegin + 1   
+    nnz = get_nnz(model)  
+    rmatbeg = Vector{Cint}(m+1)
+    rmatind = Vector{Cint}(nnz)
+    rmatval = Vector{Cdouble}(nnz)
+    surplus_p = Vector{Cint}(1)
+    stat = @cpx_ccall(getrows, Cint, (
                     Ptr{Void},
                     Ptr{Void},
                     Ptr{Cint},
@@ -372,13 +376,14 @@ function get_rows(model::Model, mbegin::Cint, mend::Cint)
                     Cint,
                     Cint
                     ),
-                    model.env.ptr, model.lp, nzcnt_p, rmatbeg, rmatind, rmatval, 
-                    nnz, surplus_p, mbegin-1, mend-1)
-  if stat != 0 || surplus_p[1] < 0
-    throw(CplexError(model.env, stat))
-  end
-  rmatbeg[end] = nnz # add the last entry that Julia wants
-  return (nzcnt_p[1], rmatbeg, rmatind, rmatval)
+                    model.env.ptr, model.lp, nzcnt_p, 
+                    rmatbeg, rmatind, rmatval, 
+                    nnz, surplus_p, mbegin-Cint(1), mend-Cint(1))
+    if stat != 0 || surplus_p[1] < 0
+        throw(CplexError(model.env, stat))
+    end
+    rmatbeg[end] = nnz # add the last entry that Julia wants
+    return (nzcnt_p[1], rmatbeg, rmatind .+ Cint(1), rmatval)
 end
 
 function get_constr_matrix(model::Model)
@@ -462,7 +467,7 @@ function add_indicator_constraint(model::Model, idx::Vector{Cint}, coeff::Vector
     return nothing
 end
 
-function chg_coef!(model::Model, row::Cint, col::Cint, coef::Cdouble)
+function c_api_chgcoef(model::Model, row::Cint, col::Cint, coef::Cdouble)
     stat = @cpx_ccall(chgcoef, Cint, (
                       Ptr{Void},        # environment
                       Ptr{Void},        # problem
@@ -470,14 +475,15 @@ function chg_coef!(model::Model, row::Cint, col::Cint, coef::Cdouble)
                       Cint,             # col
                       Cdouble,          # coef                      
                       ),
-                      model.env.ptr, model.lp, row - 1, col - 1, coef)
+                      model.env.ptr, model.lp, 
+                      row - Cint(1), col - Cint(1), coef)
 
     if stat != 0
        throw(CplexError(model.env, stat))
     end
 end
 
-function del_rows!(model::Model, first::Cint, last::Cint)
+function c_api_delrows(model::Model, first::Cint, last::Cint)
     stat = @cpx_ccall(delrows, Cint, (
                       Ptr{Void},
                       Ptr{Void},

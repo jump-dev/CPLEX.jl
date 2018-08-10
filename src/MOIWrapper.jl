@@ -62,108 +62,108 @@ LQOI.backend_type(model::Optimizer, ::MOI.Nonnegatives)         = Cchar('E')
 function LQOI.change_variable_bounds!(model::Optimizer, 
         columns::Vector{Int}, values::Vector{Float64}, senses::Vector{Cchar})
     
-    chgbds(model.inner, ivec(columns .- 1), senses, values)
+    c_api_chgbds(model.inner, ivec(columns), senses, values)
 end
 
 function LQOI.get_variable_lowerbound(model::Optimizer, column::Int)
-    get_varLB(model.inner, Cint(column))[1]
+    c_api_getlb(model.inner, Cint(column), Cint(column))[1]
 end
 
 function LQOI.get_variable_upperbound(model::Optimizer, column::Int)
-    get_varUB(model.inner, Cint(column))[1]
+    c_api_getub(model.inner, Cint(column), Cint(column))[1]
 end
 
 function LQOI.get_number_linear_constraints(model::Optimizer)
-    num_constr(model.inner)
+    c_api_getnumrows(model.inner)
 end
 
 function LQOI.add_linear_constraints!(model::Optimizer,
         A::LQOI.CSRMatrix{Float64}, sense::Vector{Cchar}, rhs::Vector{Float64})
 
-    add_rows!(model.inner, ivec(A.row_pointers), ivec(A.columns), 
-              A.coefficients, sense, rhs)
+    c_api_addrows(model.inner, ivec(A.row_pointers), ivec(A.columns), 
+                  A.coefficients, sense, rhs)
 end
 
 function LQOI.get_rhs(model::Optimizer, row::Int)
-    get_rhs(model.inner, Cint(row))
+    c_api_getrhs(model.inner, Cint(row), Cint(row))[1]
 end
 
 function LQOI.get_linear_constraint(model::Optimizer, row::Int)
     (nzcnt, rmatbeg, rmatind, rmatval) = 
-            get_rows(model.inner, Cint(row), Cint(row))
-    return rmatind[1:nzcnt] .+ 1, rmatval[1:nzcnt]
+            c_api_getrows(model.inner, Cint(row), Cint(row))
+    return rmatind[1:nzcnt], rmatval[1:nzcnt]
 end
 
 function LQOI.change_matrix_coefficient!(model::Optimizer, 
                                          row::Int, col::Int, coef::Float64)
                                          
-    chg_coef!(model.inner, Cint(row), Cint(col), coef)
+    c_api_chgcoef(model.inner, Cint(row), Cint(col), coef)
 end
 
 function LQOI.change_objective_coefficient!(model::Optimizer, col::Int, 
                                             coef::Float64)
                                             
-    set_obj!(model.inner, [Cint(col)], [coef])
+    c_api_chgobj(model.inner, [Cint(col)], [coef])
 end
 
 function LQOI.change_rhs_coefficient!(model::Optimizer, row::Int, 
                                       coef::Float64)
                                       
-    chg_rhs(model.inner, [Cint(row)], [coef])
+    c_api_chgrhs(model.inner, [Cint(row)], [coef])
 end
 
 function LQOI.delete_linear_constraints!(model::Optimizer, 
                                          first_row::Int, last_row::Int)
                                          
-    del_rows!(model.inner, Cint(first_row), Cint(last_row))
+    c_api_delrows(model.inner, Cint(first_row), Cint(last_row))
 end
 
 function LQOI.change_variable_types!(model::Optimizer, 
         columns::Vector{Int}, vtypes::Vector{Cchar})
     
-    chg_ctype!(model.inner, ivec(columns), vtypes)
+    c_api_chgctype(model.inner, ivec(columns), vtypes)
 end
 
 function LQOI.change_linear_constraint_sense!(model::Optimizer, 
         rows::Vector{Int}, senses::Vector{Cchar})
                                               
-    chg_sense!(ivec(rows), senses)
+    c_api_chgsense(model.inner, ivec(rows), senses)
 end
 
 function LQOI.set_linear_objective!(model::Optimizer, 
         columns::Vector{Int}, coefficients::Vector{Float64})
-    
+        
     n = num_var(model.inner)    
     all_coefs = zeros(Float64, n)    
     for (col, coef) in zip(columns, coefficients)
         all_coefs[col] = coef
     end 
-    set_obj!(model.inner, all_coefs) 
+    c_api_chgobj(model.inner, Cint[1:n;], all_coefs) 
 end
 
 function LQOI.change_objective_sense!(model::Optimizer, symbol)
     if symbol == :min
-        set_sense!(model.inner, :Min)
+        c_api_chgobjsen(model.inner, Cint(1))
     else
-        set_sense!(model.inner, :Max)
+        c_api_chgobjsen(model.inner, Cint(-1))
     end  
 end
 
 function LQOI.get_linear_objective!(model::Optimizer, x)
-    get_obj(model.inner, x)
+    c_api_getobj(model.inner, x, Cint(1), c_api_getnumcols(model.inner))
 end
 
 function LQOI.get_objectivesense(model::Optimizer)
-    s = get_sense(model.inner)
-    if s == :Max
-        return MOI.MaxSense
-    else
+    s = c_api_getobjsen(model.inner)
+    if s == 1
         return MOI.MinSense
+    else
+        return MOI.MaxSense
     end
 end
 
 function LQOI.get_number_variables(model::Optimizer)  
-    num_var(model.inner)
+    c_api_getnumcols(model.inner)
 end
 
 function LQOI.add_variables!(model::Optimizer, N::Int)
@@ -172,7 +172,8 @@ end
 
 function LQOI.delete_variables!(model::Optimizer, 
                                 first_col::Int, last_col::Int)
-    del_cols!(model.inner, Cint(first_col), Cint(last_col))
+                                
+    c_api_delcols(model.inner, Cint(first_col), Cint(last_col))
 end
 
 function LQOI.solve_mip_problem!(model::Optimizer)
@@ -185,7 +186,7 @@ function LQOI.solve_linear_problem!(model::Optimizer)
 end
 
 function LQOI.get_termination_status(model::Optimizer)
-    stat = get_status_code(model.inner) 
+    stat = c_api_getstat(model.inner) 
                
     if stat == 1 # CPX_STAT_OPTIMAL
         return MOI.Success
@@ -225,7 +226,7 @@ function LQOI.get_termination_status(model::Optimizer)
 end
 
 function LQOI.get_primal_status(model::Optimizer)
-    stat = get_solution_info(model.inner)[3]
+    stat = c_api_solninfo(model.inner)[3]
     if stat == 1
         return MOI.FeasiblePoint
     else
@@ -237,7 +238,7 @@ function LQOI.get_dual_status(model::Optimizer)
     if model.inner.has_int 
         return MOI.UnknownResultStatus
     end
-    stat = get_solution_info(model.inner)[4]
+    stat = c_api_solninfo(model.inner)[4]
     if stat == 1
         return MOI.FeasiblePoint
     else
@@ -246,29 +247,23 @@ function LQOI.get_dual_status(model::Optimizer)
 end
 
 function LQOI.get_variable_primal_solution!(model::Optimizer, result)
-    return get_solution!(model.inner, result)
+    return c_api_getx(model.inner, result)
 end
  
 function LQOI.get_linear_primal_solution!(model::Optimizer, result)
-    return get_constr_solution!(model.inner, result)
+    return c_api_getax(model.inner, result)
 end
  
 function LQOI.get_variable_dual_solution!(model::Optimizer, place)
-    return get_reduced_costs!(model.inner, place)
+    return c_api_getdj(model.inner, place)
 end
 
 function LQOI.get_linear_dual_solution!(model::Optimizer, place)
-    return get_constr_duals!(model.inner, place)
+    return c_api_getpi(model.inner, place)
 end
 
 function LQOI.get_objective_value(model::Optimizer)
-    return get_objval(model.inner)
-end
-
-function LQOI.get_relative_mip_gap(model::Optimizer)
-    L = get_objval(model.inner)
-    U = get_objbound(model.inner)
-    return abs(U-L)/U
+    return c_api_getobjval(model.inner)
 end
 
 function MOI.free!(m::Optimizer)

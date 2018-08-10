@@ -8,9 +8,10 @@ const MOIT = MathOptInterface.Test
     solver = CPLEX.Optimizer()
 
     MOIT.unittest(solver, config, [
-        "solve_affine_interval", # not implemented
-        "solve_qp_edge_cases",   # not implemented
-        "solve_qcp_edge_cases",  # not implemented
+        "solve_affine_interval",     # not implemented
+        "solve_qp_edge_cases",       # not implemented
+        "solve_qcp_edge_cases",      # not implemented
+        "solve_objbound_edge_cases", # TODO fix the non zero constant case
     ])
 
     MOIT.modificationtest(solver, config, [

@@ -67,7 +67,7 @@ end
 
 export setlongannotations, newlongannotation
 
-function get_objval(model::Model)
+function c_api_getobjval(model::Model)
   objval = Vector{Cdouble}(1)
   stat = @cpx_ccall(getobjval, Cint, (
                     Ptr{Void},
@@ -80,8 +80,9 @@ function get_objval(model::Model)
   end
   return objval[1]
 end
+get_objval = c_api_getobjval
 
-function get_solution_info(model::Model)    
+function c_api_solninfo(model::Model)    
   solnmethod_p = [Cint(-1)]
   solntype_p = [Cint(-1)]
   pfeasind_p = [Cint(-1)]
@@ -102,7 +103,7 @@ function get_solution_info(model::Model)
   return (solnmethod_p[1], solntype_p[1], pfeasind_p[1], dfeasind_p[1])
 end
 
-function get_solution!(model::Model, x::FVec)
+function c_api_getx(model::Model, x::FVec)
   nvars = num_var(model)  
   stat = @cpx_ccall(getx, Cint, (
                     Ptr{Void},
@@ -111,7 +112,7 @@ function get_solution!(model::Model, x::FVec)
                     Cint,
                     Cint
                     ),
-                    model.env.ptr, model.lp, x, 0, nvars-1)
+                    model.env.ptr, model.lp, x, 0, nvars-Cint(1))
   if stat != 0
     throw(CplexError(model.env, stat))
   end
@@ -120,11 +121,11 @@ end
 function get_solution(model::Model)
   nvars = num_var(model)
   x = Vector{Cdouble}(nvars)
-  get_solution!(model, x)
+  c_api_getx(model, x)
   return x
 end
 
-function get_reduced_costs!(model::Model, p::FVec)
+function c_api_getdj(model::Model, p::FVec)
     nvars = num_var(model)
     stat = @cpx_ccall(getdj, Cint, (
                       Ptr{Void},
@@ -142,11 +143,11 @@ end
 function get_reduced_costs(model::Model)
     nvars = num_var(model)
     p = Vector{Cdouble}(nvars)
-    get_reduced_costs!(model, p)
+    c_api_getdj(model, p)
     return p
 end
 
-function get_constr_duals!(model::Model, p::FVec)
+function c_api_getpi(model::Model, p::FVec)
     ncons = num_constr(model)
     stat = @cpx_ccall(getpi, Cint, (
                       Ptr{Void},
@@ -164,11 +165,11 @@ end
 function get_constr_duals(model::Model)
     ncons = num_constr(model)
     p = Vector{Cdouble}(ncons)
-    get_constr_duals!(model, p)
+    c_api_getpi(model, p)
     return p
 end
 
-function get_constr_solution!(model::Model, Ax::FVec)
+function c_api_getax(model::Model, Ax::FVec)
     ncons = num_constr(model)
     stat = @cpx_ccall(getax, Cint, (
                       Ptr{Void},
@@ -186,7 +187,7 @@ end
 function get_constr_solution(model::Model)
     ncons = num_constr(model)
     Ax = Vector{Cdouble}(ncons)
-    get_constr_solution!(model, Ax)
+    c_api_getax(model, Ax)
     return Ax
 end
 
@@ -325,4 +326,9 @@ const status_symbols = Dict(
 )
 
 get_status(model::Model) = status_symbols[Int(get_status_code(model))]::Symbol
-get_status_code(model::Model) = @cpx_ccall(getstat, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
+
+function c_api_getstat(model::Model) 
+    return @cpx_ccall(getstat, Cint, (Ptr{Void}, Ptr{Void}), 
+                      model.env.ptr, model.lp)
+end
+get_status_code = c_api_getstat

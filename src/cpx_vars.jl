@@ -78,8 +78,8 @@ function add_var!(model::Model, constridx::Vector, constrcoef::Vector, l::Vector
     return add_var!(model, ivec(constridx), fvec(constrcoef), fvec(l), fvec(u), fvec(objcoef))
 end
 
-function get_varLB(model::Model, col::Cint)
-    lb = Vector{Cdouble}(1)
+function c_api_getlb(model::Model, col_start::Cint, col_end::Cint)
+    lb = Vector{Cdouble}(col_end - col_start + 1)
     stat = @cpx_ccall(getlb, Cint, (
                       Ptr{Void},
                       Ptr{Void},
@@ -87,11 +87,12 @@ function get_varLB(model::Model, col::Cint)
                       Cint,
                       Cint
                       ),
-                      model.env.ptr, model.lp, lb, col-1, col-1)
+                      model.env.ptr, model.lp, lb, 
+                      col_start - Cint(1), col_end - Cint(1))
     if stat != 0
         throw(CplexError(model.env, stat))
     end
-    return lb[1]
+    return lb
 end
 
 function get_varLB(model::Model)
@@ -111,7 +112,7 @@ function get_varLB(model::Model)
     return lb
 end
 
-function chgbds(model::Model, indices::IVec, lu::CVec, bd::FVec)    
+function c_api_chgbds(model::Model, indices::IVec, lu::CVec, bd::FVec)    
     cnt = length(indices)
     stat = @cpx_ccall(chgbds, Cint, (
                       Ptr{Void},
@@ -121,7 +122,7 @@ function chgbds(model::Model, indices::IVec, lu::CVec, bd::FVec)
                       Ptr{Cchar},
                       Ptr{Cdouble}
                       ),
-                      model.env.ptr, model.lp, cnt, indices, lu, bd)
+                      model.env.ptr, model.lp, cnt, indices .- Cint(1), lu, bd)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
@@ -148,7 +149,7 @@ function set_varLB!(model::Model, l::FVec)
     end
 end
 
-function get_varUB(model::Model, col::Cint)
+function c_api_getub(model::Model, col_start::Cint, col_end::Cint)
     ub = Vector{Cdouble}(1)
     stat = @cpx_ccall(getub, Cint, (
                       Ptr{Void},
@@ -157,7 +158,8 @@ function get_varUB(model::Model, col::Cint)
                       Cint,
                       Cint
                       ),
-                      model.env.ptr, model.lp, ub, col-1, col-1)
+                      model.env.ptr, model.lp, ub, 
+                      col_start - Cint(1), col_end - Cint(1))
     if stat != 0
         throw(CplexError(model.env, stat))
     end
@@ -202,7 +204,7 @@ function set_varUB!(model::Model, u::FVec)
     end
 end
 
-function chg_ctype!(model::Model, indices::IVec, types::CVec)
+function c_api_chgctype(model::Model, indices::IVec, types::CVec)
     nvars = length(indices)
     stat = @cpx_ccall(chgctype, Cint, (
                       Ptr{Void},
@@ -211,7 +213,7 @@ function chg_ctype!(model::Model, indices::IVec, types::CVec)
                       Ptr{Cint},
                       Ptr{Cchar}
                       ),
-                      model.env.ptr, model.lp, nvars, indices .- 1, types)
+                      model.env.ptr, model.lp, nvars, indices .- Cint(1), types)
     if stat != 0
         throw(CplexError(model.env, stat))
     end    
@@ -253,7 +255,7 @@ function get_vartype(model::Model)
     return convert(Vector{Char},vartypes)
 end
 
-function num_var(model::Model)
+function c_api_getnumcols(model::Model)
     nvar = @cpx_ccall(getnumcols, Cint, (
                       Ptr{Void},
                       Ptr{Void}
@@ -261,6 +263,7 @@ function num_var(model::Model)
                       model.env.ptr, model.lp)
     return(nvar)
 end
+num_var = c_api_getnumcols
 
 function set_varname!(model::Model, idx::Integer, name::String)
     s = bytestring(name)
@@ -279,14 +282,14 @@ function set_varname!(model::Model, idx::Integer, name::String)
     end
 end
 
-function del_cols!(model::Model, first::Cint, last::Cint)
+function c_api_delcols(model::Model, first::Cint, last::Cint)
     stat = @cpx_ccall(delcols, Cint, (
                       Ptr{Void},
                       Ptr{Void},
                       Cint,
                       Cint
                       ),
-                      model.env.ptr, model.lp, first-1, last-1)
+                      model.env.ptr, model.lp, first - Cint(1), last - Cint(1))
     if stat != 0
         throw(CplexError(model.env, stat))
     end
