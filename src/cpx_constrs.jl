@@ -199,9 +199,8 @@ function set_constr_senses!(model::Model, senses::Vector)
     end
 end
 
-function c_api_getrhs(model::Model, row_start::Cint, row_end::Cint)
+function c_api_getrhs(model::Model, rhs::Vector{Cdouble}, row_start::Cint, row_end::Cint)
     ncons = 1
-    rhs = Vector{Cdouble}(row_end - row_start + 1)
     stat = @cpx_ccall(getrhs, Cint, (
                       Ptr{Void},
                       Ptr{Void},
@@ -214,7 +213,6 @@ function c_api_getrhs(model::Model, row_start::Cint, row_end::Cint)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
-    return rhs
 end
     
 function get_rhs(model::Model)

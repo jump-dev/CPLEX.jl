@@ -85,7 +85,9 @@ function LQOI.add_linear_constraints!(model::Optimizer,
 end
 
 function LQOI.get_rhs(model::Optimizer, row::Int)
-    c_api_getrhs(model.inner, Cint(row), Cint(row))[1]
+    rhs = Vector{Cdouble}(1)
+    c_api_getrhs(model.inner, rhs, Cint(row), Cint(row))
+    return rhs[1]
 end
 
 function LQOI.get_linear_constraint(model::Optimizer, row::Int)
