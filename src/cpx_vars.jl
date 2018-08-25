@@ -263,7 +263,7 @@ function c_api_getnumcols(model::Model)
                       model.env.ptr, model.lp)
     return(nvar)
 end
-num_var = c_api_getnumcols
+num_var(model::Model) = c_api_getnumcols(model)
 
 function set_varname!(model::Model, idx::Integer, name::String)
     s = bytestring(name)

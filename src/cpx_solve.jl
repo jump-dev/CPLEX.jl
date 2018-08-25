@@ -80,13 +80,13 @@ function c_api_getobjval(model::Model)
   end
   return objval[1]
 end
-get_objval = c_api_getobjval
+get_objval(model::Model) = c_api_getobjval(model)
 
 function c_api_solninfo(model::Model)    
-  solnmethod_p = [Cint(-1)]
-  solntype_p = [Cint(-1)]
-  pfeasind_p = [Cint(-1)]
-  dfeasind_p = [Cint(-1)]
+  solnmethod_p = Ref{Cint}()
+  solntype_p = Ref{Cint}()
+  pfeasind_p = Ref{Cint}()
+  dfeasind_p = Ref{Cint}()
   stat = @cpx_ccall(solninfo, Cint, (
                     Ptr{Void},
                     Ptr{Void},
@@ -100,7 +100,7 @@ function c_api_solninfo(model::Model)
   if stat != 0
     throw(CplexError(model.env, stat))
   end
-  return (solnmethod_p[1], solntype_p[1], pfeasind_p[1], dfeasind_p[1])
+  return (solnmethod_p[], solntype_p[], pfeasind_p[], dfeasind_p[])
 end
 
 function c_api_getx(model::Model, x::FVec)
@@ -331,4 +331,4 @@ function c_api_getstat(model::Model)
     return @cpx_ccall(getstat, Cint, (Ptr{Void}, Ptr{Void}), 
                       model.env.ptr, model.lp)
 end
-get_status_code = c_api_getstat
+get_status_code(model::Model) = c_api_getstat(model)

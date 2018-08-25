@@ -148,7 +148,8 @@ function c_api_getnumrows(model::Model)
                        model.env.ptr, model.lp)
     return ncons
 end
-num_constr = c_api_getnumrows # Needed by MathProgBase Interface
+# Needed by MathProgBase Interface
+num_constr(model::Model) = c_api_getnumrows(model) 
 
 function get_constr_senses(model::Model)
     ncons = num_constr(model)
@@ -199,8 +200,9 @@ function set_constr_senses!(model::Model, senses::Vector)
     end
 end
 
-function c_api_getrhs(model::Model, rhs::Vector{Cdouble}, row_start::Cint, row_end::Cint)
-    ncons = 1
+function c_api_getrhs(model::Model, rhs::Vector{Cdouble}, 
+        row_start::Cint, row_end::Cint)
+        
     stat = @cpx_ccall(getrhs, Cint, (
                       Ptr{Void},
                       Ptr{Void},

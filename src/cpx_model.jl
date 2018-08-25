@@ -65,8 +65,10 @@ function get_sense(model::Model)
     sense_int = c_api_getobjsen(model)
     if sense_int == 1
         return :Min
-    else 
+    elseif sense_int == -1 
         return :Max
+    else
+        error("CPLEX: problem object or environment does not exist")    
     end
 end
 

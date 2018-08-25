@@ -268,10 +268,6 @@ function LQOI.get_objective_value(model::Optimizer)
     return c_api_getobjval(model.inner)
 end
 
-function MOI.free!(m::Optimizer)
-    # close_CPLEX(model.inner)   
-end
-
 MOI.canget(m::Optimizer, ::MOI.ObjectiveBound) = false
 MOI.canget(m::Optimizer, ::MOI.RelativeGap) = false
 MOI.canget(m::Optimizer, ::MOI.SolveTime) = false
