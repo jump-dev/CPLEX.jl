@@ -12,7 +12,7 @@ const MOIB = MathOptInterface.Bridges
         "solve_affine_interval",     # not implemented
         "solve_qp_edge_cases",       # not implemented
         "solve_qcp_edge_cases",      # not implemented
-        "solve_objbound_edge_cases", # TODO fix the non zero constant case
+        "solve_objbound_edge_cases", # Requires MOI.ObjectiveBound() 
     ])    
     @testset "solve_affine_interval" begin
         MOIT.solve_affine_interval(
@@ -56,5 +56,25 @@ end
             MOIB.SplitInterval{Float64}(CPLEX.Optimizer()),
             MOIT.TestConfig()
         )
+    end
+end
+
+@testset "ModelLike tests" begin
+    solver = CPLEX.Optimizer()
+    # TODO add a test config to disable testing problem name.
+    # @testset "nametest" begin
+    #     MOIT.nametest(solver)
+    # end
+    @testset "validtest" begin
+        MOIT.validtest(solver)
+    end
+    @testset "emptytest" begin
+        MOIT.emptytest(solver)
+    end
+    @testset "orderedindicestest" begin
+        MOIT.orderedindicestest(solver)
+    end
+    @testset "copytest" begin
+        MOIT.copytest(solver, CPLEX.Optimizer())
     end
 end

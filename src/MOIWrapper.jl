@@ -44,6 +44,7 @@ function Optimizer(;kwargs...)
     end
     model = Optimizer(nothing)
     model.env = env
+    MOI.empty!(model)
     return model
 end
 
@@ -138,7 +139,7 @@ function LQOI.set_linear_objective!(model::Optimizer,
     n = num_var(model.inner)    
     all_coefs = zeros(Float64, n)    
     for (col, coef) in zip(columns, coefficients)
-        all_coefs[col] = coef
+        all_coefs[col] += coef
     end 
     c_api_chgobj(model.inner, Cint[1:n;], all_coefs) 
 end
@@ -164,8 +165,8 @@ function LQOI.get_objectivesense(model::Optimizer)
     end
 end
 
-function LQOI.get_number_variables(model::Optimizer)  
-    c_api_getnumcols(model.inner)
+function LQOI.get_number_variables(model::Optimizer)    
+    return c_api_getnumcols(model.inner)
 end
 
 function LQOI.add_variables!(model::Optimizer, N::Int)
