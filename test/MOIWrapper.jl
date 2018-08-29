@@ -1,4 +1,4 @@
-using CPLEX, Base.Test, MathOptInterface, MathOptInterface.Test
+using CPLEX, Base.Test, MathOptInterface
 
 const MOI  = MathOptInterface
 const MOIT = MathOptInterface.Test
@@ -24,7 +24,6 @@ const MOIB = MathOptInterface.Bridges
         "solve_func_scalaraffine_lessthan"
     ])
 end
-
 @testset "Linear tests" begin
     linconfig = MOIT.TestConfig()
     @testset "Default Solver"  begin
@@ -45,7 +44,6 @@ end
         )
     end    
 end
-
 @testset "Integer Linear tests" begin
     intconfig = MOIT.TestConfig()
     solver = CPLEX.Optimizer()
@@ -58,7 +56,6 @@ end
         )
     end
 end
-
 @testset "ModelLike tests" begin
     solver = CPLEX.Optimizer()
     # TODO add a test config to disable testing problem name.
