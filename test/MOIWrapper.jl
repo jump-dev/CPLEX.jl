@@ -58,10 +58,9 @@ end
 end
 @testset "ModelLike tests" begin
     solver = CPLEX.Optimizer()
-    # TODO add a test config to disable testing problem name.
-    # @testset "nametest" begin
-    #     MOIT.nametest(solver)
-    # end
+    @testset "nametest" begin
+        MOIT.nametest(solver)
+    end
     @testset "validtest" begin
         MOIT.validtest(solver)
     end
