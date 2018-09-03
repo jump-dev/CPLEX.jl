@@ -22,3 +22,5 @@ include("miqcp.jl")
 @testset "MathProgBase" begin
     include("mathprog.jl")
 end
+
+include("MOIWrapper.jl")

@@ -1,6 +1,7 @@
 function optimize!(model::Model)
   @assert is_valid(model.env)
-  stat = (if model.has_int
+  stat = (
+  if model.has_int
     @cpx_ccall_intercept(model, mipopt, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
   elseif model.has_qc
     @cpx_ccall_intercept(model, qpopt, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
@@ -66,7 +67,7 @@ end
 
 export setlongannotations, newlongannotation
 
-function get_objval(model::Model)
+function c_api_getobjval(model::Model)
   objval = Vector{Cdouble}(1)
   stat = @cpx_ccall(getobjval, Cint, (
                     Ptr{Void},
@@ -79,10 +80,31 @@ function get_objval(model::Model)
   end
   return objval[1]
 end
+get_objval(model::Model) = c_api_getobjval(model)
 
-function get_solution(model::Model)
-  nvars = num_var(model)
-  x = Vector{Cdouble}(nvars)
+function c_api_solninfo(model::Model)    
+  solnmethod_p = Ref{Cint}()
+  solntype_p = Ref{Cint}()
+  pfeasind_p = Ref{Cint}()
+  dfeasind_p = Ref{Cint}()
+  stat = @cpx_ccall(solninfo, Cint, (
+                    Ptr{Void},
+                    Ptr{Void},
+                    Ptr{Cint},
+                    Ptr{Cint},
+                    Ptr{Cint},
+                    Ptr{Cint}
+                    ),
+                    model.env.ptr, model.lp, solnmethod_p, solntype_p, 
+                    pfeasind_p, dfeasind_p)
+  if stat != 0
+    throw(CplexError(model.env, stat))
+  end
+  return (solnmethod_p[], solntype_p[], pfeasind_p[], dfeasind_p[])
+end
+
+function c_api_getx(model::Model, x::FVec)
+  nvars = num_var(model)  
   stat = @cpx_ccall(getx, Cint, (
                     Ptr{Void},
                     Ptr{Void},
@@ -90,17 +112,21 @@ function get_solution(model::Model)
                     Cint,
                     Cint
                     ),
-                    model.env.ptr, model.lp, x, 0, nvars-1)
+                    model.env.ptr, model.lp, x, 0, nvars-Cint(1))
   if stat != 0
     throw(CplexError(model.env, stat))
   end
+end
+
+function get_solution(model::Model)
+  nvars = num_var(model)
+  x = Vector{Cdouble}(nvars)
+  c_api_getx(model, x)
   return x
 end
 
-function get_reduced_costs(model::Model)
+function c_api_getdj(model::Model, p::FVec)
     nvars = num_var(model)
-    p = Vector{Cdouble}(nvars)
-    status = Vector{Cint}(1)
     stat = @cpx_ccall(getdj, Cint, (
                       Ptr{Void},
                       Ptr{Void},
@@ -111,14 +137,18 @@ function get_reduced_costs(model::Model)
                       model.env.ptr, model.lp, p, 0, nvars-1)
     if stat != 0
        throw(CplexError(model.env, stat))
-   end
-   return p
+    end
 end
 
-function get_constr_duals(model::Model)
+function get_reduced_costs(model::Model)
+    nvars = num_var(model)
+    p = Vector{Cdouble}(nvars)
+    c_api_getdj(model, p)
+    return p
+end
+
+function c_api_getpi(model::Model, p::FVec)
     ncons = num_constr(model)
-    p = Vector{Cdouble}(ncons)
-    status = Vector{Cint}(1)
     stat = @cpx_ccall(getpi, Cint, (
                       Ptr{Void},
                       Ptr{Void},
@@ -129,25 +159,36 @@ function get_constr_duals(model::Model)
                       model.env.ptr, model.lp, p, 0, ncons-1)
     if stat != 0
        throw(CplexError(model.env, stat))
-   end
-   return p
+    end
+end
+
+function get_constr_duals(model::Model)
+    ncons = num_constr(model)
+    p = Vector{Cdouble}(ncons)
+    c_api_getpi(model, p)
+    return p
+end
+
+function c_api_getax(model::Model, Ax::FVec)
+    ncons = num_constr(model)
+    stat = @cpx_ccall(getax, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Ptr{Cdouble},
+                      Cint,
+                      Cint
+                      ),
+                      model.env.ptr, model.lp, Ax, 0, ncons-1)
+    if stat != 0
+      throw(CplexError(model.env, stat))
+    end
 end
 
 function get_constr_solution(model::Model)
-  ncons = num_constr(model)
-  Ax = Vector{Cdouble}(ncons)
-  stat = @cpx_ccall(getax, Cint, (
-                    Ptr{Void},
-                    Ptr{Void},
-                    Ptr{Cdouble},
-                    Cint,
-                    Cint
-                    ),
-                    model.env.ptr, model.lp, Ax, 0, ncons-1)
-  if stat != 0
-    throw(CplexError(model.env, stat))
-  end
-  return Ax
+    ncons = num_constr(model)
+    Ax = Vector{Cdouble}(ncons)
+    c_api_getax(model, Ax)
+    return Ax
 end
 
 function get_infeasibility_ray(model::Model)
@@ -285,4 +326,9 @@ const status_symbols = Dict(
 )
 
 get_status(model::Model) = status_symbols[Int(get_status_code(model))]::Symbol
-get_status_code(model::Model) = @cpx_ccall(getstat, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, model.lp)
+
+function c_api_getstat(model::Model) 
+    return @cpx_ccall(getstat, Cint, (Ptr{Void}, Ptr{Void}), 
+                      model.env.ptr, model.lp)
+end
+get_status_code(model::Model) = c_api_getstat(model)

@@ -52,20 +52,24 @@ end
 
 ## TODO: deep copy model, reset model
 
-function get_sense(model::Model)
+function c_api_getobjsen(model::Model)
     sense_int = @cpx_ccall(getobjsen, Cint, (
                            Ptr{Void},
                            Ptr{Void},
                            ),
                            model.env.ptr, model.lp)
+    
+    return sense_int
+end
+function get_sense(model::Model) 
+    sense_int = c_api_getobjsen(model)
     if sense_int == 1
-        sense = :Min
-    elseif sense_int == -1
-        sense = :Max
+        return :Min
+    elseif sense_int == -1 
+        return :Max
     else
-        error("CPLEX: problem object or environment does not exist")
+        error("CPLEX: problem object or environment does not exist")    
     end
-    return sense
 end
 
 function set_sense!(model::Model, sense)
@@ -75,6 +79,29 @@ function set_sense!(model::Model, sense)
         @cpx_ccall(chgobjsen, Void, (Ptr{Void}, Ptr{Void}, Cint), model.env.ptr, model.lp, -1)
     else
         error("Unrecognized objective sense $sense")
+    end
+end
+
+function c_api_chgobjsen(model::Model, sense_int::Cint)
+    @cpx_ccall(chgobjsen, Void, (Ptr{Void}, Ptr{Void}, Cint), 
+               model.env.ptr, model.lp, sense_int)
+end
+
+function c_api_getobj(model::Model, sized_obj::FVec, 
+                      col_start::Cint, col_end::Cint)
+                      
+    nvars = num_var(model)
+    stat = @cpx_ccall(getobj, Cint, (
+                      Ptr{Void},
+                      Ptr{Void},
+                      Ptr{Cdouble},
+                      Cint,
+                      Cint
+                      ),
+                      model.env.ptr, model.lp, sized_obj, 
+                      col_start - Cint(1), col_end - Cint(1))
+    if stat != 0
+        throw(CplexError(model.env, stat))
     end
 end
 
@@ -149,6 +176,22 @@ function set_obj!(model::Model, c::Vector)
                         Ptr{Cdouble}
                         ),
                         model.env.ptr, model.lp, nvars, Cint[0:nvars-1;], float(c))
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+end
+
+function c_api_chgobj(model::Model, indices::IVec, values::FVec)
+    nvars = length(indices)
+    stat = @cpx_ccall(chgobj, Cint, (
+                        Ptr{Void},
+                        Ptr{Void},
+                        Cint,
+                        Ptr{Cint},
+                        Ptr{Cdouble}
+                        ),
+                        model.env.ptr, model.lp, nvars, 
+                        indices .- Cint(1), values)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
