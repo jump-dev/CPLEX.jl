@@ -6,56 +6,56 @@ type GenCallbackData
     obj::Any
 end
 
-function cbgetrelaxedpoint(context_::Ptr{Void},x::Vector{Cdouble},start::Cint,final::Cint,obj_::Ptr{Void})
+function cbgetrelaxedpoint(env::Env,context_::Ptr{Void},x::Vector{Cdouble},start::Cint,final::Cint,obj_::Ptr{Void})
     stat=@cpx_ccall(callbackgetrelaxationpoint,Cint,(
     Ptr{Void},
     Ptr{Cdouble},
-    Ptr{Cint},
-    Ptr{Cint},
-    Ptr{Void}
+    Cint,
+    Cint,
+    Ptr{Cdouble}
     ),
     context_,x,start,final,obj_)
-    if stat!=0
-        throw(CplexError(model.env.ptr,stat))
-    end
+    # if stat!=0
+    #     throw(CplexError(env,stat))
+    # end
     return stat
 end
 
-function cbpostheursoln(context_::Ptr{Void},cnt::Cint,ind_::Ptr{Cint},val_::Ptr{Cdouble},obj_::Ptr{Cdouble},strat::CbSolStrat)
+function cbpostheursoln(env::Env,context_::Ptr{Void},cnt::Cint,ind::Vector{Cint},val::Vector{Cdouble},obj::Cdouble,strat::CbSolStrat)
     stat=@cpx_ccall(callbackpostheursoln,Cint,(
     Ptr{Void},
     Cint,
     Ptr{Cint},
     Ptr{Cdouble},
-    Ptr{Cdouble},
+    Cdouble,
     Cint,
     ),
-    context_,cnt,ind_,val_,obj_,strat)
-    if stat!=0
-        throw(CplexError(model.env.ptr,stat))
-    end
+    context_,cnt,ind,val,obj,strat)
+    # if stat!=0
+    #     throw(CplexError(model.env,stat))
+    # end
     return stat
 end
 
-function rounddownheur(context_::Ptr{Void},userdata_::Ptr{Void})
+function rounddownheur(env::Env,context_::Ptr{Void},userdata_::Ptr{Void})
     userdata=unsafe_pointer_to_objref(userdata_)
-    cols=userdata.ncols
+    cols=userdata.ncol
     obj=userdata.obj
 
-    x=Vector(cols)
-    ind=Vector(cols)
-    objrel=Cdouble
+    x=Vector{Float64}(cols)
+    ind=Vector{Cint}(cols)
+    objrel=0.0
 
-    status=cbgetrelaxedpoint(context_,x,0,cols-1,objrel)
-    println(objrel)#@
-    if status
+    status=cbgetrelaxedpoint(env,context_,x,Cint(0),Cint(cols-1),pointer_from_objref(objrel))
+    # println(objrel)#@
+    if status!=0
         error("Could not get solution $status")
     end
 
     for j in 1:cols
         ind[j]=j
 
-        if x[j]
+        if x[j]>0.5
             frac=x[j]-floor(x[j])
             frac=min(1-frac,frac)
             if frac>1.0e-6
@@ -65,35 +65,45 @@ function rounddownheur(context_::Ptr{Void},userdata_::Ptr{Void})
         end
     end
 
-    status=cbpostheursoln(context_,cols,ind,x,objrel,CPXCALLBACKSOLUTION_CHECKFEAS)
-    if status
+    status=cbpostheursoln(env,context_,cols,ind,x,objrel,CPXCALLBACKSOLUTION_CHECKFEAS)
+    if status!=0
         error("Could not post solution $status")
     end
 
     return status
 end
 
-function cplex_callback_wrapper(context_::Ptr{Void},where::Clong,userdata_::Ptr{void})
+function cplex_callback_wrapper(env::Env,context_::Ptr{Void},where::Clong,userdata_::Ptr{Void})
+    status=0
+
     if (where==CPX_CALLBACKCONTEXT_RELAXATION)
-        status=rounddownheur(context_,userdata_)
+        status=rounddownheur(env,context_,userdata_)
     else
         println("ERROR: Callback called in an unexpected context.")
         return convert(Cint,1)
     end
-    return convert(Cint,0)
+    return status
 end
 
-function setcallbackfunc(model::Model,where::Clong,userdata_::Ptr{Void})
-    cplex_callback_c=cfunction(cplex_callback_function, Cint,(Ptr{Void},Clong,Ptr{Void}))
+type Cplex_Callback
+    
+end
+
+function setcallbackfunc(env::Env,model::Model,where::Clong,userdata_::Ptr{Void})
+    cplex_callback_c=cfunction(cplex_callback_wrapper, Cint,(Env,Ptr{Void},Clong,Ptr{Void}))
+
+    # println(cplex_callback_c)#@
+
     stat=@cpx_ccall(callbacksetfunc, Cint,(
     Ptr{Void},
     Ptr{Void},
     Clong,
-    Cint,
+    Ptr{Void},
     Ptr{Void}
     ),
-    model.env.ptr,model.lp,where,cplex_callback_c,userdata_)
+    env.ptr,model.lp,where,cplex_callback_c,userdata_)
     if stat != 0
-        throw(CplexError(model.env.ptr, stat))
+        throw(CplexError(env, stat))
     end
+    return stat
 end

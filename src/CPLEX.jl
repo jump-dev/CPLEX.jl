@@ -114,6 +114,7 @@ module CPLEX
     include("cpx_solve.jl")
     include("cpx_callbacks.jl")
     include("cpx_highlevel.jl")
+    include("cpx_newcbs.jl")
 
     include("CplexSolverInterface.jl")
     include("MOIWrapper.jl")
