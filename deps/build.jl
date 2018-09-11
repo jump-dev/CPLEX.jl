@@ -15,7 +15,7 @@ function write_depsfile(path)
     end
 end
 
-if is_apple()
+if Sys.isapple()
     Libdl.dlopen("libstdc++",Libdl.RTLD_GLOBAL)
 end
 
@@ -25,9 +25,9 @@ cpxvers = ["1260","1261","1262","1263","1270", "1271","128","1280"]
 
 libnames = String["cplex"]
 for v in reverse(cpxvers)
-    if is_apple()
+    if Sys.isapple()
         push!(libnames, "libcplex$v.dylib")
-    elseif is_unix()
+    elseif Sys.isunix()
         push!(libnames, "libcplex$v.so")
         if haskey(ENV, base_env)
             push!(libnames, joinpath(ENV[base_env], "libcplex$v.so"))
@@ -36,7 +36,7 @@ for v in reverse(cpxvers)
 end
 
 wincpxvers = ["126","1261","1262","1263","127","1270","1271","128","1280"]
-if is_windows()
+if Sys.iswindows()
     for v in reverse(wincpxvers)
         env = base_env * v
         if haskey(ENV,env)

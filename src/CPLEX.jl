@@ -6,7 +6,7 @@ module CPLEX
         using Libdl
     end
 
-    if is_apple()
+    if Sys.isapple()
         Libdl.dlopen("libstdc++",Libdl.RTLD_GLOBAL)
     end
 
@@ -84,6 +84,7 @@ module CPLEX
     #        cplex_model
 
     using Compat
+    using SparseArrays: SparseMatrixCSC
 
     include("cpx_common.jl")
     include("cpx_env.jl")
@@ -121,6 +122,8 @@ module CPLEX
         try
             eval(current_module(), Expr(:import,:JuMP))
             include("JuMPfunctions.jl")
+        catch e
+            rethrow(e)
         end
     end
 end

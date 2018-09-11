@@ -13,8 +13,8 @@ function add_vars!(model::Model, obj::Vector, l_in::Bounds, u_in::Bounds)
     end
     if nvars > 0
         stat = @cpx_ccall(newcols, Cint, (
-                          Ptr{Void},
-                          Ptr{Void},
+                          Ptr{Nothing},
+                          Ptr{Nothing},
                           Cint,
                           Ptr{Cdouble},
                           Ptr{Cdouble},
@@ -44,8 +44,8 @@ function add_var!(model::Model, constridx::IVec, constrcoef::FVec, l::FVec, u::F
     end
     if nvars > 0
         stat = @cpx_ccall(addcols, Cint, (
-                          Ptr{Void},
-                          Ptr{Void},
+                          Ptr{Nothing},
+                          Ptr{Nothing},
                           Cint,
                           Cint,
                           Ptr{Cdouble},
@@ -99,8 +99,8 @@ function get_varLB(model::Model)
     nvars = num_var(model)
     lb = Vector{Cdouble}(nvars)
     stat = @cpx_ccall(getlb, Cint, (
-                      Ptr{Void},
-                      Ptr{Void},
+                      Ptr{Nothing},
+                      Ptr{Nothing},
                       Ptr{Cdouble},
                       Cint,
                       Cint
@@ -136,8 +136,8 @@ function set_varLB!(model::Model, l::FVec)
         end
     end
     stat = @cpx_ccall(chgbds, Cint, (
-                      Ptr{Void},
-                      Ptr{Void},
+                      Ptr{Nothing},
+                      Ptr{Nothing},
                       Cint,
                       Ptr{Cint},
                       Ptr{Cchar},
@@ -170,8 +170,8 @@ function get_varUB(model::Model)
     nvars = num_var(model)
     ub = Vector{Cdouble}(nvars)
     stat = @cpx_ccall(getub, Cint, (
-                      Ptr{Void},
-                      Ptr{Void},
+                      Ptr{Nothing},
+                      Ptr{Nothing},
                       Ptr{Cdouble},
                       Cint,
                       Cint
@@ -191,8 +191,8 @@ function set_varUB!(model::Model, u::FVec)
         end
     end
     stat = @cpx_ccall(chgbds, Cint, (
-                      Ptr{Void},
-                      Ptr{Void},
+                      Ptr{Nothing},
+                      Ptr{Nothing},
                       Cint,
                       Ptr{Cint},
                       Ptr{Cchar},
@@ -222,8 +222,8 @@ end
 function set_vartype!(model::Model, vtype::Vector{Char})
     nvars = num_var(model)
     stat = @cpx_ccall(chgctype, Cint, (
-                      Ptr{Void},
-                      Ptr{Void},
+                      Ptr{Nothing},
+                      Ptr{Nothing},
                       Cint,
                       Ptr{Cint},
                       Ptr{Cchar}
@@ -242,8 +242,8 @@ function get_vartype(model::Model)
     nvars = num_var(model)
     vartypes = Vector{Cchar}(nvars)
     stat = @cpx_ccall(getctype, Cint, (
-                      Ptr{Void},
-                      Ptr{Void},
+                      Ptr{Nothing},
+                      Ptr{Nothing},
                       Ptr{Cchar},
                       Cint,
                       Cint
@@ -257,8 +257,8 @@ end
 
 function c_api_getnumcols(model::Model)
     nvar = @cpx_ccall(getnumcols, Cint, (
-                      Ptr{Void},
-                      Ptr{Void}
+                      Ptr{Nothing},
+                      Ptr{Nothing}
                       ),
                       model.env.ptr, model.lp)
     return(nvar)
@@ -270,8 +270,8 @@ function set_varname!(model::Model, idx::Integer, name::String)
     @assert isascii(name)
 
     stat = @cpx_ccall(chgcolname, Cint, (
-                      Ptr{Void},
-                      Ptr{Void},
+                      Ptr{Nothing},
+                      Ptr{Nothing},
                       Cint,
                       Ptr{Cint},
                       Ptr{Ptr{UInt8}}

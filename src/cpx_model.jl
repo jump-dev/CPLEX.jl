@@ -1,6 +1,6 @@
-type Model
+mutable struct Model
     env::Env # Cplex environment
-    lp::Ptr{Void} # Cplex problem (lp)
+    lp::Ptr{Nothing} # Cplex problem (lp)
     has_int::Bool # problem has integer variables?
     has_qc::Bool # problem has quadratic constraints?
     has_sos::Bool # problem has Special Ordered Sets?
@@ -8,7 +8,7 @@ type Model
     terminator::Vector{Cint}
 end
 
-function Model(env::Env, lp::Ptr{Void})
+function Model(env::Env, lp::Ptr{Nothing})
     notify_new_model(env)
     model = Model(env, lp, false, false, false, nothing, Cint[0])
     finalizer(model, m -> begin
@@ -22,7 +22,7 @@ end
 function Model(env::Env, name::String="CPLEX.jl")
     @assert is_valid(env)
     stat = Vector{Cint}(1)
-    tmp = @cpx_ccall(createprob, Ptr{Void}, (Ptr{Void}, Ptr{Cint}, Ptr{Cchar}), env.ptr, stat, name)
+    tmp = @cpx_ccall(createprob, Ptr{Nothing}, (Ptr{Nothing}, Ptr{Cint}, Ptr{Cchar}), env.ptr, stat, name)
     if tmp == C_NULL
         throw(CplexError(env, stat))
     end
@@ -30,7 +30,7 @@ function Model(env::Env, name::String="CPLEX.jl")
 end
 
 function read_model(model::Model, filename::String)
-    stat = @cpx_ccall(readcopyprob, Cint, (Ptr{Void}, Ptr{Void}, Ptr{Cchar}, Ptr{Cchar}), model.env.ptr, model.lp, filename, C_NULL)
+    stat = @cpx_ccall(readcopyprob, Cint, (Ptr{Nothing}, Ptr{Nothing}, Ptr{Cchar}, Ptr{Cchar}), model.env.ptr, model.lp, filename, C_NULL)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
@@ -44,7 +44,7 @@ function write_model(model::Model, filename::String)
     else
         error("Unrecognized file extension: $filename (Only .mps and .lp are supported)")
     end
-    stat = @cpx_ccall(writeprob, Cint, (Ptr{Void}, Ptr{Void}, Ptr{Cchar}, Ptr{Cchar}), model.env.ptr, model.lp, filename, filetype)
+    stat = @cpx_ccall(writeprob, Cint, (Ptr{Nothing}, Ptr{Nothing}, Ptr{Cchar}, Ptr{Cchar}), model.env.ptr, model.lp, filename, filetype)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
@@ -54,8 +54,8 @@ end
 
 function c_api_getobjsen(model::Model)
     sense_int = @cpx_ccall(getobjsen, Cint, (
-                           Ptr{Void},
-                           Ptr{Void},
+                           Ptr{Nothing},
+                           Ptr{Nothing},
                            ),
                            model.env.ptr, model.lp)
     
@@ -74,9 +74,9 @@ end
 
 function set_sense!(model::Model, sense)
     if sense == :Min
-        @cpx_ccall(chgobjsen, Void, (Ptr{Void}, Ptr{Void}, Cint), model.env.ptr, model.lp, 1)
+        @cpx_ccall(chgobjsen, Nothing, (Ptr{Nothing}, Ptr{Nothing}, Cint), model.env.ptr, model.lp, 1)
     elseif sense == :Max
-        @cpx_ccall(chgobjsen, Void, (Ptr{Void}, Ptr{Void}, Cint), model.env.ptr, model.lp, -1)
+        @cpx_ccall(chgobjsen, Nothing, (Ptr{Nothing}, Ptr{Nothing}, Cint), model.env.ptr, model.lp, -1)
     else
         error("Unrecognized objective sense $sense")
     end
@@ -109,8 +109,8 @@ function get_obj(model::Model)
     nvars = num_var(model)
     obj = Vector{Cdouble}(nvars)
     stat = @cpx_ccall(getobj, Cint, (
-                      Ptr{Void},
-                      Ptr{Void},
+                      Ptr{Nothing},
+                      Ptr{Nothing},
                       Ptr{Cdouble},
                       Cint,
                       Cint
@@ -146,8 +146,8 @@ const rev_prob_type_map = Dict(
 
 function get_prob_type(model::Model)
   ret = @cpx_ccall(getprobtype, Cint, (
-                   Ptr{Void},
-                   Ptr{Void}),
+                   Ptr{Nothing},
+                   Ptr{Nothing}),
                    model.env.ptr, model.lp)
   ret == -1 && error("No problem of environment")
   return type_map[Int(ret)]
@@ -155,8 +155,8 @@ end
 
 function set_prob_type!(model::Model, tyint::Int)
     stat = @cpx_ccall(chgprobtype, Cint, (
-                     Ptr{Void},
-                     Ptr{Void},
+                     Ptr{Nothing},
+                     Ptr{Nothing},
                      Cint),
                      model.env.ptr, model.lp, tyint)
      if stat != 0
@@ -169,8 +169,8 @@ set_prob_type!(model::Model, ty::Symbol) = set_prob_type!(model, rev_prob_type_m
 function set_obj!(model::Model, c::Vector)
     nvars = num_var(model)
     stat = @cpx_ccall(chgobj, Cint, (
-                        Ptr{Void},
-                        Ptr{Void},
+                        Ptr{Nothing},
+                        Ptr{Nothing},
                         Cint,
                         Ptr{Cint},
                         Ptr{Cdouble}
@@ -201,8 +201,8 @@ set_warm_start!(model::Model, x::Vector{Float64}, effortlevel::Integer = CPX_MIP
 
 function set_warm_start!(model::Model, indx::IVec, val::FVec, effortlevel::Integer)
     stat = @cpx_ccall(addmipstarts, Cint, (
-                      Ptr{Void},
-                      Ptr{Void},
+                      Ptr{Nothing},
+                      Ptr{Nothing},
                       Cint,
                       Cint,
                       Ptr{Cint},
@@ -218,15 +218,15 @@ function set_warm_start!(model::Model, indx::IVec, val::FVec, effortlevel::Integ
 end
 
 function free_problem(model::Model)
-    tmp = Ptr{Void}[model.lp]
-    stat = @cpx_ccall(freeprob, Cint, (Ptr{Void}, Ptr{Void}), model.env.ptr, tmp)
+    tmp = Ptr{Nothing}[model.lp]
+    stat = @cpx_ccall(freeprob, Cint, (Ptr{Nothing}, Ptr{Nothing}), model.env.ptr, tmp)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
 end
 
 function set_terminate(model::Model)
-    stat = @cpx_ccall(setterminate, Cint, (Ptr{Void},Ptr{Cint}), model.env.ptr, model.terminator)
+    stat = @cpx_ccall(setterminate, Cint, (Ptr{Nothing},Ptr{Cint}), model.env.ptr, model.terminator)
     if stat != 0
         throw(CplexError(env, stat))
     end

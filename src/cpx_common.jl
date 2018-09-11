@@ -2,12 +2,12 @@
 macro cpx_ccall(func, args...)
     f = "CPX$(func)"
     args = map(esc,args)
-    if is_unix()
+    if Sys.isunix()
         return quote
             ccall(($f,libcplex), $(args...))
         end
     end
-    if is_windows()
+    if Sys.iswindows()
         if VERSION < v"0.6.0-dev.1512" # probably julia PR #15850
             return quote
                 ccall(($f,libcplex), stdcall, $(args...))
@@ -24,13 +24,13 @@ macro cpx_ccall_intercept(model, func, args...)
     f = "CPX$(func)"
     args = map(esc,args)
     quote
-        ccall(:jl_exit_on_sigint, Void, (Cint,), convert(Cint,0))
+        ccall(:jl_exit_on_sigint, Nothing, (Cint,), convert(Cint,0))
         ret = try
             $(Expr(:macrocall, Symbol("@cpx_ccall"), esc(func), args...))
         catch ex
             println("Caught exception")
             if !isinteractive()
-                ccall(:jl_exit_on_sigint, Void, (Cint,), convert(Cint,1))
+                ccall(:jl_exit_on_sigint, Nothing, (Cint,), convert(Cint,1))
             end
             if isa(ex, InterruptException)
                 model.terminator[1] = 1
@@ -38,7 +38,7 @@ macro cpx_ccall_intercept(model, func, args...)
             rethrow(ex)
         end
         if !isinteractive()
-            ccall(:jl_exit_on_sigint, Void, (Cint,), convert(Cint,1))
+            ccall(:jl_exit_on_sigint, Nothing, (Cint,), convert(Cint,1))
         end
         ret
     end
@@ -54,8 +54,8 @@ const CoeffMat = Union{Matrix{Cdouble}, SparseMatrixCSC{Cdouble}}
 const GCharOrVec = Union{Cchar, Char, Vector{Cchar}, Vector{Char}}
 
 # empty vector & matrix (for the purpose of supplying default arguments)
-const emptyfvec = Vector{Float64}(0)
-const emptyfmat = Matrix{Float64}(0, 0)
+const emptyfvec = Vector{Float64}(undef, 0)
+const emptyfmat = Matrix{Float64}(undef, 0, 0)
 
 cchar(c::Cchar) = c
 cchar(c::Char) = convert(Cchar, c)
@@ -80,4 +80,4 @@ cvecx(c::Vector{Char}, n::Integer) = (_chklen(c, n); convert(Vector{Cchar}, c))
 
 fvecx(v::Real, n::Integer) = fill(Float64(v), n)
 fvecx(v::Vector{Float64}, n::Integer) = (_chklen(v, n); v)
-fvecx{T<:Real}(v::Vector{T}, n::Integer) = (_chklen(v, n); convert(Vector{Float64}, v))
+fvecx(v::Vector{T}, n::Integer) where {T<:Real} = (_chklen(v, n); convert(Vector{Float64}, v))

@@ -16,8 +16,8 @@ function add_qpterms!(model::Model, qr::IVec, qc::IVec, qv::FVec)
       qmatcnt[k] = Q.colptr[k+1] - Q.colptr[k]
     end
     stat = @cpx_ccall(copyquad, Cint, (
-                      Ptr{Void},
-                      Ptr{Void},
+                      Ptr{Cvoid},
+                      Ptr{Cvoid},
                       Ptr{Cint},
                       Ptr{Cint},
                       Ptr{Cint},
@@ -117,8 +117,8 @@ function add_qconstr!(model::Model, lind::IVec, lval::FVec, qr::IVec, qc::IVec, 
 
     if qnnz > 0 || lnnz > 0
         stat = @cpx_ccall(addqconstr, Cint, (
-                          Ptr{Void},    # env
-                          Ptr{Void},    # model
+                          Ptr{Cvoid},   # env
+                          Ptr{Cvoid},   # model
                           Cint,         # lnnz
                           Cint,         # qnnz
                           Float64,      # rhs
@@ -146,8 +146,8 @@ end
 
 function num_qconstr(model::Model)
     ncons = @cpx_ccall(getnumqconstrs, Cint, (
-                       Ptr{Void},
-                       Ptr{Void}
+                       Ptr{Cvoid},
+                       Ptr{Cvoid}
                        ),
                        model.env.ptr, model.lp)
     return ncons
