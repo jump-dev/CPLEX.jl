@@ -1,4 +1,4 @@
-using Test
+using Compat.Test
 using MathProgBase
 using CPLEX
 

@@ -6,7 +6,7 @@ module CPLEX
         using Libdl
     end
 
-    if Sys.isapple()
+    if (VERSION >= v"0.7.0-DEV.3382" && Sys.isapple()) || (is_apple())
         Libdl.dlopen("libstdc++",Libdl.RTLD_GLOBAL)
     end
 
@@ -84,7 +84,10 @@ module CPLEX
     #        cplex_model
 
     using Compat
-    using SparseArrays: SparseMatrixCSC
+    
+    if VERSION >= v"0.7.0-DEV.3382"
+        using SparseArrays: SparseMatrixCSC
+    end
 
     include("cpx_common.jl")
     include("cpx_env.jl")
