@@ -56,7 +56,9 @@ function add_var!(model::Model, constridx::IVec, constrcoef::FVec, l::FVec, u::F
                           Ptr{Cdouble},
                           Ptr{Ptr{Cchar}}
                           ),
-                          model.env.ptr, model.lp, nvars, length(constridx), objcoef, Cint[0], constridx-Cint(1), constrcoef, l, u, C_NULL)
+                          model.env.ptr, model.lp, nvars, length(constridx), 
+                          objcoef, Cint[0], constridx .- Cint(1), constrcoef, 
+                          l, u, C_NULL)
         if stat != 0
             throw(CplexError(model.env, stat))
         end
@@ -79,10 +81,10 @@ function add_var!(model::Model, constridx::Vector, constrcoef::Vector, l::Vector
 end
 
 function c_api_getlb(model::Model, col_start::Cint, col_end::Cint)
-    lb = Vector{Cdouble}(col_end - col_start + 1)
+    lb = Vector{Cdouble}(undef, col_end - col_start + 1)
     stat = @cpx_ccall(getlb, Cint, (
-                      Ptr{Void},
-                      Ptr{Void},
+                      Ptr{Nothing},
+                      Ptr{Nothing},
                       Ptr{Cdouble},
                       Cint,
                       Cint
@@ -97,7 +99,7 @@ end
 
 function get_varLB(model::Model)
     nvars = num_var(model)
-    lb = Vector{Cdouble}(nvars)
+    lb = Vector{Cdouble}(undef, nvars)
     stat = @cpx_ccall(getlb, Cint, (
                       Ptr{Nothing},
                       Ptr{Nothing},
@@ -115,8 +117,8 @@ end
 function c_api_chgbds(model::Model, indices::IVec, lu::CVec, bd::FVec)    
     cnt = length(indices)
     stat = @cpx_ccall(chgbds, Cint, (
-                      Ptr{Void},
-                      Ptr{Void},
+                      Ptr{Nothing},
+                      Ptr{Nothing},
                       Cint,
                       Ptr{Cint},
                       Ptr{Cchar},
@@ -150,10 +152,10 @@ function set_varLB!(model::Model, l::FVec)
 end
 
 function c_api_getub(model::Model, col_start::Cint, col_end::Cint)
-    ub = Vector{Cdouble}(1)
+    ub = Vector{Cdouble}(undef, 1)
     stat = @cpx_ccall(getub, Cint, (
-                      Ptr{Void},
-                      Ptr{Void},
+                      Ptr{Nothing},
+                      Ptr{Nothing},
                       Ptr{Cdouble},
                       Cint,
                       Cint
@@ -168,7 +170,7 @@ end
 
 function get_varUB(model::Model)
     nvars = num_var(model)
-    ub = Vector{Cdouble}(nvars)
+    ub = Vector{Cdouble}(undef, nvars)
     stat = @cpx_ccall(getub, Cint, (
                       Ptr{Nothing},
                       Ptr{Nothing},
@@ -207,8 +209,8 @@ end
 function c_api_chgctype(model::Model, indices::IVec, types::CVec)
     nvars = length(indices)
     stat = @cpx_ccall(chgctype, Cint, (
-                      Ptr{Void},
-                      Ptr{Void},
+                      Ptr{Nothing},
+                      Ptr{Nothing},
                       Cint,
                       Ptr{Cint},
                       Ptr{Cchar}
@@ -228,19 +230,26 @@ function set_vartype!(model::Model, vtype::Vector{Char})
                       Ptr{Cint},
                       Ptr{Cchar}
                       ),
-                      model.env.ptr, model.lp, length(vtype), Cint[0:length(vtype)-1;], convert(Vector{Cchar},vtype))
+                      model.env.ptr, model.lp, length(vtype), 
+                      Cint[0:length(vtype)-1;], convert(Vector{Cchar},vtype))
     if stat != 0
         throw(CplexError(model.env, stat))
     end
     #if !isempty(find(.!(vtype.=='C'))) # replace the line below by this one once we stop supporting Julia v0.5
-    if !isempty(find(broadcast(!, vtype.=='C')))
+    
+    if VERSION >= v"0.7.0-DEV.3382"
+        find_ret = findall(broadcast(!, vtype.=='C'))
+    else
+        find_ret = find(broadcast(!, vtype.=='C'))
+    end        
+    if !isempty(find_ret)
         model.has_int = true
     end
 end
 
 function get_vartype(model::Model)
     nvars = num_var(model)
-    vartypes = Vector{Cchar}(nvars)
+    vartypes = Vector{Cchar}(undef, nvars)
     stat = @cpx_ccall(getctype, Cint, (
                       Ptr{Nothing},
                       Ptr{Nothing},
@@ -284,8 +293,8 @@ end
 
 function c_api_delcols(model::Model, first::Cint, last::Cint)
     stat = @cpx_ccall(delcols, Cint, (
-                      Ptr{Void},
-                      Ptr{Void},
+                      Ptr{Nothing},
+                      Ptr{Nothing},
                       Cint,
                       Cint
                       ),

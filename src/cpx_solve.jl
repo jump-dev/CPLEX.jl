@@ -1,11 +1,14 @@
 function optimize!(model::Model)
   @assert is_valid(model.env)
   stat = (if model.has_int
-    @cpx_ccall_intercept(model, mipopt, Cint, (Ptr{Nothing}, Ptr{Nothing}), model.env.ptr, model.lp)
+    #@cpx_ccall_intercept(model, mipopt, Cint, (Ptr{Nothing}, Ptr{Nothing}), model.env.ptr, model.lp)
+    @cpx_ccall(mipopt, Cint, (Ptr{Nothing}, Ptr{Nothing}), model.env.ptr, model.lp)
   elseif model.has_qc
-    @cpx_ccall_intercept(model, qpopt, Cint, (Ptr{Nothing}, Ptr{Nothing}), model.env.ptr, model.lp)
+    #@cpx_ccall_intercept(model, qpopt, Cint, (Ptr{Nothing}, Ptr{Nothing}), model.env.ptr, model.lp)
+    @cpx_ccall(qpopt, Cint, (Ptr{Nothing}, Ptr{Nothing}), model.env.ptr, model.lp)
   else
-    @cpx_ccall_intercept(model, lpopt, Cint, (Ptr{Nothing}, Ptr{Nothing}), model.env.ptr, model.lp)
+    #@cpx_ccall_intercept(model, lpopt, Cint, (Ptr{Nothing}, Ptr{Nothing}), model.env.ptr, model.lp)
+    @cpx_ccall(lpopt, Cint, (Ptr{Nothing}, Ptr{Nothing}), model.env.ptr, model.lp)
     end)
   if stat != 0
     throw(CplexError(model.env, stat))
@@ -67,7 +70,7 @@ end
 export setlongannotations, newlongannotation
 
 function c_api_getobjval(model::Model)
-  objval = Vector{Cdouble}(1)
+  objval = Vector{Cdouble}(undef, 1)
   stat = @cpx_ccall(getobjval, Cint, (
                     Ptr{Nothing},
                     Ptr{Nothing},
@@ -87,8 +90,8 @@ function c_api_solninfo(model::Model)
   pfeasind_p = Ref{Cint}()
   dfeasind_p = Ref{Cint}()
   stat = @cpx_ccall(solninfo, Cint, (
-                    Ptr{Void},
-                    Ptr{Void},
+                    Ptr{Nothing},
+                    Ptr{Nothing},
                     Ptr{Cint},
                     Ptr{Cint},
                     Ptr{Cint},
@@ -119,7 +122,7 @@ end
 
 function get_solution(model::Model)
   nvars = num_var(model)
-  x = Vector{Cdouble}(nvars)
+  x = Vector{Cdouble}(undef, nvars)
   c_api_getx(model, x)
   return x
 end
@@ -141,7 +144,7 @@ end
 
 function get_reduced_costs(model::Model)
     nvars = num_var(model)
-    p = Vector{Cdouble}(nvars)
+    p = Vector{Cdouble}(undef, nvars)
     c_api_getdj(model, p)
     return p
 end
@@ -163,7 +166,7 @@ end
 
 function get_constr_duals(model::Model)
     ncons = num_constr(model)
-    p = Vector{Cdouble}(ncons)
+    p = Vector{Cdouble}(undef, ncons)
     c_api_getpi(model, p)
     return p
 end
@@ -185,15 +188,15 @@ end
 
 function get_constr_solution(model::Model)
     ncons = num_constr(model)
-    Ax = Vector{Cdouble}(ncons)
+    Ax = Vector{Cdouble}(undef, ncons)
     c_api_getax(model, Ax)
     return Ax
 end
 
 function get_infeasibility_ray(model::Model)
   ncons = num_constr(model)
-  y = Vector{Cdouble}(ncons)
-  proof_p = Vector{Cdouble}(1)
+  y = Vector{Cdouble}(undef, ncons)
+  proof_p = Vector{Cdouble}(undef, 1)
   stat = @cpx_ccall(dualfarkas, Cint, (
                     Ptr{Nothing},
                     Ptr{Nothing},
@@ -212,7 +215,7 @@ function get_unbounded_ray(model::Model)
   solve_stat = get_status(model)
   if solve_stat == :CPX_STAT_UNBOUNDED
     n = num_var(model)
-    z = Vector{Cdouble}(n)
+    z = Vector{Cdouble}(undef, n)
     stat = @cpx_ccall(getray, Cint, (
                       Ptr{Nothing},
                       Ptr{Nothing},
@@ -242,15 +245,15 @@ const conmap = Dict(
 )
 
 function get_basis(model::Model)
-    cval = Vector{Cint}(num_var(model))
-    rval = Vector{Cint}(num_constr(model))
+    cval = Vector{Cint}(undef, num_var(model))
+    rval = Vector{Cint}(undef, num_constr(model))
     stat = @cpx_ccall(getbase, Cint, (Ptr{Nothing},Ptr{Nothing},Ptr{Cint},Ptr{Cint}),
                       model.env.ptr, model.lp, cval, rval)
     stat != 0 && throw(CplexError(model.env, stat))
 
     csense = get_constr_senses(model)
-    cbasis = Vector{Symbol}(num_var(model))
-    rbasis = Vector{Symbol}(num_constr(model))
+    cbasis = Vector{Symbol}(undef, num_var(model))
+    rbasis = Vector{Symbol}(undef, num_constr(model))
     for it in 1:num_var(model)
         cbasis[it] = varmap[cval[it]]
     end
@@ -266,7 +269,7 @@ end
 get_node_count(model::Model) = @cpx_ccall(getnodecnt, Cint, (Ptr{Nothing},Ptr{Nothing}), model.env.ptr, model.lp)
 
 function get_rel_gap(model::Model)
-  ret = Vector{Cdouble}(1)
+  ret = Vector{Cdouble}(undef, 1)
   stat = @cpx_ccall(getmiprelgap, Cint, (Ptr{Nothing},Ptr{Nothing},Ptr{Cdouble}), model.env.ptr, model.lp, ret)
   if stat != 0
     throw(CplexError(model.env, stat))
@@ -276,7 +279,7 @@ end
 
 
 function get_num_cuts(model::Model,cuttype)
-    cutcount = Vector{Cint}(1)
+    cutcount = Vector{Cint}(undef, 1)
 
     stat = @cpx_ccall(getnumcuts, Cint, (Ptr{Nothing},Ptr{Nothing},Cint,Ptr{Nothing}), model.env.ptr , model.lp, cuttype, cutcount)
     if stat != 0

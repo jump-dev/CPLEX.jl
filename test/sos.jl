@@ -1,5 +1,3 @@
-using CPLEX, Base.Test
-
 @testset "SOS" begin
     @testset "SOS 01" begin
         m = CPLEX.CplexMathProgModel(CPX_PARAM_SCRIND=0)
@@ -20,7 +18,7 @@ using CPLEX, Base.Test
         CPLEX.addsos2!(m, [4,5,6,7,8], [5.0, 4.0, 7.0, 2.0, 1.0])
         @test CPLEX.get_prob_type(m.inner) == :MILP
 
-        CPLEX.optimize!(m)
+        MathProgBase.optimize!(m)
 
         @test CPLEX.getobjval(m) ≈ 15.0
         sol = CPLEX.getsolution(m)
@@ -30,7 +28,7 @@ using CPLEX, Base.Test
         CPLEX.setvartype!(m, fill(:Cont, 10))
         @test CPLEX.get_prob_type(m.inner) == :MILP
 
-        CPLEX.optimize!(m)
+        MathProgBase.optimize!(m)
 
         @test CPLEX.getobjval(m) ≈ 30.0
         sol = CPLEX.getsolution(m)
@@ -40,14 +38,15 @@ using CPLEX, Base.Test
 
     @testset "SOS 02" begin
         m = CPLEX.CplexMathProgModel(CPX_PARAM_SCRIND=0)
-        CPLEX.loadproblem!(m, Matrix{Float64}(0,3), [-Inf, -Inf, -Inf], [1,1,2], [2,1,1], Float64[], Float64[], :Max)
+        CPLEX.loadproblem!(m, Matrix{Float64}(undef, 0,3), [-Inf, -Inf, -Inf], 
+                           [1,1,2], [2,1,1], Float64[], Float64[], :Max)
         @test CPLEX.get_prob_type(m.inner) == :LP
 
         CPLEX.addsos1!(m, [1,2], [1.0,2.0])
         CPLEX.addsos1!(m, [1,3], [1.0,2.0])
         @test CPLEX.get_prob_type(m.inner) == :MILP
 
-        CPLEX.optimize!(m)
+        MathProgBase.optimize!(m)
         @test CPLEX.getobjval(m) ≈ 3.0
     end
 end

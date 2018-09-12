@@ -29,7 +29,7 @@ const SUPPORTED_CONSTRAINTS = [
 mutable struct Optimizer <: LQOI.LinQuadOptimizer
     LQOI.@LinQuadOptimizerBase    
     env::Env # Cplex environment
-    Optimizer(::Void) = new()
+    Optimizer(::Nothing) = new()
 end
 
 function LQOI.LinearQuadraticModel(::Type{Optimizer},env)
@@ -86,7 +86,7 @@ function LQOI.add_linear_constraints!(model::Optimizer,
 end
 
 function LQOI.get_rhs(model::Optimizer, row::Int)
-    rhs = Vector{Cdouble}(1)
+    rhs = Vector{Cdouble}(undef, 1)
     c_api_getrhs(model.inner, rhs, Cint(row), Cint(row))
     return rhs[1]
 end
@@ -268,10 +268,3 @@ end
 function LQOI.get_objective_value(model::Optimizer)
     return c_api_getobjval(model.inner)
 end
-
-MOI.canget(m::Optimizer, ::MOI.ObjectiveBound) = false
-MOI.canget(m::Optimizer, ::MOI.RelativeGap) = false
-MOI.canget(m::Optimizer, ::MOI.SolveTime) = false
-MOI.canget(m::Optimizer, ::MOI.SimplexIterations) = false
-MOI.canget(m::Optimizer, ::MOI.BarrierIterations) = false
-MOI.canget(m::Optimizer, ::MOI.NodeCount) = false

@@ -10,8 +10,6 @@
 #   solution: (59.0909, 36.3636)
 #   objv: 71818.1818
 
-using CPLEX, Base.Test
-
 @testset "LP 02" begin
     env = CPLEX.Env()
 

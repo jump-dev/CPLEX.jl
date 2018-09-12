@@ -1,5 +1,3 @@
-using CPLEX, Base.Test
-
 @testset "LP 03" begin
     # Test get/set objective coefficients in LP
 

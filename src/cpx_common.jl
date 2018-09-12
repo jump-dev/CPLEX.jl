@@ -2,12 +2,14 @@
 macro cpx_ccall(func, args...)
     f = "CPX$(func)"
     args = map(esc,args)
-    if (VERSION >= v"0.7.0-DEV.3382" && Sys.isunix()) || (is_unix())
+    if (VERSION >= v"0.7.0-DEV.3382" && Sys.isunix()) || 
+            (VERSION < v"0.7.0-DEV.3382" && is_unix())
         return quote
             ccall(($f,libcplex), $(args...))
         end
     end
-    if (VERSION >= v"0.7.0-DEV.3382" && Sys.iswindows()) || (is_windows())
+    if (VERSION >= v"0.7.0-DEV.3382" && Sys.iswindows()) || 
+            (VERSION < v"0.7.0-DEV.3382" && is_windows())
         if VERSION < v"0.6.0-dev.1512" # probably julia PR #15850
             return quote
                 ccall(($f,libcplex), stdcall, $(args...))
@@ -22,25 +24,27 @@ end
 
 macro cpx_ccall_intercept(model, func, args...)
     f = "CPX$(func)"
+    println(f)
     args = map(esc,args)
     quote
-        ccall(:jl_exit_on_sigint, Nothing, (Cint,), convert(Cint,0))
-        ret = try
-            $(Expr(:macrocall, Symbol("@cpx_ccall"), esc(func), args...))
-        catch ex
-            println("Caught exception")
-            if !isinteractive()
-                ccall(:jl_exit_on_sigint, Nothing, (Cint,), convert(Cint,1))
-            end
-            if isa(ex, InterruptException)
-                model.terminator[1] = 1
-            end
-            rethrow(ex)
-        end
-        if !isinteractive()
-            ccall(:jl_exit_on_sigint, Nothing, (Cint,), convert(Cint,1))
-        end
-        ret
+        println("some function is called using cpx_ccall_intercept")
+        # ccall(:jl_exit_on_sigint, Nothing, (Cint,), convert(Cint,0))
+        # ret = try
+        #     $(Expr(:macrocall, Symbol("@cpx_ccall"), esc(func), args...))
+        # catch ex
+        #     println("Caught exception")
+        #     if !isinteractive()
+        #         ccall(:jl_exit_on_sigint, Nothing, (Cint,), convert(Cint,1))
+        #     end
+        #     if isa(ex, InterruptException)
+        #         model.terminator[1] = 1
+        #     end
+        #     rethrow(ex)
+        # end
+        # if !isinteractive()
+        #     ccall(:jl_exit_on_sigint, Nothing, (Cint,), convert(Cint,1))
+        # end
+        # ret
     end
 end
 
@@ -48,7 +52,7 @@ const GChars = Union{Cchar, Char}
 const IVec = Vector{Cint}
 const FVec = Vector{Cdouble}
 const CVec = Vector{Cchar}
-const CoeffMat = Union{Matrix{Cdouble}, SparseMatrixCSC{Cdouble}}
+const CoeffMat = Union{AbstractArray{Cdouble, 2}, SparseMatrixCSC{Cdouble}}
 @compat Bounds{T<:Real} = Union{T, Vector{T}}
 
 const GCharOrVec = Union{Cchar, Char, Vector{Cchar}, Vector{Char}}

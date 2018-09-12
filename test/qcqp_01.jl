@@ -6,8 +6,6 @@
 #
 #    solution: (0.71, 0.71) objv = 1.414
 
-using CPLEX, Base.Test
-
 @testset "QCQP 01" begin
     env = CPLEX.Env()
 

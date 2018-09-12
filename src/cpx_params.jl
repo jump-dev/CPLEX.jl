@@ -2,7 +2,7 @@
 # const CPX_STR_PARAM_MAX = 512
 
 function get_param_type(env::Env, indx::Int)
-  ptype = Vector{Cint}(1)
+  ptype = Vector{Cint}(undef, 1)
   stat = @cpx_ccall(getparamtype, Cint, (
                     Ptr{Nothing},
                     Cint,
@@ -63,28 +63,28 @@ set_param!(env::Env, pname::String, val) = set_param!(env, paramName2Indx[pname]
 
 function get_param(env::Env, pindx::Int, ptype::Symbol)
   if ptype == :Int
-    val_int = Vector{Cint}(1)
+    val_int = Vector{Cint}(undef, 1)
     stat = @cpx_ccall(getintparam, Cint, (Ptr{Nothing}, Cint, Ptr{Cint}), env.ptr, convert(Cint,pindx), val_int)
     if stat != 0
       throw(CplexError(env, stat))
     end
     return val_int[1]
   elseif ptype == :Double
-    val_double = Vector{Cdouble}(1)
+    val_double = Vector{Cdouble}(undef, 1)
     stat = @cpx_ccall(getdblparam, Cint, (Ptr{Nothing}, Cint, Ptr{Cdouble}), env.ptr, convert(Cint,pindx), val_double)
     if stat != 0
       throw(CplexError(env, stat))
     end
     return val_double[1]
   elseif ptype == :String
-    buf = Vector{Cchar}(CPX_STR_PARAM_MAX) # max str param length is 512 in Cplex 12.51
+    buf = Vector{Cchar}(undef, CPX_STR_PARAM_MAX) # max str param length is 512 in Cplex 12.51
     stat = @cpx_ccall(getstrparam, Cint, (Ptr{Nothing}, Cint, Ptr{Cchar}), env.ptr, convert(Cint,pindx), buf)
     if stat != 0
       throw(CplexError(env, stat))
     end
     return bytestring(pointer(buf))
   elseif ptype == :Long
-    val_long = Vector{Clonglong}(1)
+    val_long = Vector{Clonglong}(undef, 1)
     stat = @cpx_ccall(getlongparam, Cint, (Ptr{Nothing}, Cint, Ptr{Clonglong}), env.ptr, convert(Cint,pindx), val_long)
     if stat != 0
       throw(CplexError(env, stat))
@@ -108,7 +108,7 @@ function tune_param(model::Model, intfixed::Dict, dblfixed::Dict, strfixed::Dict
   intkeys = Cint[k for k in keys(intfixed)]
   dblkeys = Cint[k for k in keys(dblfixed)]
   strkeys = Cint[k for k in keys(strfixed)]
-  tune_stat = Vector{Cint}(1)
+  tune_stat = Vector{Cint}(undef, 1)
   stat = @cpx_ccall(tuneparam, Cint, (Ptr{Nothing},
                          Ptr{Nothing},
                          Cint,

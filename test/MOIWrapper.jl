@@ -1,4 +1,4 @@
-using CPLEX, Base.Test, MathOptInterface
+using MathOptInterface
 
 const MOI  = MathOptInterface
 const MOIT = MathOptInterface.Test
@@ -47,7 +47,7 @@ end
 @testset "Integer Linear tests" begin
     intconfig = MOIT.TestConfig()
     solver = CPLEX.Optimizer()
-    MOIT.intlineartest(solver, intconfig, ["int2", "int3"]) 
+    MOIT.intlineartest(solver, intconfig, ["int1", "int2", "int3"]) 
     # 3 is ranged, 2 has sos
     @testset "int3" begin
         MOIT.int3test(

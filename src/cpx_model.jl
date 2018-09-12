@@ -11,17 +11,17 @@ end
 function Model(env::Env, lp::Ptr{Nothing})
     notify_new_model(env)
     model = Model(env, lp, false, false, false, nothing, Cint[0])
-    finalizer(model, m -> begin
-                              free_problem(m)
-                              notify_freed_model(env)
-                          end)
-    set_terminate(model)
+    # finalizer(model, m -> begin
+    #                           free_problem(m)
+    #                           notify_freed_model(env)
+    #                       end)
+    # set_terminate(model)
     model
 end
 
 function Model(env::Env, name::String="CPLEX.jl")
     @assert is_valid(env)
-    stat = Vector{Cint}(1)
+    stat = Vector{Cint}(undef, 1)
     tmp = @cpx_ccall(createprob, Ptr{Nothing}, (Ptr{Nothing}, Ptr{Cint}, Ptr{Cchar}), env.ptr, stat, name)
     if tmp == C_NULL
         throw(CplexError(env, stat))
@@ -83,7 +83,7 @@ function set_sense!(model::Model, sense)
 end
 
 function c_api_chgobjsen(model::Model, sense_int::Cint)
-    @cpx_ccall(chgobjsen, Void, (Ptr{Void}, Ptr{Void}, Cint), 
+    @cpx_ccall(chgobjsen, Nothing, (Ptr{Nothing}, Ptr{Nothing}, Cint), 
                model.env.ptr, model.lp, sense_int)
 end
 
@@ -92,8 +92,8 @@ function c_api_getobj(model::Model, sized_obj::FVec,
                       
     nvars = num_var(model)
     stat = @cpx_ccall(getobj, Cint, (
-                      Ptr{Void},
-                      Ptr{Void},
+                      Ptr{Nothing},
+                      Ptr{Nothing},
                       Ptr{Cdouble},
                       Cint,
                       Cint
@@ -107,7 +107,7 @@ end
 
 function get_obj(model::Model)
     nvars = num_var(model)
-    obj = Vector{Cdouble}(nvars)
+    obj = Vector{Cdouble}(undef, nvars)
     stat = @cpx_ccall(getobj, Cint, (
                       Ptr{Nothing},
                       Ptr{Nothing},
@@ -184,8 +184,8 @@ end
 function c_api_chgobj(model::Model, indices::IVec, values::FVec)
     nvars = length(indices)
     stat = @cpx_ccall(chgobj, Cint, (
-                        Ptr{Void},
-                        Ptr{Void},
+                        Ptr{Nothing},
+                        Ptr{Nothing},
                         Cint,
                         Ptr{Cint},
                         Ptr{Cdouble}

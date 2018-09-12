@@ -1,5 +1,5 @@
 function get_best_bound(m::Model)
-    objval_p = Vector{Cdouble}(1)
+    objval_p = Vector{Cdouble}(undef, 1)
     stat = @cpx_ccall(getbestobjval, Cint, (Ptr{Nothing}, Ptr{Nothing}, Ptr{Cdouble}), m.env.ptr, m.lp, objval_p)
     if stat != 0
         throw(CplexError(m.env.ptr, stat))
@@ -7,7 +7,7 @@ function get_best_bound(m::Model)
     return objval_p[1]
 end
 
-type CallbackData
+mutable struct CallbackData
     cbdata::Ptr{Nothing}
     model::Model
 end

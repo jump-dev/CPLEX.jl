@@ -21,7 +21,8 @@ function c_api_addrows(model::Model, cbegins::IVec, inds::IVec, coeffs::FVec,
                           Ptr{Ptr{Cchar}}   # row names
                           ),
                           model.env.ptr, model.lp, 0, ncons, nnz, rhs, rel, 
-                          cbegins-Cint(1), inds-Cint(1), coeffs, C_NULL, C_NULL)
+                          cbegins .- Cint(1), inds .- Cint(1), coeffs, 
+                          C_NULL, C_NULL)
 
         if stat != 0
            throw(CplexError(model.env, stat))
@@ -58,7 +59,7 @@ function add_constrs_t!(model::Model, At::SparseMatrixCSC{Float64}, rel::GCharOr
     add_constrs!(model, At.colptr[1:At.n], At.rowval, At.nzval, rel, b)
 end
 
-function add_constrs_t!(model::Model, At::Matrix{Float64}, rel::GCharOrVec, b::Vector)
+function add_constrs_t!(model::Model, At::AbstractArray{Float64, 2}, rel::GCharOrVec, b::Vector)
     n, m = size(At)
     (m == length(b) && n == num_var(model)) || error("Incompatible argument dimensions.")
     add_constrs_t!(model, sparse(At), rel, b)
@@ -77,7 +78,7 @@ function add_rangeconstrs!(model::Model, cbegins::IVec, inds::IVec, coeffs::FVec
     ncons = length(lb)
     (ncons  == length(ub) && nnz == length(coeffs)) || error("Incompatible constraint argument dimensions.")
 
-    sense = fill!(Vector{Cchar}(ncons), 'R')
+    sense = fill!(Vector{Cchar}(undef, ncons), 'R')
 
     for i in 1:ncons
         if lb[i] == -Inf
@@ -153,7 +154,7 @@ num_constr(model::Model) = c_api_getnumrows(model)
 
 function get_constr_senses(model::Model)
     ncons = num_constr(model)
-    senses = Vector{Cchar}(ncons)
+    senses = Vector{Cchar}(undef, ncons)
     stat = @cpx_ccall(getsense, Cint, (
                       Ptr{Nothing},
                       Ptr{Nothing},
@@ -171,8 +172,8 @@ end
 function c_api_chgsense(model::Model, indices::IVec, senses::CVec)
     ncons = length(IVec)
     stat = @cpx_ccall(chgsense, Cint, (
-                      Ptr{Void},
-                      Ptr{Void},
+                      Ptr{Nothing},
+                      Ptr{Nothing},
                       Cint,
                       Ptr{Cint},
                       Ptr{Cchar}
@@ -204,8 +205,8 @@ function c_api_getrhs(model::Model, rhs::Vector{Cdouble},
         row_start::Cint, row_end::Cint)
         
     stat = @cpx_ccall(getrhs, Cint, (
-                      Ptr{Void},
-                      Ptr{Void},
+                      Ptr{Nothing},
+                      Ptr{Nothing},
                       Ptr{Cdouble},
                       Cint,
                       Cint
@@ -219,7 +220,7 @@ end
     
 function get_rhs(model::Model)
     ncons = num_constr(model)
-    rhs = Vector{Cdouble}(ncons)
+    rhs = Vector{Cdouble}(undef, ncons)
     stat = @cpx_ccall(getrhs, Cint, (
                       Ptr{Nothing},
                       Ptr{Nothing},
@@ -238,8 +239,8 @@ function c_api_chgrhs(model::Model, indices::IVec, rhs::FVec)
     ncons = length(indices)
     @assert ncons == length(rhs)
     stat = @cpx_ccall(chgrhs, Cint, (
-                      Ptr{Void},
-                      Ptr{Void},
+                      Ptr{Nothing},
+                      Ptr{Nothing},
                       Cint,
                       Ptr{Cint},
                       Ptr{Cdouble}
@@ -357,16 +358,16 @@ function get_nnz(model::Model)
 end
 
 function c_api_getrows(model::Model, mbegin::Cint, mend::Cint)
-    nzcnt_p = Vector{Cint}(1)
+    nzcnt_p = Vector{Cint}(undef, 1)
     m = mend - mbegin + 1   
     nnz = get_nnz(model)  
-    rmatbeg = Vector{Cint}(m+1)
-    rmatind = Vector{Cint}(nnz)
-    rmatval = Vector{Cdouble}(nnz)
-    surplus_p = Vector{Cint}(1)
+    rmatbeg = Vector{Cint}(undef, m+1)
+    rmatind = Vector{Cint}(undef, nnz)
+    rmatval = Vector{Cdouble}(undef, nnz)
+    surplus_p = Vector{Cint}(undef, 1)
     stat = @cpx_ccall(getrows, Cint, (
-                    Ptr{Void},
-                    Ptr{Void},
+                    Ptr{Nothing},
+                    Ptr{Nothing},
                     Ptr{Cint},
                     Ptr{Cint},
                     Ptr{Cint},
@@ -387,14 +388,14 @@ function c_api_getrows(model::Model, mbegin::Cint, mend::Cint)
 end
 
 function get_constr_matrix(model::Model)
-  nzcnt_p = Vector{Cint}(1)
+  nzcnt_p = Vector{Cint}(undef, 1)
   m = num_constr(model)
   n = num_var(model)
   nnz = get_nnz(model)
-  cmatbeg = Vector{Cint}(n+1)
-  cmatind = Vector{Cint}(nnz)
-  cmatval = Vector{Cdouble}(nnz)
-  surplus_p = Vector{Cint}(1)
+  cmatbeg = Vector{Cint}(undef, n+1)
+  cmatind = Vector{Cint}(undef, nnz)
+  cmatval = Vector{Cdouble}(undef, nnz)
+  surplus_p = Vector{Cint}(undef, 1)
   stat = @cpx_ccall(getcols, Cint, (
                     Ptr{Nothing},
                     Ptr{Nothing},
@@ -469,8 +470,8 @@ end
 
 function c_api_chgcoef(model::Model, row::Cint, col::Cint, coef::Cdouble)
     stat = @cpx_ccall(chgcoef, Cint, (
-                      Ptr{Void},        # environment
-                      Ptr{Void},        # problem
+                      Ptr{Nothing},        # environment
+                      Ptr{Nothing},        # problem
                       Cint,             # row
                       Cint,             # col
                       Cdouble,          # coef                      
@@ -485,8 +486,8 @@ end
 
 function c_api_delrows(model::Model, first::Cint, last::Cint)
     stat = @cpx_ccall(delrows, Cint, (
-                      Ptr{Void},
-                      Ptr{Void},
+                      Ptr{Nothing},
+                      Ptr{Nothing},
                       Cint,
                       Cint,
                       ),
