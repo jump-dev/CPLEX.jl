@@ -268,10 +268,3 @@ end
 function LQOI.get_objective_value(model::Optimizer)
     return c_api_getobjval(model.inner)
 end
-
-MOI.canget(m::Optimizer, ::MOI.ObjectiveBound) = false
-MOI.canget(m::Optimizer, ::MOI.RelativeGap) = false
-MOI.canget(m::Optimizer, ::MOI.SolveTime) = false
-MOI.canget(m::Optimizer, ::MOI.SimplexIterations) = false
-MOI.canget(m::Optimizer, ::MOI.BarrierIterations) = false
-MOI.canget(m::Optimizer, ::MOI.NodeCount) = false
