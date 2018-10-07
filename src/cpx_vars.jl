@@ -13,8 +13,8 @@ function add_vars!(model::Model, obj::Vector, l_in::Bounds, u_in::Bounds)
     end
     if nvars > 0
         stat = @cpx_ccall(newcols, Cint, (
-                          Ptr{Nothing},
-                          Ptr{Nothing},
+                          Ptr{Cvoid},
+                          Ptr{Cvoid},
                           Cint,
                           Ptr{Cdouble},
                           Ptr{Cdouble},
@@ -44,8 +44,8 @@ function add_var!(model::Model, constridx::IVec, constrcoef::FVec, l::FVec, u::F
     end
     if nvars > 0
         stat = @cpx_ccall(addcols, Cint, (
-                          Ptr{Nothing},
-                          Ptr{Nothing},
+                          Ptr{Cvoid},
+                          Ptr{Cvoid},
                           Cint,
                           Cint,
                           Ptr{Cdouble},
@@ -83,8 +83,8 @@ end
 function c_api_getlb(model::Model, col_start::Cint, col_end::Cint)
     lb = Vector{Cdouble}(undef, col_end - col_start + 1)
     stat = @cpx_ccall(getlb, Cint, (
-                      Ptr{Nothing},
-                      Ptr{Nothing},
+                      Ptr{Cvoid},
+                      Ptr{Cvoid},
                       Ptr{Cdouble},
                       Cint,
                       Cint
@@ -101,8 +101,8 @@ function get_varLB(model::Model)
     nvars = num_var(model)
     lb = Vector{Cdouble}(undef, nvars)
     stat = @cpx_ccall(getlb, Cint, (
-                      Ptr{Nothing},
-                      Ptr{Nothing},
+                      Ptr{Cvoid},
+                      Ptr{Cvoid},
                       Ptr{Cdouble},
                       Cint,
                       Cint
@@ -117,8 +117,8 @@ end
 function c_api_chgbds(model::Model, indices::IVec, lu::CVec, bd::FVec)    
     cnt = length(indices)
     stat = @cpx_ccall(chgbds, Cint, (
-                      Ptr{Nothing},
-                      Ptr{Nothing},
+                      Ptr{Cvoid},
+                      Ptr{Cvoid},
                       Cint,
                       Ptr{Cint},
                       Ptr{Cchar},
@@ -138,8 +138,8 @@ function set_varLB!(model::Model, l::FVec)
         end
     end
     stat = @cpx_ccall(chgbds, Cint, (
-                      Ptr{Nothing},
-                      Ptr{Nothing},
+                      Ptr{Cvoid},
+                      Ptr{Cvoid},
                       Cint,
                       Ptr{Cint},
                       Ptr{Cchar},
@@ -154,8 +154,8 @@ end
 function c_api_getub(model::Model, col_start::Cint, col_end::Cint)
     ub = Vector{Cdouble}(undef, 1)
     stat = @cpx_ccall(getub, Cint, (
-                      Ptr{Nothing},
-                      Ptr{Nothing},
+                      Ptr{Cvoid},
+                      Ptr{Cvoid},
                       Ptr{Cdouble},
                       Cint,
                       Cint
@@ -172,8 +172,8 @@ function get_varUB(model::Model)
     nvars = num_var(model)
     ub = Vector{Cdouble}(undef, nvars)
     stat = @cpx_ccall(getub, Cint, (
-                      Ptr{Nothing},
-                      Ptr{Nothing},
+                      Ptr{Cvoid},
+                      Ptr{Cvoid},
                       Ptr{Cdouble},
                       Cint,
                       Cint
@@ -193,8 +193,8 @@ function set_varUB!(model::Model, u::FVec)
         end
     end
     stat = @cpx_ccall(chgbds, Cint, (
-                      Ptr{Nothing},
-                      Ptr{Nothing},
+                      Ptr{Cvoid},
+                      Ptr{Cvoid},
                       Cint,
                       Ptr{Cint},
                       Ptr{Cchar},
@@ -209,8 +209,8 @@ end
 function c_api_chgctype(model::Model, indices::IVec, types::CVec)
     nvars = length(indices)
     stat = @cpx_ccall(chgctype, Cint, (
-                      Ptr{Nothing},
-                      Ptr{Nothing},
+                      Ptr{Cvoid},
+                      Ptr{Cvoid},
                       Cint,
                       Ptr{Cint},
                       Ptr{Cchar}
@@ -224,8 +224,8 @@ end
 function set_vartype!(model::Model, vtype::Vector{Char})
     nvars = num_var(model)
     stat = @cpx_ccall(chgctype, Cint, (
-                      Ptr{Nothing},
-                      Ptr{Nothing},
+                      Ptr{Cvoid},
+                      Ptr{Cvoid},
                       Cint,
                       Ptr{Cint},
                       Ptr{Cchar}
@@ -251,8 +251,8 @@ function get_vartype(model::Model)
     nvars = num_var(model)
     vartypes = Vector{Cchar}(undef, nvars)
     stat = @cpx_ccall(getctype, Cint, (
-                      Ptr{Nothing},
-                      Ptr{Nothing},
+                      Ptr{Cvoid},
+                      Ptr{Cvoid},
                       Ptr{Cchar},
                       Cint,
                       Cint
@@ -266,8 +266,8 @@ end
 
 function c_api_getnumcols(model::Model)
     nvar = @cpx_ccall(getnumcols, Cint, (
-                      Ptr{Nothing},
-                      Ptr{Nothing}
+                      Ptr{Cvoid},
+                      Ptr{Cvoid}
                       ),
                       model.env.ptr, model.lp)
     return(nvar)
@@ -279,8 +279,8 @@ function set_varname!(model::Model, idx::Integer, name::String)
     @assert isascii(name)
 
     stat = @cpx_ccall(chgcolname, Cint, (
-                      Ptr{Nothing},
-                      Ptr{Nothing},
+                      Ptr{Cvoid},
+                      Ptr{Cvoid},
                       Cint,
                       Ptr{Cint},
                       Ptr{Ptr{UInt8}}
@@ -293,8 +293,8 @@ end
 
 function c_api_delcols(model::Model, first::Cint, last::Cint)
     stat = @cpx_ccall(delcols, Cint, (
-                      Ptr{Nothing},
-                      Ptr{Nothing},
+                      Ptr{Cvoid},
+                      Ptr{Cvoid},
                       Cint,
                       Cint
                       ),

@@ -1,11 +1,11 @@
 mutable struct Env
-    ptr::Ptr{Nothing}
+    ptr::Ptr{Cvoid}
     num_models::Int
     finalize_called::Bool
 
     function Env()
       stat = Vector{Cint}(undef, 1)
-      tmp = @cpx_ccall(openCPLEX, Ptr{Nothing}, (Ptr{Cint},), stat)
+      tmp = @cpx_ccall(openCPLEX, Ptr{Cvoid}, (Ptr{Cint},), stat)
       if tmp == C_NULL
           error("CPLEX: Error creating environment")
       end
@@ -21,8 +21,8 @@ mutable struct Env
     end
 end
 
-convert(ty::Type{Ptr{Nothing}}, env::Env) = env.ptr::Ptr{Nothing}
-unsafe_convert(ty::Type{Ptr{Nothing}}, env::Env) = convert(ty, env)
+convert(ty::Type{Ptr{Cvoid}}, env::Env) = env.ptr::Ptr{Cvoid}
+unsafe_convert(ty::Type{Ptr{Cvoid}}, env::Env) = convert(ty, env)
 
 function is_valid(env::Env)
     env.ptr != C_NULL
@@ -41,8 +41,8 @@ function notify_freed_model(env::Env)
 end
 
 function close_CPLEX(env::Env)
-    tmp = Ptr{Nothing}[env.ptr]
-    stat = @cpx_ccall(closeCPLEX, Cint, (Ptr{Nothing},), tmp)
+    tmp = Ptr{Cvoid}[env.ptr]
+    stat = @cpx_ccall(closeCPLEX, Cint, (Ptr{Cvoid},), tmp)
     env.ptr = C_NULL
     if stat != 0
         throw(CplexError(env, stat))
@@ -51,11 +51,11 @@ end
 
 function set_logfile(env::Env, filename::String)
   @assert isascii(filename)
-  fp = @cpx_ccall(fopen, Ptr{Nothing}, (Ptr{Cchar}, Ptr{Cchar}), filename, "w")
+  fp = @cpx_ccall(fopen, Ptr{Cvoid}, (Ptr{Cchar}, Ptr{Cchar}), filename, "w")
   if fp == C_NULL
     error("CPLEX: Error setting logfile")
   end
-  stat = @cpx_ccall(setlogfile, Cint, (Ptr{Nothing}, Ptr{Nothing}), env, fp)
+  stat = @cpx_ccall(setlogfile, Cint, (Ptr{Cvoid}, Ptr{Cvoid}), env, fp)
   if stat != 0
     throw(CplexError(env, stat))
   end
@@ -64,7 +64,7 @@ end
 function get_error_msg(env::Env, code::Number)
     @assert env.ptr != C_NULL
     buf = Vector{Cchar}(4096) # minimum size for Cplex to accept
-    errstr = @cpx_ccall(geterrorstring, Ptr{Cchar}, (Ptr{Nothing}, Cint, Ptr{Cchar}), env.ptr, convert(Cint, code), buf)
+    errstr = @cpx_ccall(geterrorstring, Ptr{Cchar}, (Ptr{Cvoid}, Cint, Ptr{Cchar}), env.ptr, convert(Cint, code), buf)
     if errstr != C_NULL
       return unsafe_string(pointer(buf))
     else
@@ -73,7 +73,7 @@ function get_error_msg(env::Env, code::Number)
 end
 
 function version(env::Env = Env())
-    charptr = @cpx_ccall(version, Ptr{Cchar}, (Ptr{Nothing},), env.ptr)
+    charptr = @cpx_ccall(version, Ptr{Cchar}, (Ptr{Cvoid},), env.ptr)
     if charptr != C_NULL
         return unsafe_string(charptr)
     else

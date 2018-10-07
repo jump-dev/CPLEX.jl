@@ -1,6 +1,6 @@
 function get_best_bound(m::Model)
     objval_p = Vector{Cdouble}(undef, 1)
-    stat = @cpx_ccall(getbestobjval, Cint, (Ptr{Nothing}, Ptr{Nothing}, Ptr{Cdouble}), m.env.ptr, m.lp, objval_p)
+    stat = @cpx_ccall(getbestobjval, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cdouble}), m.env.ptr, m.lp, objval_p)
     if stat != 0
         throw(CplexError(m.env.ptr, stat))
     end
@@ -8,7 +8,7 @@ function get_best_bound(m::Model)
 end
 
 mutable struct CallbackData
-    cbdata::Ptr{Nothing}
+    cbdata::Ptr{Cvoid}
     model::Model
 end
 
@@ -19,8 +19,8 @@ function setcallbackcut(cbdata::CallbackData, where::Cint, ind::Vector{Cint}, va
     @assert length(val) == len
     sns = convert(Cint, sense)
     stat = @cpx_ccall(cutcallbackadd, Cint, (
-                      Ptr{Nothing},
-                      Ptr{Nothing},
+                      Ptr{Cvoid},
+                      Ptr{Cvoid},
                       Cint,
                       Cint,
                       Cdouble,
@@ -40,8 +40,8 @@ function setcallbackcutlocal(cbdata::CallbackData, where::Cint, ind::Vector{Cint
     @assert length(val) == len
     sns = convert(Cint, sense)
     stat = @cpx_ccall(cutcallbackaddlocal, Cint, (
-                      Ptr{Nothing},
-                      Ptr{Nothing},
+                      Ptr{Cvoid},
+                      Ptr{Cvoid},
                       Cint,
                       Cint,
                       Cdouble,
@@ -72,7 +72,7 @@ cblazylocal(cbdata::CallbackData, where::Cint, ind::Vector{Cint}, val::Vector{Cd
 
 function cbbranch(cbdata::CallbackData, where::Cint, idx::Cint, LU::Cchar, bd::Cdouble, nodeest::Cdouble)
     seqnum = Vector{Cint}(1)
-    stat = @cpx_ccall(branchcallbackbranchbds, Cint, (Ptr{Nothing},Ptr{Nothing},Cint,Cint,Ptr{Cint},Ptr{Cchar},Ptr{Cdouble},Cdouble,Ptr{Nothing},Ptr{Cint}),
+    stat = @cpx_ccall(branchcallbackbranchbds, Cint, (Ptr{Cvoid},Ptr{Cvoid},Cint,Cint,Ptr{Cint},Ptr{Cchar},Ptr{Cdouble},Cdouble,Ptr{Cvoid},Ptr{Cint}),
                       cbdata.model.env.ptr,cbdata.cbdata,where,convert(Cint,1),[idx],[LU],[bd],nodeest,C_NULL,seqnum)
     if stat != 0
         throw(CplexError(cbdata.model.env.ptr, stat))
@@ -83,8 +83,8 @@ end
 function cbbranchconstr(cbdata::CallbackData, where::Cint, indices::Vector{Cint}, coeffs::Vector{Cdouble}, rhs::Cdouble, sense::Cchar, nodeest::Cdouble)
     seqnum = Vector{Cint}(1)
     stat = @cpx_ccall(branchcallbackbranchconstraints, Cint,
-                      (Ptr{Nothing},
-                       Ptr{Nothing},
+                      (Ptr{Cvoid},
+                       Ptr{Cvoid},
                        Cint,
                        Cint,
                        Cint,
@@ -94,7 +94,7 @@ function cbbranchconstr(cbdata::CallbackData, where::Cint, indices::Vector{Cint}
                        Ptr{Cint},
                        Ptr{Cdouble},
                        Cdouble,
-                       Ptr{Nothing},
+                       Ptr{Cvoid},
                        Ptr{Cint}),
                       cbdata.model.env.ptr,
                       cbdata.cbdata,
