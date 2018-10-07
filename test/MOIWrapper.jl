@@ -12,8 +12,8 @@ const MOIB = MathOptInterface.Bridges
         "solve_affine_interval",     # not implemented
         "solve_qp_edge_cases",       # not implemented
         "solve_qcp_edge_cases",      # not implemented
-        "solve_objbound_edge_cases", # Requires MOI.ObjectiveBound() 
-    ])    
+        "solve_objbound_edge_cases", # Requires MOI.ObjectiveBound()
+    ])
     @testset "solve_affine_interval" begin
         MOIT.solve_affine_interval(
             MOIB.SplitInterval{Float64}(CPLEX.Optimizer()),
@@ -42,12 +42,13 @@ end
             CPLEX.Optimizer(),
             MOIT.TestConfig(infeas_certificates=false)
         )
-    end    
+    end
 end
 @testset "Integer Linear tests" begin
     intconfig = MOIT.TestConfig()
     solver = CPLEX.Optimizer()
-    MOIT.intlineartest(solver, intconfig, ["int1", "int2", "int3"]) 
+    MOIT.intlineartest(solver, intconfig, ["int1", # requires objbound impl
+                                           "int2", "int3"])
     # 3 is ranged, 2 has sos
     @testset "int3" begin
         MOIT.int3test(
