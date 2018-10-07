@@ -10,14 +10,15 @@ mutable struct Env
           error("CPLEX: Error creating environment")
       end
       env = new(tmp, 0, false)
-      # finalizer(env, env -> begin
-      #                           if env.num_models == 0
-      #                               close_CPLEX(env)
-      #                           else
-      #                               env.finalize_called = true
-      #                           end
-      #                       end)
-      # env
+      function env_finalizer(env)
+          if env.num_models == 0
+              close_CPLEX(env)
+          else
+              env.finalize_called = true
+          end
+      end
+      @compat finalizer(env_finalizer, env)
+      return env
     end
 end
 
