@@ -6,8 +6,7 @@ module CPLEX
         using Libdl
     end
 
-    if (VERSION >= v"0.7.0-DEV.3382" && Sys.isapple()) ||
-            (VERSION < v"0.7.0-DEV.3382" && is_apple())
+    @static if (VERSION >= v"0.7.0-DEV.3382" && Sys.isapple()) || (VERSION < v"0.7.0-DEV.3382" && is_apple())
         Libdl.dlopen("libstdc++",Libdl.RTLD_GLOBAL)
     end
 
@@ -87,7 +86,7 @@ module CPLEX
     using Compat
 
     using Compat.SparseArrays
-    using Compat.LinearAlgebra    
+    using Compat.LinearAlgebra
 
     include("cpx_common.jl")
     include("cpx_env.jl")

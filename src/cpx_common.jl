@@ -2,15 +2,13 @@
 macro cpx_ccall(func, args...)
     f = "CPX$(func)"
     args = map(esc,args)
-    if (VERSION >= v"0.7.0-DEV.3382" && Sys.isunix()) || 
-            (VERSION < v"0.7.0-DEV.3382" && is_unix())
+    @static if (VERSION >= v"0.7.0-DEV.3382" && Sys.isunix()) || (VERSION < v"0.7.0-DEV.3382" && is_unix())
         return quote
             ccall(($f,libcplex), $(args...))
         end
     end
-    if (VERSION >= v"0.7.0-DEV.3382" && Sys.iswindows()) || 
-            (VERSION < v"0.7.0-DEV.3382" && is_windows())
-        if VERSION < v"0.6.0-dev.1512" # probably julia PR #15850
+    @static if (VERSION >= v"0.7.0-DEV.3382" && Sys.iswindows()) || (VERSION < v"0.7.0-DEV.3382" && is_windows())
+        @static if VERSION < v"0.6.0-dev.1512" # probably julia PR #15850
             return quote
                 ccall(($f,libcplex), stdcall, $(args...))
             end
