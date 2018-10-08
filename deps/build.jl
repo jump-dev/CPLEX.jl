@@ -35,7 +35,7 @@ for v in reverse(cpxvers)
     end
 end
 
-wincpxvers = ["126","1261","1262","1263","127","1270","1271","128","1280"]
+const wincpxvers = ["126","1261","1262","1263","127","1270","1271","128","1280"]
 @static if (VERSION >= v"0.7.0-DEV.3382" && Sys.iswindows()) || (VERSION < v"0.7.0-DEV.3382" && is_windows())
     for v in reverse(wincpxvers)
         env = base_env * v
