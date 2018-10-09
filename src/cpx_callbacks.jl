@@ -29,7 +29,7 @@ function setcallbackcut(cbdata::CallbackData, where::Cint, ind::Vector{Cint}, va
                       Ptr{Cdouble},
                       Cint
                       ),
-                      cbdata.model.env.ptr, cbdata.cbdata, where, len, rhs, sns, ind-Cint(1), val, purgeable)
+                      cbdata.model.env.ptr, cbdata.cbdata, where, len, rhs, sns, ind .- Cint(1), val, purgeable)
     if stat != 0
         throw(CplexError(cbdata.model.env.ptr, stat))
     end

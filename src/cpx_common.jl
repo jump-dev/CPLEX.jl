@@ -21,28 +21,30 @@ macro cpx_ccall(func, args...)
 end
 
 macro cpx_ccall_intercept(model, func, args...)
-    f = "CPX$(func)"
-    println(f)
-    args = map(esc,args)
-    quote
-        println("some function is called using cpx_ccall_intercept")
-        # ccall(:jl_exit_on_sigint, Nothing, (Cint,), convert(Cint,0))
-        # ret = try
-        #     $(Expr(:macrocall, Symbol("@cpx_ccall"), esc(func), args...))
-        # catch ex
-        #     println("Caught exception")
-        #     if !isinteractive()
-        #         ccall(:jl_exit_on_sigint, Nothing, (Cint,), convert(Cint,1))
-        #     end
-        #     if isa(ex, InterruptException)
-        #         model.terminator[1] = 1
-        #     end
-        #     rethrow(ex)
-        # end
-        # if !isinteractive()
-        #     ccall(:jl_exit_on_sigint, Nothing, (Cint,), convert(Cint,1))
-        # end
-        # ret
+    # TODO fix for 0.7 and above (using cpx_call instead temporarily)
+    if VERSION < v"0.7.0-DEV.3382"
+        f = "CPX$(func)"
+        println(f)
+        args = map(esc,args)
+        quote
+            ccall(:jl_exit_on_sigint, Nothing, (Cint,), convert(Cint,0))
+            ret = try
+                $(Expr(:macrocall, Symbol("@cpx_ccall"), esc(func), args...))
+            catch ex
+                println("Caught exception")
+                if !isinteractive()
+                    ccall(:jl_exit_on_sigint, Nothing, (Cint,), convert(Cint,1))
+                end
+                if isa(ex, InterruptException)
+                    model.terminator[1] = 1
+                end
+                rethrow(ex)
+            end
+            if !isinteractive()
+                ccall(:jl_exit_on_sigint, Nothing, (Cint,), convert(Cint,1))
+            end
+            ret
+        end
     end
 end
 

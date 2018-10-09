@@ -1,15 +1,24 @@
 function optimize!(model::Model)
   @assert is_valid(model.env)
   stat = (if model.has_int
-    #@cpx_ccall_intercept(model, mipopt, Cint, (Ptr{Cvoid}, Ptr{Cvoid}), model.env.ptr, model.lp)
-    @cpx_ccall(mipopt, Cint, (Ptr{Cvoid}, Ptr{Cvoid}), model.env.ptr, model.lp)
+    if VERSION < v"0.7.0-DEV.3382"
+        @cpx_ccall_intercept(model, mipopt, Cint, (Ptr{Cvoid}, Ptr{Cvoid}), model.env.ptr, model.lp)
+    else
+        @cpx_ccall(mipopt, Cint, (Ptr{Cvoid}, Ptr{Cvoid}), model.env.ptr, model.lp)
+    end
   elseif model.has_qc
-    #@cpx_ccall_intercept(model, qpopt, Cint, (Ptr{Cvoid}, Ptr{Cvoid}), model.env.ptr, model.lp)
-    @cpx_ccall(qpopt, Cint, (Ptr{Cvoid}, Ptr{Cvoid}), model.env.ptr, model.lp)
+    if VERSION < v"0.7.0-DEV.3382"
+        @cpx_ccall_intercept(model, qpopt, Cint, (Ptr{Cvoid}, Ptr{Cvoid}), model.env.ptr, model.lp)
+    else
+        @cpx_ccall(qpopt, Cint, (Ptr{Cvoid}, Ptr{Cvoid}), model.env.ptr, model.lp)
+    end
   else
-    #@cpx_ccall_intercept(model, lpopt, Cint, (Ptr{Cvoid}, Ptr{Cvoid}), model.env.ptr, model.lp)
-    @cpx_ccall(lpopt, Cint, (Ptr{Cvoid}, Ptr{Cvoid}), model.env.ptr, model.lp)
-    end)
+    if VERSION < v"0.7.0-DEV.3382"
+        @cpx_ccall_intercept(model, lpopt, Cint, (Ptr{Cvoid}, Ptr{Cvoid}), model.env.ptr, model.lp)
+    else
+        @cpx_ccall(lpopt, Cint, (Ptr{Cvoid}, Ptr{Cvoid}), model.env.ptr, model.lp)
+    end
+  end)
   if stat != 0
     throw(CplexError(model.env, stat))
   end
@@ -84,7 +93,7 @@ function c_api_getobjval(model::Model)
 end
 get_objval(model::Model) = c_api_getobjval(model)
 
-function c_api_solninfo(model::Model)    
+function c_api_solninfo(model::Model)
   solnmethod_p = Ref{Cint}()
   solntype_p = Ref{Cint}()
   pfeasind_p = Ref{Cint}()
@@ -97,7 +106,7 @@ function c_api_solninfo(model::Model)
                     Ptr{Cint},
                     Ptr{Cint}
                     ),
-                    model.env.ptr, model.lp, solnmethod_p, solntype_p, 
+                    model.env.ptr, model.lp, solnmethod_p, solntype_p,
                     pfeasind_p, dfeasind_p)
   if stat != 0
     throw(CplexError(model.env, stat))
@@ -106,7 +115,7 @@ function c_api_solninfo(model::Model)
 end
 
 function c_api_getx(model::Model, x::FVec)
-  nvars = num_var(model)  
+  nvars = num_var(model)
   stat = @cpx_ccall(getx, Cint, (
                     Ptr{Cvoid},
                     Ptr{Cvoid},
@@ -329,8 +338,8 @@ const status_symbols = Dict(
 
 get_status(model::Model) = status_symbols[Int(get_status_code(model))]::Symbol
 
-function c_api_getstat(model::Model) 
-    return @cpx_ccall(getstat, Cint, (Ptr{Cvoid}, Ptr{Cvoid}), 
+function c_api_getstat(model::Model)
+    return @cpx_ccall(getstat, Cint, (Ptr{Cvoid}, Ptr{Cvoid}),
                       model.env.ptr, model.lp)
 end
 get_status_code(model::Model) = c_api_getstat(model)
