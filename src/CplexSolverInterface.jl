@@ -205,7 +205,7 @@ function MathProgBase.status(m::CplexMathProgModel)
         Base.warn_once("CPLEX reported infeasible or unbounded. Set CPX_PARAM_REDUCE=1 to check
                         infeasibility or CPX_PARAM_REDUCE=2 to check unboundedness.")
         :InfeasibleOrUnbounded
-    elseif occursin(string(ret), "TIME_LIM") || occursin(string(ret), "MIP_ABORT")
+    elseif occursin("TIME_LIM", string(ret)) || occursin("MIP_ABORT", string(ret))
         :UserLimit
     else
         ret
