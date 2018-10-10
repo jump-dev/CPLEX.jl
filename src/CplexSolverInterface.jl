@@ -205,7 +205,7 @@ function MathProgBase.status(m::CplexMathProgModel)
         Base.warn_once("CPLEX reported infeasible or unbounded. Set CPX_PARAM_REDUCE=1 to check
                         infeasibility or CPX_PARAM_REDUCE=2 to check unboundedness.")
         :InfeasibleOrUnbounded
-    elseif contains(string(ret), "TIME_LIM") || contains(string(ret), "MIP_ABORT")
+    elseif occursin(string(ret), "TIME_LIM") || occursin(string(ret), "MIP_ABORT")
         :UserLimit
     else
         ret
@@ -578,7 +578,7 @@ function MathProgBase.cbgetlpsolution(d::CplexHeuristicCallbackData)
 end
 
 function MathProgBase.cbgetlpsolution(d::CplexHeuristicCallbackData, sol::Vector{Cdouble})
-    copy!(sol,d.sol)
+    copyto!(sol,d.sol)
 end
 
 function masterheuristiccallback(env::Ptr{Cvoid},
