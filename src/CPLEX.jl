@@ -6,7 +6,7 @@ module CPLEX
         using Libdl
     end
 
-    if is_apple()
+    @static if (VERSION >= v"0.7.0-DEV.3382" && Sys.isapple()) || (VERSION < v"0.7.0-DEV.3382" && is_apple())
         Libdl.dlopen("libstdc++",Libdl.RTLD_GLOBAL)
     end
 
@@ -20,7 +20,7 @@ module CPLEX
     import Base: convert, unsafe_convert, show, copy
 
     # Standard LP interface
-    importall MathProgBase.SolverInterface
+    using MathProgBase.SolverInterface
 
     # exported functions
     # export is_valid,
@@ -85,6 +85,9 @@ module CPLEX
 
     using Compat
 
+    using Compat.SparseArrays
+    using Compat.LinearAlgebra
+
     include("cpx_common.jl")
     include("cpx_env.jl")
     v = version()
@@ -114,13 +117,4 @@ module CPLEX
 
     include("CplexSolverInterface.jl")
     include("MOIWrapper.jl")
-    
-    # These are undocumented JuMP extensions for CPLEX which
-    # will need to be hosted in a separate package for Julia 0.6 and later.
-    if isdir(Pkg.dir("JuMP")) && VERSION < v"0.6-"
-        try
-            eval(current_module(), Expr(:import,:JuMP))
-            include("JuMPfunctions.jl")
-        end
-    end
 end

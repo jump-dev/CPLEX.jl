@@ -1,5 +1,3 @@
-using CPLEX
-
 include(joinpath(Pkg.dir("MathProgBase"),"test","linprog.jl"))
 linprogtest(CplexSolver(CPX_PARAM_PREIND=0, CPX_PARAM_LPMETHOD=2, CPX_PARAM_SCRIND=0))
 
@@ -11,7 +9,7 @@ quadprogtest(CplexSolver(CPX_PARAM_SCRIND=0))
 socptest(CplexSolver(CPX_PARAM_SCRIND=0))
 
 solver = CplexSolver(CPX_PARAM_SCRIND=0)
-MathProgBase.setparameters!(solver, Silent=true, TimeLimit=100.0)
+CPLEX.setparameters!(solver, Silent=true, TimeLimit=100.0)
 include(joinpath(Pkg.dir("MathProgBase"),"test","linproginterface.jl"))
 linprogsolvertest(solver)
 

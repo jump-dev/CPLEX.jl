@@ -7,17 +7,22 @@ function add_qpterms!(model::Model, qr::IVec, qc::IVec, qv::FVec)
     nqv = copy(qv)
     Q = sparse(qr, qc, nqv, n, n)
     if istriu(Q) || istril(Q) || issymmetric(Q)
-        Q = Q + Q' - spdiagm(diag(Q)) # reconstruct full matrix like CPLEX wants
+        if VERSION >= v"0.7.0-DEV.3382"
+            diag_matrix = spdiagm(0 => diag(Q))
+        else
+            diag_matrix = spdiagm(diag(Q))
+        end
+        Q = Q + Q' - diag_matrix # reconstruct full matrix like CPLEX wants
     else
         error("Matrix Q must be either symmetric or triangular")
     end
-    qmatcnt = Vector{Cint}(n)
+    qmatcnt = Vector{Cint}(undef, n)
     for k = 1:n
       qmatcnt[k] = Q.colptr[k+1] - Q.colptr[k]
     end
     stat = @cpx_ccall(copyquad, Cint, (
-                      Ptr{Void},
-                      Ptr{Void},
+                      Ptr{Cvoid},
+                      Ptr{Cvoid},
                       Ptr{Cint},
                       Ptr{Cint},
                       Ptr{Cint},
@@ -41,9 +46,9 @@ function add_qpterms!(model, H::SparseMatrixCSC{Float64}) # H must be symmetric
     (H.m == n && H.n == n) || error("H must be an n-by-n symmetric matrix.")
 
     nnz_h = nnz(H)
-    qr = Vector{Cint}(nnz_h)
-    qc = Vector{Cint}(nnz_h)
-    qv = Vector{Float64}(nnz_h)
+    qr = Vector{Cint}(undef, nnz_h)
+    qc = Vector{Cint}(undef, nnz_h)
+    qv = Vector{Float64}(undef, nnz_h)
     k = 0
 
     colptr::Vector{Int} = H.colptr
@@ -71,9 +76,9 @@ function add_qpterms!(model, H::Matrix{Float64}) # H must be symmetric
     size(H) == (n, n) || error("H must be an n-by-n symmetric matrix.")
 
     nmax = div(n * (n + 1), 2)
-    qr = Vector{Cint}(nmax)
-    qc = Vector{Cint}(nmax)
-    qv = Vector{Float64}(nmax)
+    qr = Vector{Cint}(undef, nmax)
+    qc = Vector{Cint}(undef, nmax)
+    qv = Vector{Float64}(undef, nmax)
     k::Int = 0
 
     for i = 1 : n
@@ -117,8 +122,8 @@ function add_qconstr!(model::Model, lind::IVec, lval::FVec, qr::IVec, qc::IVec, 
 
     if qnnz > 0 || lnnz > 0
         stat = @cpx_ccall(addqconstr, Cint, (
-                          Ptr{Void},    # env
-                          Ptr{Void},    # model
+                          Ptr{Cvoid},   # env
+                          Ptr{Cvoid},   # model
                           Cint,         # lnnz
                           Cint,         # qnnz
                           Float64,      # rhs
@@ -130,7 +135,9 @@ function add_qconstr!(model::Model, lind::IVec, lval::FVec, qr::IVec, qc::IVec, 
                           Ptr{Float64}, # qval
                           Ptr{UInt8}    # name
                           ),
-                          model.env.ptr, model.lp, lnnz, qnnz, rhs, rel, lind-Cint(1), lval, qr-Cint(1), qc-Cint(1), qv, C_NULL)
+                          model.env.ptr, model.lp, lnnz, qnnz, rhs, rel, 
+                          lind .- Cint(1), lval, qr .- Cint(1), qc .- Cint(1), 
+                          qv, C_NULL)
         if stat != 0
             throw(CplexError(model.env, stat))
         end
@@ -146,8 +153,8 @@ end
 
 function num_qconstr(model::Model)
     ncons = @cpx_ccall(getnumqconstrs, Cint, (
-                       Ptr{Void},
-                       Ptr{Void}
+                       Ptr{Cvoid},
+                       Ptr{Cvoid}
                        ),
                        model.env.ptr, model.lp)
     return ncons

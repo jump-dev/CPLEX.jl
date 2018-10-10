@@ -1,5 +1,3 @@
-using CPLEX, MathProgBase, Base.Test
-
 @testset "Use loadproblem! twice" begin
     solver = CplexSolver()
     # Check that the env for each model is the same

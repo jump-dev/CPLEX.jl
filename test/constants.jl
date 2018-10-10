@@ -1,5 +1,3 @@
-using CPLEX, Base.Test
-
 @testset "Checking value of constants from cpxconst.h" begin
     version_split = split(CPLEX.version(), '.')
     version = parse(Int, version_split[1])

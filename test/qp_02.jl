@@ -6,8 +6,6 @@
 #           x +   y       >= 1
 #
 
-using CPLEX, Base.Test
-
 @testset "QP 02" begin
     env = CPLEX.Env()
 

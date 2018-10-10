@@ -9,8 +9,6 @@
 #         y is integer: 0 <= y <= 10
 #         z is binary
 
-using CPLEX, Base.Test
-
 @testset "MIP 01" begin
     env = CPLEX.Env()
 
