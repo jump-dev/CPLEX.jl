@@ -2,6 +2,8 @@
     using Libdl
 end
 
+using Compat # for occursin
+
 depsfile = joinpath(dirname(@__FILE__),"deps.jl")
 if isfile(depsfile)
     rm(depsfile)
@@ -41,7 +43,7 @@ const wincpxvers = ["126","1261","1262","1263","127","1270","1271","128","1280"]
         env = base_env * v
         if haskey(ENV,env)
             for d in split(ENV[env],';')
-                contains(d,"cplex") || continue
+                occursin("cplex", d) || continue
                 if length(v) == 3 # annoying inconsistency
                     push!(libnames,joinpath(d,"cplex$(v)0"))
                 else
