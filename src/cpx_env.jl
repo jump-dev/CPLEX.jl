@@ -64,7 +64,7 @@ end
 
 function get_error_msg(env::Env, code::Number)
     @assert env.ptr != C_NULL
-    buf = Vector{Cchar}(4096) # minimum size for Cplex to accept
+    buf = Vector{Cchar}(undef, 4096) # minimum size for Cplex to accept
     errstr = @cpx_ccall(geterrorstring, Ptr{Cchar}, (Ptr{Cvoid}, Cint, Ptr{Cchar}), env.ptr, convert(Cint, code), buf)
     if errstr != C_NULL
       return unsafe_string(pointer(buf))
