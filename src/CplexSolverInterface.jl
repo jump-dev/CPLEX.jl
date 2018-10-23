@@ -36,7 +36,7 @@ MathProgBase.LinearQuadraticModel(s::CplexSolver) = CplexMathProgModel(;s.option
 MathProgBase.ConicModel(s::CplexSolver) = LPQPtoConicBridge(LinearQuadraticModel(s))
 MathProgBase.supportedcones(::CplexSolver) = [:Free,:Zero,:NonNeg,:NonPos,:SOC]
 
-function setparameters!(s::CplexSolver; mpboptions...)
+function MathProgBase.setparameters!(s::CplexSolver; mpboptions...)
     opts = collect(Any,s.options)
     for (optname, optval) in mpboptions
         if optname == :TimeLimit
@@ -53,7 +53,7 @@ function setparameters!(s::CplexSolver; mpboptions...)
     return
 end
 
-function setparameters!(s::CplexMathProgModel; mpboptions...)
+function MathProgBase.setparameters!(s::CplexMathProgModel; mpboptions...)
     for (optname, optval) in mpboptions
         if optname == :TimeLimit
             setparam!(m.inner, "CPX_PARAM_TILIM", optval)
