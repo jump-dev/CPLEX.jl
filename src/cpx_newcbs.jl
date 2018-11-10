@@ -1,6 +1,6 @@
 @enum CbSolStrat CPXCALLBACKSOLUTION_CHECKFEAS CPXCALLBACKSOLUTION_PROPAGATE
 
-type GenCallbackData
+mutable struct GenCallbackData
     # cbdata::Ptr{Void}
     ncol::Cint
     obj::Any
@@ -85,9 +85,9 @@ function cplex_callback_wrapper(env::Env,context_::Ptr{Void},where::Clong,userda
     return status
 end
 
-type Cplex_Callback
-    
-end
+# type Cplex_Callback
+#
+# end
 
 function setcallbackfunc(env::Env,model::Model,where::Clong,userdata_::Ptr{Void})
     cplex_callback_c=cfunction(cplex_callback_wrapper, Cint,(Env,Ptr{Void},Clong,Ptr{Void}))
