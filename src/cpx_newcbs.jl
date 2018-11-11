@@ -15,9 +15,10 @@ function cbgetrelaxedpoint(env::Env,context_::Ptr{Void},x::Vector{Cdouble},start
     Ptr{Cdouble}
     ),
     context_,x,start,final,obj_)
-    # if stat!=0
-    #     throw(CplexError(env,stat))
-    # end
+    # println("cbgetrelaxedpoint status $stat")#@
+    if stat!=0
+        throw(CplexError(env,stat))
+    end
     return stat
 end
 
@@ -25,15 +26,20 @@ function cbpostheursoln(env::Env,context_::Ptr{Void},cnt::Cint,ind::Vector{Cint}
     stat=@cpx_ccall(callbackpostheursoln,Cint,(
     Ptr{Void},
     Cint,
+    # ConstPtr{Cint},
+    # ConstPtr{Cdouble},
     Ptr{Cint},
     Ptr{Cdouble},
     Cdouble,
-    Cint,
+    CbSolStrat,
     ),
     context_,cnt,ind,val,obj,strat)
-    # if stat!=0
-    #     throw(CplexError(model.env,stat))
-    # end
+
+    println("cbpostheursoln status $stat")#@
+    
+    if stat!=0
+        throw(CplexError(env,stat))
+    end
     return stat
 end
 
@@ -47,15 +53,15 @@ function rounddownheur(env::Env,context_::Ptr{Void},userdata_::Ptr{Void})
     objrel=0.0
 
     status=cbgetrelaxedpoint(env,context_,x,Cint(0),Cint(cols-1),pointer_from_objref(objrel))
-    # println(objrel)#@
+
     if status!=0
         error("Could not get solution $status")
     end
-
+    println("before pointer of x is: ",pointer_from_objref(x))#@
     for j in 1:cols
         ind[j]=j
 
-        if x[j]>0.5
+        if x[j]>1.0e-6
             frac=x[j]-floor(x[j])
             frac=min(1-frac,frac)
             if frac>1.0e-6
@@ -65,7 +71,20 @@ function rounddownheur(env::Env,context_::Ptr{Void},userdata_::Ptr{Void})
         end
     end
 
+    println("later pointer of x is: ", pointer_from_objref(x))#@
+    println("pointer of ind is: ", pointer_from_objref(ind))#@
+    println("objrel is: $objrel")
+    # println("x pointer: ", pointer_from_objref(x))#@
+
     status=cbpostheursoln(env,context_,cols,ind,x,objrel,CPXCALLBACKSOLUTION_CHECKFEAS)
+
+    clear!(:x)
+    clear!(:ind)
+
+    # println("later pointer of x is: ", pointer_from_objref(x))#@
+    # println("pointer of ind is: ", pointer_from_objref(ind))#@
+    # println("objrel is: $objrel")
+
     if status!=0
         error("Could not post solution $status")
     end
@@ -105,5 +124,8 @@ function setcallbackfunc(env::Env,model::Model,where::Clong,userdata_::Ptr{Void}
     if stat != 0
         throw(CplexError(env, stat))
     end
+
+    model.callback=userdata_
+
     return stat
 end
