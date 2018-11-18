@@ -1,3 +1,5 @@
+# import Gallium
+
 @enum CbSolStrat CPXCALLBACKSOLUTION_CHECKFEAS CPXCALLBACKSOLUTION_PROPAGATE
 
 mutable struct GenCallbackData
@@ -30,13 +32,16 @@ function cbpostheursoln(env::Env,context_::Ptr{Void},cnt::Cint,ind::Vector{Cint}
     # ConstPtr{Cdouble},
     Ptr{Cint},
     Ptr{Cdouble},
+    # Ptr{Void},
+    # Ptr{Void},
     Cdouble,
-    CbSolStrat,
+    Cint
     ),
     context_,cnt,ind,val,obj,strat)
 
+    println("context is $context_")#@
     println("cbpostheursoln status $stat")#@
-    
+
     if stat!=0
         throw(CplexError(env,stat))
     end
@@ -53,6 +58,10 @@ function rounddownheur(env::Env,context_::Ptr{Void},userdata_::Ptr{Void})
     objrel=0.0
 
     status=cbgetrelaxedpoint(env,context_,x,Cint(0),Cint(cols-1),pointer_from_objref(objrel))
+
+    # x=[-0.0, 1.0, -0.0, -0.0, 1.0, -0.0, -0.0, 1.0, 0.799815, -0.0, -0.0, -0.0, 1.0, 1.0, -0.0, 1.0, -0.0, 1.0, 1.0, -0.0, 1.0, -0.0, -0.0, -0.0, 1.0, -0.0, 0.691323, 0.450987, -0.0, 1.0, -0.0, -0.0, -0.0, -0.0, -0.0, 0.930968, 1.0, -0.0, 0.731431, -0.0, -0.0, -0.0, 0.544755, -0.0, 0.45098, 1.0, 1.0, -0.0, -0.0, -0.0, -0.0, -0.0, 1.0, -0.0, -0.0, 1.0, 0.293466, -0.0, 1.0, -0.0]
+    #
+    # objrel=-7839.278018021
 
     if status!=0
         error("Could not get solution $status")
@@ -73,8 +82,11 @@ function rounddownheur(env::Env,context_::Ptr{Void},userdata_::Ptr{Void})
 
     println("later pointer of x is: ", pointer_from_objref(x))#@
     println("pointer of ind is: ", pointer_from_objref(ind))#@
-    println("objrel is: $objrel")
+    println("objrel is: $objrel")#@
+    println("context is $context_")#@
     # println("x pointer: ", pointer_from_objref(x))#@
+
+    # @enter cbpostheursoln(env,context_,cols,ind,x,objrel,CPXCALLBACKSOLUTION_CHECKFEAS)
 
     status=cbpostheursoln(env,context_,cols,ind,x,objrel,CPXCALLBACKSOLUTION_CHECKFEAS)
 
@@ -111,7 +123,8 @@ end
 function setcallbackfunc(env::Env,model::Model,where::Clong,userdata_::Ptr{Void})
     cplex_callback_c=cfunction(cplex_callback_wrapper, Cint,(Env,Ptr{Void},Clong,Ptr{Void}))
 
-    # println(cplex_callback_c)#@
+    # println("cplex_callback_c wrapper: $cplex_callback_c")#@
+    # println("userdata_: $userdata_")
 
     stat=@cpx_ccall(callbacksetfunc, Cint,(
     Ptr{Void},
@@ -125,7 +138,7 @@ function setcallbackfunc(env::Env,model::Model,where::Clong,userdata_::Ptr{Void}
         throw(CplexError(env, stat))
     end
 
-    model.callback=userdata_
+    model.callback=userdata_ #prevent gabage collect of userdata_
 
     return stat
 end
