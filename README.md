@@ -4,7 +4,8 @@ CPLEX.jl
 CPLEX.jl is an unofficial interface to the [IBM® ILOG® CPLEX® Optimization
 Studio](https://www.ibm.com/products/ilog-cplex-optimization-studio). It
 provides an interface to the low-level C API, as well as an implementation of
-the solver-independent `MathProgBase` and `MathOptInterface` API's.
+the solver-independent [`MathProgBase`](https://github.com/JuliaOpt/MathProgBase.jl)
+and [`MathOptInterface`](https://github.com/JuliaOpt/MathOptInterface.jl) API's.
 
 You cannot use CPLEX.jl without having purchased and installed a copy of CPLEX
 Optimization Studio from [IBM](http://www.ibm.com/). This package is available
