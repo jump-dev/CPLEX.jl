@@ -100,6 +100,7 @@ end
 CPLEX.cpx_callbacksetfunc(model, context_id, my_callback_rounddownheur)
 
 CPLEX.set_param!(model.env, "CPXPARAM_MIP_Strategy_HeuristicFreq", -1)
+CPLEX.set_param!(env, "CPX_PARAM_THREADS", 1)# single thread for now
 
 # @enter CPLEX.optimize!(model)
 CPLEX.optimize!(model)
