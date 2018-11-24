@@ -1,6 +1,8 @@
 #Julia 1.0; CPLEX newest branch.
 #Not particularly important to be compatible with Julia 0.6
+using Revise
 using CPLEX
+# import Gallium
 
 env = CPLEX.Env()
 # This is pretty important for thread safety (probably).
@@ -17,3 +19,5 @@ end
 context_id = Clong(0) | CPLEX.CPX_CALLBACKCONTEXT_CANDIDATE
 CPLEX.cpx_callbacksetfunc(model, context_id, my_callback)
 CPLEX.optimize!(model)
+
+println("The solving status: ", CPLEX.get_status(model))
