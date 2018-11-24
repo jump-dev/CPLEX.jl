@@ -3,14 +3,14 @@
 @enum CbSolStrat CPXCALLBACKSOLUTION_CHECKFEAS CPXCALLBACKSOLUTION_PROPAGATE
 
 mutable struct GenCallbackData
-    # cbdata::Ptr{Void}
+    # cbdata::Ptr{Cvoid}
     ncol::Cint
     obj::Any
 end
 
-function cbgetrelaxedpoint(env::Env,context_::Ptr{Void},x::Vector{Cdouble},start::Cint,final::Cint,obj_::Ptr{Void})
+function cbgetrelaxedpoint(env::Env,context_::Ptr{Cvoid},x::Vector{Cdouble},start::Cint,final::Cint,obj_::Ptr{Cvoid})
     stat=@cpx_ccall(callbackgetrelaxationpoint,Cint,(
-    Ptr{Void},
+    Ptr{Cvoid},
     Ptr{Cdouble},
     Cint,
     Cint,
@@ -24,16 +24,16 @@ function cbgetrelaxedpoint(env::Env,context_::Ptr{Void},x::Vector{Cdouble},start
     return stat
 end
 
-function cbpostheursoln(env::Env,context_::Ptr{Void},cnt::Cint,ind::Vector{Cint},val::Vector{Cdouble},obj::Cdouble,strat::CbSolStrat)
+function cbpostheursoln(env::Env,context_::Ptr{Cvoid},cnt::Cint,ind::Vector{Cint},val::Vector{Cdouble},obj::Cdouble,strat::CbSolStrat)
     stat=@cpx_ccall(callbackpostheursoln,Cint,(
-    Ptr{Void},
+    Ptr{Cvoid},
     Cint,
     # ConstPtr{Cint},
     # ConstPtr{Cdouble},
     Ptr{Cint},
     Ptr{Cdouble},
-    # Ptr{Void},
-    # Ptr{Void},
+    # Ptr{Cvoid},
+    # Ptr{Cvoid},
     Cdouble,
     Cint
     ),
@@ -48,7 +48,7 @@ function cbpostheursoln(env::Env,context_::Ptr{Void},cnt::Cint,ind::Vector{Cint}
     return stat
 end
 
-function rounddownheur(env::Env,context_::Ptr{Void},userdata_::Ptr{Void})
+function rounddownheur(env::Env,context_::Ptr{Cvoid},userdata_::Ptr{Cvoid})
     userdata=unsafe_pointer_to_objref(userdata_)
     cols=userdata.ncol
     obj=userdata.obj
@@ -104,7 +104,7 @@ function rounddownheur(env::Env,context_::Ptr{Void},userdata_::Ptr{Void})
     return status
 end
 
-function cplex_callback_wrapper(env::Env,context_::Ptr{Void},where::Clong,userdata_::Ptr{Void})
+function cplex_callback_wrapper(env::Env,context_::Ptr{Cvoid},where::Clong,userdata_::Ptr{Cvoid})
     status=0
 
     if (where==CPX_CALLBACKCONTEXT_RELAXATION)
@@ -120,18 +120,18 @@ end
 #
 # end
 
-function setcallbackfunc(env::Env,model::Model,where::Clong,userdata_::Ptr{Void})
-    cplex_callback_c=cfunction(cplex_callback_wrapper, Cint,(Env,Ptr{Void},Clong,Ptr{Void}))
+function setcallbackfunc(env::Env,model::Model,where::Clong,userdata_::Ptr{Cvoid})
+    cplex_callback_c=cfunction(cplex_callback_wrapper, Cint,(Env,Ptr{Cvoid},Clong,Ptr{Cvoid}))
 
     # println("cplex_callback_c wrapper: $cplex_callback_c")#@
     # println("userdata_: $userdata_")
 
     stat=@cpx_ccall(callbacksetfunc, Cint,(
-    Ptr{Void},
-    Ptr{Void},
+    Ptr{Cvoid},
+    Ptr{Cvoid},
     Clong,
-    Ptr{Void},
-    Ptr{Void}
+    Ptr{Cvoid},
+    Ptr{Cvoid}
     ),
     env.ptr,model.lp,where,cplex_callback_c,userdata_)
     if stat != 0

@@ -2,13 +2,13 @@
 macro cpx_ccall(func, args...)
     f = "CPX$(func)"
     args = map(esc,args)
-    if is_unix()
+    @static if (VERSION >= v"0.7.0-DEV.3382" && Sys.isunix()) || (VERSION < v"0.7.0-DEV.3382" && is_unix())
         return quote
             ccall(($f,libcplex), $(args...))
         end
     end
-    if is_windows()
-        if VERSION < v"0.6.0-dev.1512" # probably julia PR #15850
+    @static if (VERSION >= v"0.7.0-DEV.3382" && Sys.iswindows()) || (VERSION < v"0.7.0-DEV.3382" && is_windows())
+        @static if VERSION < v"0.6.0-dev.1512" # probably julia PR #15850
             return quote
                 ccall(($f,libcplex), stdcall, $(args...))
             end
@@ -21,26 +21,28 @@ macro cpx_ccall(func, args...)
 end
 
 macro cpx_ccall_intercept(model, func, args...)
-    f = "CPX$(func)"
-    args = map(esc,args)
-    quote
-        ccall(:jl_exit_on_sigint, Void, (Cint,), convert(Cint,0))
-        ret = try
-            $(Expr(:macrocall, Symbol("@cpx_ccall"), esc(func), args...))
-        catch ex
-            println("Caught exception")
+    # TODO fix for 0.7 and above (using cpx_call instead temporarily)
+    if VERSION < v"0.7.0-DEV.3382"
+        args = map(esc,args)
+        quote
+            ccall(:jl_exit_on_sigint, Nothing, (Cint,), convert(Cint,0))
+            ret = try
+                $(Expr(:macrocall, Symbol("@cpx_ccall"), esc(func), args...))
+            catch ex
+                println("Caught exception")
+                if !isinteractive()
+                    ccall(:jl_exit_on_sigint, Nothing, (Cint,), convert(Cint,1))
+                end
+                if isa(ex, InterruptException)
+                    model.terminator[1] = 1
+                end
+                rethrow(ex)
+            end
             if !isinteractive()
-                ccall(:jl_exit_on_sigint, Void, (Cint,), convert(Cint,1))
+                ccall(:jl_exit_on_sigint, Nothing, (Cint,), convert(Cint,1))
             end
-            if isa(ex, InterruptException)
-                model.terminator[1] = 1
-            end
-            rethrow(ex)
+            ret
         end
-        if !isinteractive()
-            ccall(:jl_exit_on_sigint, Void, (Cint,), convert(Cint,1))
-        end
-        ret
     end
 end
 
@@ -48,14 +50,14 @@ const GChars = Union{Cchar, Char}
 const IVec = Vector{Cint}
 const FVec = Vector{Cdouble}
 const CVec = Vector{Cchar}
-const CoeffMat = Union{Matrix{Cdouble}, SparseMatrixCSC{Cdouble}}
+const CoeffMat = Union{AbstractMatrix{Cdouble}, SparseMatrixCSC{Cdouble}}
 @compat Bounds{T<:Real} = Union{T, Vector{T}}
 
 const GCharOrVec = Union{Cchar, Char, Vector{Cchar}, Vector{Char}}
 
 # empty vector & matrix (for the purpose of supplying default arguments)
-const emptyfvec = Vector{Float64}(0)
-const emptyfmat = Matrix{Float64}(0, 0)
+const emptyfvec = Vector{Float64}(undef, 0)
+const emptyfmat = Matrix{Float64}(undef, 0, 0)
 
 cchar(c::Cchar) = c
 cchar(c::Char) = convert(Cchar, c)
@@ -80,4 +82,4 @@ cvecx(c::Vector{Char}, n::Integer) = (_chklen(c, n); convert(Vector{Cchar}, c))
 
 fvecx(v::Real, n::Integer) = fill(Float64(v), n)
 fvecx(v::Vector{Float64}, n::Integer) = (_chklen(v, n); v)
-fvecx{T<:Real}(v::Vector{T}, n::Integer) = (_chklen(v, n); convert(Vector{Float64}, v))
+fvecx(v::Vector{T}, n::Integer) where {T<:Real} = (_chklen(v, n); convert(Vector{Float64}, v))
