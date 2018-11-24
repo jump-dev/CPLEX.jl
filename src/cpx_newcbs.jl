@@ -152,7 +152,7 @@ function cbgetcandidatepoint(callback_data::CallbackContext, x::Vector{Cdouble},
     return_status = @cpx_ccall(callbackgetcandidatepoint,
     Cint,
     (Ptr{Cvoid}, Ptr{Cdouble}, Cint, Cint, Ptr{Cdouble}),
-    callback_data.context, x, bgn, ed, obj})
+    callback_data.context, x, bgn, ed, obj)
 
     if return_status != 0
         throw(CplexError(callback_data.env, return_status))
@@ -166,7 +166,7 @@ function cbgetcandidateray(callback_data::CallbackContext, x::Vector{Cdouble}, b
     return_status = @cpx_ccall(callbackgetcandidateray,
     Cint,
     (Ptr{Cvoid}, Ptr{Cdouble}, Cint, Cint),
-    callback_data.context, x, bgn, ed})
+    callback_data.context, x, bgn, ed)
 
     if return_status != 0
         throw(CplexError(callback_data.env, return_status))
@@ -199,7 +199,7 @@ function cbgetincumbent(callback_data::CallbackContext, x::Vector{Cdouble}, bgn:
     return_status = @cpx_ccall(CPXcallbackgetincumbent,
     Cint,
     (Ptr{Cvoid}, Ptr{Cdouble}, Cint, Cint, Ptr{Cdouble}),
-    callback_data.context, x, bgn, ed, obj})
+    callback_data.context, x, bgn, ed, obj)
 
     if return_status != 0
         throw(CplexError(callback_data.env, return_status))
@@ -213,7 +213,7 @@ function cbgetinfodbl(callback_data::CallbackContext, what::CbInfo, dta::Cdouble
     return_status = @cpx_ccall(CPXcallbackgetinfodbl,
     Cint,
     (Ptr{Cvoid}, Cint, Ptr{Cdouble}),
-    callback_data.context, what, dta})
+    callback_data.context, what, dta)
 
     if return_status != 0
         throw(CplexError(callback_data.env, return_status))
@@ -227,7 +227,7 @@ function cbgetinfoint(callback_data::CallbackContext, what::CbInfo, dta::Cint)
     return_status = @cpx_ccall(CPXcallbackgetinfoint,
     Cint,
     (Ptr{Cvoid}, Cint, Ptr{Cint}),
-    callback_data.context, what, dta})
+    callback_data.context, what, dta)
 
     if return_status != 0
         throw(CplexError(callback_data.env, return_status))
@@ -241,7 +241,7 @@ function cbgetinfolong(callback_data::CallbackContext, what::CbInfo, dta::Clong)
     return_status = @cpx_ccall(CPXcallbackgetinfolong,
     Cint,
     (Ptr{Cvoid}, Cint, Ptr{Clong}),
-    callback_data.context, what, dta})
+    callback_data.context, what, dta)
 
     if return_status != 0
         throw(CplexError(callback_data.env, return_status))
@@ -256,6 +256,62 @@ function cbrejectcandidate(callback_data::CallbackContext, rcnt::Cint, nzcnt::Ci
     Cint,
     (Ptr{Cvoid}, Cint, Cint, Ptr{Cdouble}, Ptr{Cstring}, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
     callback_data.context, rcnt, nzcnt, rhs, sense, rmatbeg, rmatind, rmatval)
+
+    if return_status != 0
+        throw(CplexError(callback_data.env, return_status))
+    end
+
+    return Cint(0)
+end
+
+function cbgetlocallb(callback_data::CallbackContext, lb::Cdouble, bgn::Cint, ed::Cint)
+
+    return_status = @cpx_ccall(CPXcallbackgetlocallb,
+    Cint,
+    (Ptr{Cvoid}, Ptr{Cdouble}, Cint, Cint),
+    callback_data.context, lb, bgn, ed)
+
+    if return_status != 0
+        throw(CplexError(callback_data.env, return_status))
+    end
+
+    return Cint(0)
+end
+
+function cbgetlocalub(callback_data::CallbackContext, ub::Cdouble, bgn::Cint, ed::Cint)
+
+    return_status = @cpx_ccall(CPXcallbackgetlocalub,
+    Cint,
+    (Ptr{Cvoid}, Ptr{Cdouble}, Cint, Cint),
+    callback_data.context, ub, bgn, ed)
+
+    if return_status != 0
+        throw(CplexError(callback_data.env, return_status))
+    end
+
+    return Cint(0)
+end
+
+function cbgetgloballb(callback_data::CallbackContext, lb::Cdouble, bgn::Cint, ed::Cint)
+
+    return_status = @cpx_ccall(CPXcallbackgetgloballb,
+    Cint,
+    (Ptr{Cvoid}, Ptr{Cdouble}, Cint, Cint),
+    callback_data.context, lb, bgn, ed)
+
+    if return_status != 0
+        throw(CplexError(callback_data.env, return_status))
+    end
+
+    return Cint(0)
+end
+
+function cbgetglobalub(callback_data::CallbackContext, ub::Cdouble, bgn::Cint, ed::Cint)
+
+    return_status = @cpx_ccall(CPXcallbackgetglobalub,
+    Cint,
+    (Ptr{Cvoid}, Ptr{Cdouble}, Cint, Cint),
+    callback_data.context, ub, bgn, ed)
 
     if return_status != 0
         throw(CplexError(callback_data.env, return_status))
