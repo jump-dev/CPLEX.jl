@@ -105,12 +105,15 @@ function cbpostheursoln(env::Env,callback_data::CallbackContext,cnt::Cint,ind::V
     return return_status
 end
 
-function cbaddusercuts(callback_data::CallbackContext, rcnt::Cint, nzcnt::Cint, rhs::Cdouble, sense::Cstring, rmatbeg::Cint, rmatind::Cint, rmatval::Cdouble, purgeable::Cint, lcl::Cint)
+function cbaddusercuts(callback_data::CallbackContext, rcnt::Cint, nzcnt::Cint, rhs::Cdouble, sense::Cstring, rmatbeg::Vector{Cint}, rmatind::Vector{Cint}, rmatval::Vector{Cdouble}, purgeable::Cint, lcl::Cint)
+    # transforming Julia indices to C indices
+    rmatbeg.-=1
+    rmatind.-=1
 
     return_status = @cpx_ccall(callbackaddusercuts,
     Cint,
     (Ptr{Cvoid}, Cint, Cint, Ptr{Cdouble}, Ptr{Cstring}, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}, Ptr{Cint}, Ptr{Cint}),
-    callback_data.context, rcnt, nzcnt, rhs, sense, rmatbeg, rmatind, rmatval, purgeable, lcl)
+    callback_data.context, rcnt, nzcnt, rhs, sense, pointer_from_objref(rmatbeg), pointer_from_objref(rmatind), pointer_from_objref(rmatval), purgeable, lcl)
 
     if return_status != 0
         throw(CplexError(callback_data.env, return_status))
@@ -147,12 +150,12 @@ function cbcandidateisray(callback_data::CallbackContext, isray::Cint)
     return Cint(0)
 end
 
-function cbgetcandidatepoint(callback_data::CallbackContext, x::Vector{Cdouble}, bgn::Cint, ed::Cint, obj::Cdouble)
+function cbgetcandidatepoint(callback_data::CallbackContext, x::Vector{Cdouble}, bgn::Int, ed::Int, obj::Cdouble)
 
     return_status = @cpx_ccall(callbackgetcandidatepoint,
     Cint,
-    (Ptr{Cvoid}, Ptr{Cdouble}, Cint, Cint, Ptr{Cdouble}),
-    callback_data.context, x, bgn, ed, obj)
+    (Ptr{Cvoid}, Ptr{Cdouble}, Cint, Cint, Ref{Cdouble}),
+    callback_data.context, x, bgn-1, ed-1, obj)
 
     if return_status != 0
         throw(CplexError(callback_data.env, return_status))
@@ -250,12 +253,14 @@ function cbgetinfolong(callback_data::CallbackContext, what::CbInfo, dta::Clong)
     return Cint(0)
 end
 
-function cbrejectcandidate(callback_data::CallbackContext, rcnt::Cint, nzcnt::Cint, rhs::Cdouble, sense::Cstring, rmatbeg::Cint, rmatind::Cint, rmatval::Cdouble)
+function cbrejectcandidate(callback_data::CallbackContext, rcnt::Int, nzcnt::Int, rhs::Cdouble, sense::Char, rmatbeg::Vector{Int}, rmatind::Vector{Int}, rmatval::Vector{Cdouble})
+    rmatbeg.-=1
+    rmatind.-=1
 
-    return_status = @cpx_ccall(CPXcallbackrejectcandidate,
+    return_status = @cpx_ccall(callbackrejectcandidate,
     Cint,
-    (Ptr{Cvoid}, Cint, Cint, Ptr{Cdouble}, Ptr{Cstring}, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
-    callback_data.context, rcnt, nzcnt, rhs, sense, rmatbeg, rmatind, rmatval)
+    (Ptr{Cvoid}, Cint, Cint, Ref{Cdouble}, Ptr{UInt8}, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
+    callback_data.context, rcnt, nzcnt, rhs, string(sense), rmatbeg, rmatind, rmatval)#Ref{Cstring},Base.cconvert(Cstring, string(sense))
 
     if return_status != 0
         throw(CplexError(callback_data.env, return_status))
