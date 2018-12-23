@@ -90,11 +90,12 @@ function cbpostheursoln(callback_data::CallbackContext,cnt::Int,ind::Vector{Int}
     # println("context is $callback_data.context")#@
     # println("cbpostheursoln status $return_status")
     # println("cbpostheursoln status $stat")#@
-
-    if return_status != 0
-        throw(CplexError(callback_data.model.env, return_status))
-    end
-    return return_status
+    # println("return status: $return_status")
+    # if return_status != 0
+    #     throw(CplexError(callback_data.model.env, return_status))
+    # end
+    # return return_status
+    return 0
 end
 
 function cbaddusercuts(callback_data::CallbackContext, rcnt::Int, nzcnt::Int, rhs::Cdouble, sense::Char, rmatbeg::Vector{Int}, rmatind::Vector{Int}, rmatval::Vector{Cdouble}, purgeable::Int, lcl::Int)

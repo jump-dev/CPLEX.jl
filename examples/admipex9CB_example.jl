@@ -19,7 +19,7 @@ obj=CPLEX.get_obj(model)
 context_id = Clong(0) | CPLEX.CPX_CALLBACKCONTEXT_RELAXATION
 
 mutable struct GenCallbackData
-    ncol::Cint
+    ncol::Int
     obj::Any
 end
 
@@ -32,14 +32,18 @@ function rounddownheur(model::CPLEX.Model, cb_context::CPLEX.CallbackContext)
     obj=userdata.obj
 
     x=Vector{Float64}(undef, cols)
-    ind=Vector{Cint}(undef, cols)
-    objrel=0.0
+    ind=Vector{Int}(undef, cols)
+    objrel = Ref{Cdouble}(0.0)
 
-    status=CPLEX.cbgetrelaxedpoint(model.env, cb_context, x, Cint(0), Cint(cols-1), Ref(objrel))
+    status=CPLEX.cbgetrelaxationpoint(cb_context, x, 1, cols, objrel)
 
     # x=[-0.0, 1.0, -0.0, -0.0, 1.0, -0.0, -0.0, 1.0, 0.799815, -0.0, -0.0, -0.0, 1.0, 1.0, -0.0, 1.0, -0.0, 1.0, 1.0, -0.0, 1.0, -0.0, -0.0, -0.0, 1.0, -0.0, 0.691323, 0.450987, -0.0, 1.0, -0.0, -0.0, -0.0, -0.0, -0.0, 0.930968, 1.0, -0.0, 0.731431, -0.0, -0.0, -0.0, 0.544755, -0.0, 0.45098, 1.0, 1.0, -0.0, -0.0, -0.0, -0.0, -0.0, 1.0, -0.0, -0.0, 1.0, 0.293466, -0.0, 1.0, -0.0]
     #
     # objrel=-7839.278018021
+    # println("x is $x")#@
+    # println(objrel)#@
+
+    objrel_value = objrel[]
 
     if status!=0
         error("Could not get solution $status")
@@ -52,22 +56,22 @@ function rounddownheur(model::CPLEX.Model, cb_context::CPLEX.CallbackContext)
             frac=x[j]-floor(x[j])
             frac=min(1-frac,frac)
             if frac>1.0e-6
-                objrel-=x[j]*obj[j]
-                x[j]=0
+                objrel_value -= x[j]*obj[j]
+                x[j] = 0.0
+                # println(objrel_value)#@
             end
         end
     end
 
     # println("later pointer of x is: ", pointer_from_objref(x))#@
     # println("pointer of ind is: ", pointer_from_objref(ind))#@
-    println("x is $x")#@
-    println("objrel is: $objrel")#@
-    # println("context is $context_")#@
-    # println("x pointer: ", pointer_from_objref(x))#@
+    # println("x is $x")#@
+    # println("objrel is: $objrel_value")#@
 
     # @enter cbpostheursoln(env,context_,cols,ind,x,objrel,CPXCALLBACKSOLUTION_CHECKFEAS)
 
-    status=CPLEX.cbpostheursoln(model.env, cb_context, cols, ind, x, objrel, CPLEX.CPXCALLBACKSOLUTION_CHECKFEAS)
+    #objrel_value
+    status=CPLEX.cbpostheursoln(cb_context, cols, ind, x, objrel_value, CPLEX.CPXCALLBACKSOLUTION_CHECKFEAS)
 
     # clear!(:x)
     # clear!(:ind)
@@ -77,7 +81,7 @@ function rounddownheur(model::CPLEX.Model, cb_context::CPLEX.CallbackContext)
     # println("objrel is: $objrel")
 
     #anti-garbage collection
-    # objrel_ref=objrel
+    # objrel_value2 = objrel_value
 
     if status!=0
         error("Could not post solution $status")
