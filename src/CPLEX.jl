@@ -116,5 +116,5 @@ module CPLEX
     include("cpx_highlevel.jl")
 
     include("CplexSolverInterface.jl")
-    include("MOIWrapper.jl")
+    include("MOI_wrapper.jl")
 end
