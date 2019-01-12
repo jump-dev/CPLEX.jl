@@ -8,6 +8,8 @@
 #    solution: (0.25, 0.75), objv = 1.875
 #
 
+using CPLEX, Base.Test
+
 @testset "QP 01" begin
     env = CPLEX.Env()
     CPLEX.set_param!(env, "CPX_PARAM_SCRIND", 0)

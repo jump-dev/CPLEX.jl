@@ -1,6 +1,4 @@
-using Compat
-using Compat.Test
-import Compat.Pkg
+using Base.Test
 using MathProgBase
 using CPLEX
 

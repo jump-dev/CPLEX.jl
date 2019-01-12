@@ -8,6 +8,8 @@
 #
 #   solution: x = 45, y = 6.25, objv = 51.25
 
+using CPLEX, Base.Test
+
 @testset "LP 01" begin
     env = CPLEX.Env()
 
@@ -34,5 +36,5 @@
 
     @test CPLEX.get_objval(model) ≈ 51.25
 
-    # gc()  # test finalizers
+    gc()  # test finalizers
 end
