@@ -115,4 +115,5 @@ module CPLEX
 
     include("CplexSolverInterface.jl")
     include("MOI_wrapper.jl")
+    include("cpx_newcbs.jl")
 end
