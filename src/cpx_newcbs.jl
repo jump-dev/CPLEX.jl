@@ -100,8 +100,8 @@ end
 
 function cbaddusercuts(callback_data::CallbackContext, rcnt::Int, nzcnt::Int, rhs::Cdouble, sense::Char, rmatbeg::Vector{Int}, rmatind::Vector{Int}, rmatval::Vector{Cdouble}, purgeable::Int, lcl::Int)
     # transforming Julia indices to C indices
-    rmatbeg.-=1
-    rmatind.-=1
+    rmatbeg .-= 1
+    rmatind .-= 1
 
     return_status = @cpx_ccall(callbackaddusercuts,
     Cint,
@@ -247,8 +247,8 @@ function cbgetinfolong(callback_data::CallbackContext, what::CbInfo, dta::Clong)
 end
 
 function cbrejectcandidate(callback_data::CallbackContext, rcnt::Int, nzcnt::Int, rhs::Cdouble, sense::Char, rmatbeg::Vector{Int}, rmatind::Vector{Int}, rmatval::Vector{Cdouble})
-    rmatbeg.-=1
-    rmatind.-=1
+    rmatbeg .-= 1
+    rmatind .-= 1
 
     return_status = @cpx_ccall(callbackrejectcandidate,
     Cint,
