@@ -1,12 +1,14 @@
-#Julia 1.0; CPLEX newest branch.
-#Not particularly important to be compatible with Julia 0.6
-using Revise
+# This example aborts the solving process once an integer-feasible solution is found or encountered an unbounded relaxation
+# Solve:
+    # minimize x
+    # s.t. x is integral: 0 <= x <= 1
+
 using CPLEX
-# import Gallium
 
 env = CPLEX.Env()
-# This is pretty important for thread safety (probably).
-CPLEX.set_param!(env, "CPX_PARAM_THREADS", 1)#Maybe remove in the future!
+# This is pretty important for thread safety (probably)
+# Maybe remove in the future!
+CPLEX.set_param!(env, "CPX_PARAM_THREADS", 1)
 model = CPLEX.Model(env, "callback_test")
 CPLEX.add_vars!(model, [1.0], [0.0], [1.0])
 CPLEX.c_api_chgctype(model, Int32[1], Cchar['I'])
@@ -14,10 +16,11 @@ CPLEX.c_api_chgctype(model, Int32[1], Cchar['I'])
 model.has_int = true
 function my_callback(cb_context::CPLEX.CallbackContext, context_id::Clong)
     println("Aborting!")
-    CPLEX.cpx_callbackabort(cb_context)
+    CPLEX.cbabort(cb_context)
 end
-context_id = Clong(0) | CPLEX.CPX_CALLBACKCONTEXT_CANDIDATE
-CPLEX.cpx_callbacksetfunc(model, context_id, my_callback)
+context_id = CPLEX.CPX_CALLBACKCONTEXT_CANDIDATE
+CPLEX.cbsetfunc(model, context_id, my_callback)
 CPLEX.optimize!(model)
 
 println("The solving status: ", CPLEX.get_status(model))
+println(CPLEX.get_status(model) == :CPXMIP_ABORT_INFEAS)
