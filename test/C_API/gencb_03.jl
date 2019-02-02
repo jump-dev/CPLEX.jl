@@ -1,5 +1,3 @@
-
-
 @testset "GenCB_03" begin
     env=CPLEX.Env()
     model=CPLEX.Model(env,"LazyCB_test")
@@ -20,7 +18,6 @@
             if sum(CBval) > 3.0 + 1e-6
                 status = CPLEX.cbrejectcandidate(cb_context, 1,  0, 3.0, 'L', [1], [1,2], [1.0, 1.0])
             end
-
         else
             println("ERROR: Callback called in an unexpected context_id.")
             return convert(Cint,1)

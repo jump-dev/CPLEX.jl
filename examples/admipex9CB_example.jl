@@ -40,10 +40,10 @@ function rounddownheur(model::CPLEX.Model, cb_context::CPLEX.CallbackContext)
     for j in 1:cols
         ind[j] = j
 
-        if x[j]>1.0e-6
+        if x[j] > 1.0e-6
             frac = x[j]-floor(x[j])
             frac = min(1-frac, frac)
-            if frac>1.0e-6
+            if frac > 1.0e-6
                 objrel -= x[j]*obj[j]
                 x[j] = 0.0
             end

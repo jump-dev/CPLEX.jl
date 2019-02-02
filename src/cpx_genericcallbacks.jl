@@ -32,22 +32,19 @@ callback is being called from.
     CPLEX.cpx_callbacksetfunc(model, Clong(0), my_callback)
 """
 function cbsetfunc(model::Model, context_mask::Clong, callback_func::Function)
-    c_callback = @cfunction(
-        callback_wrapper, Cint, (Ptr{Cvoid}, Clong, Ptr{Cvoid})
-    )
+    c_callback = @cfunction(callback_wrapper, Cint, (Ptr{Cvoid}, Clong, Ptr{Cvoid}))
     user_handle = (model, callback_func)::Tuple{Model, Function}
-    ret = @cpx_ccall(callbacksetfunc,
-        Cint,
-        (Ptr{Cvoid}, Ptr{Cvoid}, Clong, Ptr{Cvoid}, Any),
-        model.env, model.lp, context_mask, c_callback, user_handle
-    )
-    if ret != 0
+    return_status = @cpx_ccall(callbacksetfunc,
+                    Cint,
+                    (Ptr{Cvoid}, Ptr{Cvoid}, Clong, Ptr{Cvoid}, Any),
+                    model.env, model.lp, context_mask, c_callback, user_handle)
+    if return_status != 0
         throw(CplexError(model.env, ret))
     end
     # We need to keep a reference to the callback function so that it isn't
     # garbage collected.
     model.callback = user_handle
-    return ret
+    return return_status
 end
 
 function cbabort(callback_data::CallbackContext)
@@ -63,9 +60,9 @@ end
 
 function cbgetrelaxationpoint(callback_data::CallbackContext, x::Vector{Cdouble}, begin_index::Int, end_index::Int, obj::Cdouble)
     return_status = @cpx_ccall(callbackgetrelaxationpoint,
-                Cint,
-                (Ptr{Cvoid}, Ptr{Cdouble}, Cint, Cint, Ref{Cdouble}),
-                callback_data.context, x, begin_index -= 1, end_index -= 1, obj)
+                    Cint,
+                    (Ptr{Cvoid}, Ptr{Cdouble}, Cint, Cint, Ref{Cdouble}),
+                    callback_data.context, x, begin_index -= 1, end_index -= 1, obj)
     if return_status != 0
         throw(CplexError(callback_data.model.env, return_status))
     end
@@ -85,11 +82,11 @@ function cbpostheursoln(callback_data::CallbackContext, cnt::Int, ind::Vector{In
     return Cint(0)
 end
 
-function cbaddusercuts(callback_data::CallbackContext, rcnt::Int, nzcnt::Int, rhs::Cdouble, sense::Char, rmatbeg::Vector{Int}, rmatind::Vector{Int}, rmatval::Vector{Cdouble}, purgeable::Int, lcl::Int)
+function cbaddusercuts(callback_data::CallbackContext, reject_count::Int, nonzero_count::Int, rhs::Cdouble, sense::Char, sparse_index_begin::Vector{Int}, sparse_index::Vector{Int}, sparse_index_value::Vector{Cdouble}, purgeable::Int, lcl::Int)
     return_status = @cpx_ccall(callbackaddusercuts,
                     Cint,
                     (Ptr{Cvoid}, Cint, Cint, Ref{Cdouble}, Ptr{UInt8}, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}, Ptr{Cint}, Ptr{Cint}),
-                    callback_data.context, rcnt, nzcnt, rhs, string(sense), rmatbeg .-= 1, rmatind .-= 1, rmatval, purgeable, lcl)
+                    callback_data.context, reject_count, nonzero_count, rhs, string(sense), sparse_index_begin .-= 1, sparse_index .-= 1, sparse_index_value, purgeable, lcl)
     if return_status != 0
         throw(CplexError(model.env, return_status))
     end
@@ -133,30 +130,29 @@ end
 
 function cbgetcandidateray(callback_data::CallbackContext, x::Vector{Cdouble}, begin_index::Int, end_index::Int)
     return_status = @cpx_ccall(callbackgetcandidateray,
-                Cint,
-                (Ptr{Cvoid}, Ptr{Cdouble}, Cint, Cint),
-                callback_data.context, x, begin_index - 1, end_index - 1)
+                    Cint,
+                    (Ptr{Cvoid}, Ptr{Cdouble}, Cint, Cint),
+                    callback_data.context, x, begin_index - 1, end_index - 1)
     if return_status != 0
         throw(CplexError(model.env, return_status))
     end
     return return_status
 end
 
-function cbgetfunc(model::Model, context_id::Clong, callback_func::Function)
-    c_callback = @cfunction(
-        callback_wrapper, Cint, (Ptr{Cvoid}, Clong, Ptr{Cvoid})
-    )
-    user_handle = (model, callback_func)::Tuple{Model, Function}
-    ret = @cpx_ccall(callbackgetfunc,
-        Cint,
-        (Ptr{Cvoid}, Ptr{Cvoid}, Ref{Clong}, Ptr{Cvoid}, Any),
-        model.env, model.lp, context_mask, c_callback, user_handle)
-    if ret != 0
-        throw(CplexError(model.env, ret))
-    end
-    model.callback = user_handle
-    return ret
-end
+# This function may have bug, should be tested.
+# function cbgetfunc(model::Model, context_id::Clong, callback_func::Function)
+#     c_callback = @cfunction(callback_wrapper, Cint, (Ptr{Cvoid}, Clong, Ptr{Cvoid}))
+#     user_handle = (model, callback_func)::Tuple{Model, Function}
+#     return_status = @cpx_ccall(callbackgetfunc,
+#                     Cint,
+#                     (Ptr{Cvoid}, Ptr{Cvoid}, Ref{Clong}, Ptr{Cvoid}, Any),
+#                     model.env, model.lp, context_mask, c_callback, user_handle)
+#     if return_status != 0
+#         throw(CplexError(model.env, return_status))
+#     end
+#     model.callback = user_handle
+#     return return_status
+# end
 
 function cbgetincumbent(callback_data::CallbackContext, x::Vector{Cdouble}, begin_index::Int, end_index::Int, obj::Cdouble)
     return_status = @cpx_ccall(callbackgetincumbent,
@@ -202,13 +198,13 @@ function cbgetinfolong(callback_data::CallbackContext, cbinfo::CbInfo, data_p::C
     return return_status
 end
 
-function cbrejectcandidate(callback_data::CallbackContext, rcnt::Int, nzcnt::Int, rhs::Cdouble, sense::Char, rmatbeg::Vector{Int}, rmatind::Vector{Int}, rmatval::Vector{Cdouble})
-    rmatbeg .-= 1
-    rmatind .-= 1
+function cbrejectcandidate(callback_data::CallbackContext, reject_count::Int, nonzero_count::Int, rhs::Cdouble, sense::Char, sparse_index_begin::Vector{Int}, sparse_index::Vector{Int}, sparse_index_value::Vector{Cdouble})
+    sparse_index_begin .-= 1
+    sparse_index .-= 1
     return_status = @cpx_ccall(callbackrejectcandidate,
                     Cint,
                     (Ptr{Cvoid}, Cint, Cint, Ref{Cdouble}, Ptr{UInt8}, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
-                    callback_data.context, rcnt, nzcnt, rhs, string(sense), rmatbeg, rmatind, rmatval)
+                    callback_data.context, reject_count, nonzero_count, rhs, string(sense), sparse_index_begin, sparse_index, sparse_index_value)
     if return_status != 0
         throw(CplexError(model.env, return_status))
     end
