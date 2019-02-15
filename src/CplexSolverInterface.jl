@@ -723,7 +723,7 @@ function masterbranchcallback(env::Ptr{Cvoid},
         end
     end
     if model.branchcb != nothing && state == :MIPBranch
-        numbranchingvars = unsafe_wrap(Array, nodebeg, convert(Cint,nodecnt))::Vector{Cint} + 1
+        numbranchingvars = unsafe_wrap(Array, nodebeg, convert(Cint,nodecnt))::Vector{Cint} .+ 1
         idxs = unsafe_wrap(Array, indices, sum(numbranchingvars))::Vector{Cint}
         vals = unsafe_wrap(Array, bd, sum(numbranchingvars))::Vector{Cdouble}
         dirs = unsafe_wrap(Array, lu, sum(numbranchingvars))::Vector{Cchar}

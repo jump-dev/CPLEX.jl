@@ -81,7 +81,7 @@ function cbbranch(cbdata::CallbackData, where::Cint, idx::Cint, LU::Cchar, bd::C
 end
 
 function cbbranchconstr(cbdata::CallbackData, where::Cint, indices::Vector{Cint}, coeffs::Vector{Cdouble}, rhs::Cdouble, sense::Cchar, nodeest::Cdouble)
-    seqnum = Vector{Cint}(1)
+    seqnum = Cint[1]
     stat = @cpx_ccall(branchcallbackbranchconstraints, Cint,
                       (Ptr{Cvoid},
                        Ptr{Cvoid},
