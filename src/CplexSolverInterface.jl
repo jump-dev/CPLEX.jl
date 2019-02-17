@@ -69,13 +69,6 @@ end
 
 function MathProgBase.loadproblem!(m::CplexMathProgModel, filename::String)
    read_model(m.inner, filename)
-   prob_type = get_prob_type(m.inner)
-   if prob_type in [:MILP,:MIQP, :MIQCP]
-      m.inner.has_int = true
-   end
-   if prob_type in [:QP, :MIQP, :QCP, :MIQCP]
-      m.inner.has_qc = true
-   end
 end
 
 function MathProgBase.loadproblem!(m::CplexMathProgModel, A, collb, colub, obj, rowlb, rowub, sense)

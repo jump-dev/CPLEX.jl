@@ -34,6 +34,13 @@ function read_model(model::Model, filename::String)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
+    prob_type = get_prob_type(model)
+    if prob_type in [:MILP,:MIQP, :MIQCP]
+        model.has_int = true
+    end
+    if prob_type in [:QP, :MIQP, :QCP, :MIQCP]
+        model.has_qc = true
+    end
 end
 
 function write_model(model::Model, filename::String)
