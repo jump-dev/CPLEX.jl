@@ -18,7 +18,6 @@ function callback_wrapper(context::Ptr{Cvoid},
 end
 
  """
-
     cpx_callbacksetfunc(model::Model, context_mask::Clong, callback_func::Function)
  Set the general callback function of model to `callback_func`.
  `callback_func` is a function that takes two arguments. The first is a
@@ -62,7 +61,7 @@ function cbgetrelaxationpoint(callback_data::CallbackContext, x::Vector{Cdouble}
     return_status = @cpx_ccall(callbackgetrelaxationpoint,
                     Cint,
                     (Ptr{Cvoid}, Ptr{Cdouble}, Cint, Cint, Ref{Cdouble}),
-                    callback_data.context, x, begin_index -= 1, end_index -= 1, obj)
+                    callback_data.context, x, begin_index - 1, end_index - 1, obj)
     if return_status != 0
         throw(CplexError(callback_data.model.env, return_status))
     end
@@ -73,27 +72,28 @@ function cbpostheursoln(callback_data::CallbackContext, cnt::Int, ind::Vector{In
     return_status = @cpx_ccall(callbackpostheursoln,
                     Cint,
                     (Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cdouble}, Cdouble, Cint),
-                    callback_data.context, cnt, ind .-= 1, val, obj, strat)
-    # The following codes should be added back when the error CPLEX 1003 is resolved.
-    # if return_status != 0
-    #     throw(CplexError(callback_data.model.env, return_status))
-    # end
-    # return return_status
-    return Cint(0)
+                    callback_data.context, cnt, ind .- 1, val, obj, strat)
+    # The following codes mistakenly issuses error CPLEX 1003.
+    if return_status != 0
+        # println(CplexError(callback_data.model.env, return_status))
+        throw(CplexError(callback_data.model.env, return_status))
+    end
+    return return_status
+    # return Cint(0)
 end
 
-function cbaddusercuts(callback_data::CallbackContext, reject_count::Int, nonzero_count::Int, rhs::Cdouble, sense::Char, sparse_index_begin::Vector{Int}, sparse_index::Vector{Int}, sparse_index_value::Vector{Cdouble}, purgeable::Int, lcl::Int)
+function cbaddusercuts(callback_data::CallbackContext, reject_count::Int, nonzero_count::Int, rhs::Cdouble, sense::Char, sparse_index_begin::Vector{Int}, sparse_index::Vector{Int}, sparse_index_coeff::Vector{Cdouble}, purgeable::Int, lcl::Int)
     return_status = @cpx_ccall(callbackaddusercuts,
                     Cint,
                     (Ptr{Cvoid}, Cint, Cint, Ref{Cdouble}, Ptr{UInt8}, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}, Ptr{Cint}, Ptr{Cint}),
-                    callback_data.context, reject_count, nonzero_count, rhs, string(sense), sparse_index_begin .-= 1, sparse_index .-= 1, sparse_index_value, purgeable, lcl)
+                    callback_data.context, reject_count, nonzero_count, rhs, string(sense), sparse_index_begin .- 1, sparse_index .- 1, sparse_index_coeff, purgeable, lcl)
     if return_status != 0
         throw(CplexError(model.env, return_status))
     end
     return return_status
 end
 
-# Check is the callback for the context CPX_CALLBACKCONTEXT_CANDIDATE is invoked by a feasible integer point
+# Check if the callback for the context CPX_CALLBACKCONTEXT_CANDIDATE is invoked by a feasible integer point
 function cbcandidateispoint(callback_data::CallbackContext, is_point::Int)
     return_status = @cpx_ccall(callbackcandidateispoint,
                     Cint,
@@ -105,7 +105,7 @@ function cbcandidateispoint(callback_data::CallbackContext, is_point::Int)
     return return_status
 end
 
-# Check is the callback for the context CPX_CALLBACKCONTEXT_CANDIDATE is invoked by an unbounded relaxation
+# Check if the callback for the context CPX_CALLBACKCONTEXT_CANDIDATE is invoked by an unbounded relaxation
 function cbcandidateisray(callback_data::CallbackContext, is_ray::Int)
     return_status = @cpx_ccall(callbackcandidateisray,
                     Cint,
@@ -198,13 +198,13 @@ function cbgetinfolong(callback_data::CallbackContext, cbinfo::CbInfo, data_p::C
     return return_status
 end
 
-function cbrejectcandidate(callback_data::CallbackContext, reject_count::Int, nonzero_count::Int, rhs::Cdouble, sense::Char, sparse_index_begin::Vector{Int}, sparse_index::Vector{Int}, sparse_index_value::Vector{Cdouble})
+function cbrejectcandidate(callback_data::CallbackContext, reject_count::Int, nonzero_count::Int, rhs::Cdouble, sense::Char, sparse_index_begin::Vector{Int}, sparse_index::Vector{Int}, sparse_index_coeff::Vector{Cdouble})
     sparse_index_begin .-= 1
     sparse_index .-= 1
     return_status = @cpx_ccall(callbackrejectcandidate,
                     Cint,
                     (Ptr{Cvoid}, Cint, Cint, Ref{Cdouble}, Ptr{UInt8}, Ptr{Cint}, Ptr{Cint}, Ptr{Cdouble}),
-                    callback_data.context, reject_count, nonzero_count, rhs, string(sense), sparse_index_begin, sparse_index, sparse_index_value)
+                    callback_data.context, reject_count, nonzero_count, rhs, string(sense), sparse_index_begin, sparse_index, sparse_index_coeff)
     if return_status != 0
         throw(CplexError(model.env, return_status))
     end

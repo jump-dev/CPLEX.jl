@@ -21,7 +21,7 @@ function my_callback(cb_context::CPLEX.CallbackContext, context_id::Clong)
         if (status != 0)
             throw("getcandidatepoint error")
         end
-        # Add lazy cut if the current solution for x+y > 3.
+        # Add lazy cut x+y <= 3 if the sum of current solution values exceeds 3.
         if sum(CBval) > 3.0 + 1e-6
             status = CPLEX.cbrejectcandidate(cb_context, 1,  0, 3.0, 'L', [1], [1,2], [1.0, 1.0])
         end
