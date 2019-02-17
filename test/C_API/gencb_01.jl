@@ -13,9 +13,7 @@
     function my_callback(cb_context::CPLEX.CallbackContext, context_id::Clong)
         CPLEX.cbabort(cb_context)
     end
-    context_id = CPLEX.CPX_CALLBACKCONTEXT_CANDIDATE
-    CPLEX.cbsetfunc(model, context_id, my_callback)
+    CPLEX.cbsetfunc(model, CPLEX.CPX_CALLBACKCONTEXT_CANDIDATE, my_callback)
     CPLEX.optimize!(model)
-
     @test CPLEX.get_status(model) == :CPXMIP_ABORT_INFEAS
 end

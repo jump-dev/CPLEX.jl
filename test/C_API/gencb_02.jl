@@ -1,63 +1,47 @@
-mutable struct GenCallbackData
-    ncol::Int
-    obj::Any
-end
-
 @testset "GenCB_02" begin
     env = CPLEX.Env()
-    path = joinpath(dirname(@__FILE__), "../examples/sentoy.mps")
-    model = CPLEX.Model(env, path)
-    CPLEX.read_model(model, path)
+    CPLEX.set_param!(env, "CPX_PARAM_THREADS", 1)
+    # Change some settings to force CPLEX to call the callback.
+    CPLEX.set_param!(env, "CPX_PARAM_PREIND", 0)
+    CPLEX.set_param!(env, "CPX_PARAM_HEURFREQ", -1)
+    model = CPLEX.Model(env, "GenCB_02")
+    #  max 0.5x + y
+    # s.t. 0 <= x <= 1
+    #      0 <= y <= 1
+    CPLEX.add_var!(model, 0.5, 0, 1)
+    CPLEX.add_var!(model, 1.0, 0, 1)
+    CPLEX.set_sense!(model, :Max)
+    CPLEX.set_vartype!(model, ['B', 'B'])
+    CPLEX.add_constr!(model, [1.0, 1.0], '<', 1.5)
     model.has_int = true
-    CPLEX.set_param!(env, "CPXPARAM_MIP_Tolerances_MIPGap", 1e-6)
-    ncols = CPLEX.num_var(model)
-    obj = CPLEX.get_obj(model)
-    context_id = CPLEX.CPX_CALLBACKCONTEXT_RELAXATION
-    gcbdata = GenCallbackData(ncols, obj)
-
-    function rounddownheur(model::CPLEX.Model, cb_context::CPLEX.CallbackContext)
-        userdata = gcbdata
-        cols = userdata.ncol
-        obj = userdata.obj
-
-        x = Vector{Float64}(undef, cols)
-        ind = Vector{Int}(undef, cols)
-        objrel = 0.0
-
-        status = CPLEX.cbgetrelaxationpoint(cb_context, x, 1, cols, objrel)
-
-        for j in 1:cols
-            ind[j] = j
-
-            if x[j] > 1.0e-6
-                frac = x[j]-floor(x[j])
-                frac = min(1-frac, frac)
+    was_heuristic_called = false
+    function my_round_down_heur(
+            cb_context::CPLEX.CallbackContext, context_id::Clong)
+        if context_id == CPLEX.CPX_CALLBACKCONTEXT_RELAXATION
+            relaxed_solution = Vector{Float64}(undef, 2)
+            relaxed_objective = Ref{Float64}(0.0)
+            CPLEX.cbgetrelaxationpoint(
+                cb_context, relaxed_solution, 1, 2, relaxed_objective)
+            objective_value = relaxed_objective[]
+            for j in 1:2
+                frac = relaxed_solution[j] - floor(relaxed_solution[j])
                 if frac > 1.0e-6
-                    objrel -= x[j]*obj[j]
-                    x[j] = 0.0
+                    objective_value -= frac
+                    relaxed_solution[j] -= frac
                 end
             end
+            was_heuristic_called = true
+            return CPLEX.cbpostheursoln(
+                cb_context, 2, [1, 2], relaxed_solution, objective_value,
+                CPLEX.CPXCALLBACKSOLUTION_PROPAGATE)
+        else
+            error("Heuristic should not be called from $(context_id).")
         end
-
-        status = CPLEX.cbpostheursoln(cb_context, cols, ind, x, objrel, CPLEX.CPXCALLBACKSOLUTION_CHECKFEAS)
-
-        return status
     end
-
-    function my_callback_rounddownheur(cb_context::CPLEX.CallbackContext, context_id::Clong)
-        if (context_id == CPLEX.CPX_CALLBACKCONTEXT_RELAXATION)
-            status = rounddownheur(model, cb_context)
-        end
-        return status
-    end
-
-    CPLEX.cbsetfunc(model, context_id, my_callback_rounddownheur)
-
-    CPLEX.set_param!(model.env, "CPXPARAM_MIP_Strategy_HeuristicFreq", -1)
-    CPLEX.set_param!(env, "CPX_PARAM_THREADS", 1)
-
+    CPLEX.cbsetfunc(
+        model, CPLEX.CPX_CALLBACKCONTEXT_RELAXATION, my_round_down_heur)
     CPLEX.optimize!(model)
-
+    @test was_heuristic_called
     @test CPLEX.get_status(model) == :CPXMIP_OPTIMAL
-    @test CPLEX.get_objval(model) ≈ -7772.0
+    @test CPLEX.get_objval(model) ≈ 1.0
 end
