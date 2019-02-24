@@ -4,7 +4,7 @@ const MOI  = MathOptInterface
 const MOIT = MOI.Test
 const MOIB = MOI.Bridges
 
-const SOLVER = CPLEX.Optimizer()
+const SOLVER = CPLEX.Optimizer(CPX_PARAM_SCRIND = 0)
 const CONFIG = MOIT.TestConfig()
 
 @testset "Unit Tests" begin
@@ -28,7 +28,7 @@ end
             "linear10",  # Requires interval
             # Requires infeasiblity certificates
             "linear8a", "linear8b", "linear8c", "linear11", "linear12",
-            # Exclude for now since hot-starts not implemented.
+            # VariablePrimalStart not implemented.
             "partial_start"
         ])
     end
@@ -73,5 +73,41 @@ end
     end
     @testset "copytest" begin
         MOIT.copytest(SOLVER, CPLEX.Optimizer())
+    end
+end
+
+@testset "Env" begin
+    @testset "User-provided" begin
+        env = CPLEX.Env()
+        model_1 = CPLEX.Optimizer(env)
+        @test model_1.inner.env === env
+        model_2 = CPLEX.Optimizer(env)
+        @test model_2.inner.env === env
+        # Check that finalizer doesn't touch env when manually provided.
+        finalize(model_1.inner)
+        @test CPLEX.is_valid(env)
+    end
+    @testset "Automatic" begin
+        model_1 = CPLEX.Optimizer()
+        model_2 = CPLEX.Optimizer()
+        @test model_1.inner.env !== model_2.inner.env
+    end
+    @testset "Env when emptied" begin
+        @testset "User-provided" begin
+            env = CPLEX.Env()
+            model = CPLEX.Optimizer(env)
+            @test model.inner.env === env
+            @test CPLEX.is_valid(env)
+            MOI.empty!(model)
+            @test model.inner.env === env
+            @test CPLEX.is_valid(env)
+        end
+        @testset "Automatic" begin
+            model = CPLEX.Optimizer()
+            env = model.inner.env
+            MOI.empty!(model)
+            @test model.inner.env !== env
+            @test CPLEX.is_valid(model.inner.env)
+        end
     end
 end
