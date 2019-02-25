@@ -30,27 +30,45 @@ const SUPPORTED_CONSTRAINTS = [
 
 mutable struct Optimizer <: LQOI.LinQuadOptimizer
     LQOI.@LinQuadOptimizerBase
-    env::Env # Cplex environment
-    Optimizer(::Nothing) = new()
+    env::Union{Nothing, Env}
+    params::Dict{String, Any}
+
+    """
+        Optimizer(env = nothing; kwargs...)
+
+    Create a new Optimizer object.
+
+    You can share CPLEX `Env`s between models by passing an instance of `Env` as
+    the first argument. By default, a new environment is created for every
+    model.
+    """
+    function Optimizer(env::Union{Nothing, Env} = nothing; kwargs...)
+        model = new()
+        model.env = env
+        # For consistency with MPB, output logs to stdout by default.
+        model.params = Dict{String, Any}("CPX_PARAM_SCRIND" => 1)
+        for (name, value) in kwargs
+            model.params[string(name)] = value
+        end
+        MOI.empty!(model)
+        return model
+    end
+end
+
+# The existing env is `Nothing`, so create a new one.
+LQOI.LinearQuadraticModel(::Type{Optimizer}, ::Nothing) = Model(Env())
+# The existing env is `Env`, so pass it through.
+LQOI.LinearQuadraticModel(::Type{Optimizer}, env::Env) = Model(env)
+
+function MOI.empty!(model::Optimizer)
+    MOI.empty!(model, model.env)
+    for (name, value) in model.params
+        set_param!(model.inner.env, name, value)
+    end
+    return
 end
 
 MOI.get(::Optimizer, ::MOI.SolverName) = "CPLEX"
-
-function LQOI.LinearQuadraticModel(::Type{Optimizer}, env)
-    env = Env()
-    return Model(env::Env)
-end
-
-function Optimizer(;kwargs...)
-    env = Env()
-    for (name, value) in kwargs
-        set_param!(env, string(name), value)
-    end
-    model = Optimizer(nothing)
-    model.env = env
-    MOI.empty!(model)
-    return model
-end
 
 LQOI.supported_constraints(::Optimizer) = SUPPORTED_CONSTRAINTS
 LQOI.supported_objectives(::Optimizer)  = SUPPORTED_OBJECTIVES
