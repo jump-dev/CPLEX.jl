@@ -204,9 +204,11 @@ function c_api_chgobj(model::Model, indices::IVec, values::FVec)
     end
 end
 
-set_mip_start!(model::Model, x::Vector{Float64}, effortlevel::Integer = CPX_MIPSTART_AUTO) = set_mip_start!(model, Cint[1:length(x);], x, effortlevel)
+@deprecate set_warm_start! c_api_addmipstarts
 
-function set_mip_start!(model::Model, indx::IVec, val::FVec, effortlevel::Integer)
+c_api_addmipstarts(model::Model, x::Vector{Float64}, effortlevel::Integer = CPX_MIPSTART_AUTO) = c_api_addmipstarts(model, Cint[1:length(x);], x, effortlevel)
+
+function c_api_addmipstarts(model::Model, indx::IVec, val::FVec, effortlevel::Integer)
     stat = @cpx_ccall(addmipstarts, Cint, (
                       Ptr{Cvoid},
                       Ptr{Cvoid},
@@ -224,9 +226,9 @@ function set_mip_start!(model::Model, indx::IVec, val::FVec, effortlevel::Intege
     end
 end
 
-change_mip_start!(model::CPLEX.Model, x::Vector{Float64}, effortlevel::Integer = CPX_MIPSTART_AUTO) = change_mip_start!(model, Cint[1:length(x);], x, effortlevel)
+c_api_chgmipstart(model::CPLEX.Model, x::Vector{Float64}, effortlevel::Integer = CPX_MIPSTART_AUTO) = c_api_chgmipstart(model, Cint[1:length(x);], x, effortlevel)
 
-function change_mip_start!(model::CPLEX.Model, indx::IVec, val::FVec, effortlevel::Integer)
+function c_api_chgmipstart(model::CPLEX.Model, indx::IVec, val::FVec, effortlevel::Integer)
     stat = @cpx_ccall(chgmipstarts, Cint, (
                       Ptr{Cvoid},
                       Ptr{Cvoid},
