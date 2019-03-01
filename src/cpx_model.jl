@@ -226,9 +226,9 @@ function c_api_addmipstarts(model::Model, indx::IVec, val::FVec, effortlevel::In
     end
 end
 
-c_api_chgmipstart(model::CPLEX.Model, x::Vector{Float64}, effortlevel::Integer = CPX_MIPSTART_AUTO) = c_api_chgmipstart(model, Cint[1:length(x);], x, effortlevel)
+c_api_chgmipstarts(model::CPLEX.Model, x::Vector{Float64}, effortlevel::Integer = CPX_MIPSTART_AUTO) = c_api_chgmipstarts(model, Cint[1:length(x);], x, effortlevel)
 
-function c_api_chgmipstart(model::CPLEX.Model, indx::IVec, val::FVec, effortlevel::Integer)
+function c_api_chgmipstarts(model::CPLEX.Model, indx::IVec, val::FVec, effortlevel::Integer)
     stat = @cpx_ccall(chgmipstarts, Cint, (
                       Ptr{Cvoid},
                       Ptr{Cvoid},
