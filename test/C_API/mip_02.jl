@@ -11,7 +11,7 @@
 @testset "MIP 02" begin
     env = CPLEX.Env()
     model = CPLEX.Model(env, "mip_02")
-    CPLEX.set_sense!(model, :Max)
+    CPLEX.set_sense!(model, :Min)
     CPLEX.set_param!(env, "CPX_PARAM_MIPDISPLAY", 1)
     CPLEX.set_param!(env, "CPX_PARAM_MIPINTERVAL", 1)
     CPLEX.set_param!(env, "CPX_PARAM_INTSOLLIM", 1) # Only solve the submip
@@ -26,7 +26,7 @@
     sol = CPLEX.get_solution(model)
     @test sol ≈ [0.0, 10.0]
     @test CPLEX.get_objval(model) ≈ 20
-    
+
     CPLEX.c_api_addmipstarts(model, [0.0], 2)
     CPLEX.c_api_chgmipstarts(model, [15.0], 2)
     CPLEX.optimize!(model)
