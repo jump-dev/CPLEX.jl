@@ -160,17 +160,27 @@ function get_prob_type(model::Model)
   return type_map[Int(ret)]
 end
 
-function set_prob_type!(model::Model, tyint::Int)
+@deprecate set_prob_type! c_api_chgprobtype
+
+function c_api_chgprobtype(model::Model, tyint::Int)
     stat = @cpx_ccall(chgprobtype, Cint, (
                      Ptr{Cvoid},
                      Ptr{Cvoid},
                      Cint),
                      model.env.ptr, model.lp, tyint)
-     if stat != 0
-         throw(CplexError(model.env, stat))
-     end
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+    model.has_int = false
+    model.has_qc = false
+    if type_map[tyint] in [:MILP,:MIQP, :MIQCP]
+        model.has_int = true
+    end
+    if type_map[tyint] in [:QP, :MIQP, :QCP, :MIQCP]
+        model.has_qc = true
+    end
 end
-set_prob_type!(model::Model, ty::Symbol) = set_prob_type!(model, rev_prob_type_map[ty])
+c_api_chgprobtype(model::Model, ty::Symbol) = c_api_chgprobtype(model, rev_prob_type_map[ty])
 
 
 function set_obj!(model::Model, c::Vector)
