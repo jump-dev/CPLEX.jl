@@ -17,7 +17,7 @@ mutable struct Env
               env.finalize_called = true
           end
       end
-      @compat finalizer(env_finalizer, env)
+      finalizer(env_finalizer, env)
       return env
     end
 end
