@@ -51,7 +51,7 @@ const IVec = Vector{Cint}
 const FVec = Vector{Cdouble}
 const CVec = Vector{Cchar}
 const CoeffMat = Union{AbstractMatrix{Cdouble}, SparseMatrixCSC{Cdouble}}
-@compat Bounds{T<:Real} = Union{T, Vector{T}}
+Bounds{T<:Real} = Union{T, Vector{T}}
 
 const GCharOrVec = Union{Cchar, Char, Vector{Cchar}, Vector{Char}}
 

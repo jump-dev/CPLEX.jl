@@ -332,7 +332,7 @@ export cbaddboundbranchup!,
        cbgetdettimestamp,
        cbgetintfeas
 
-@compat abstract type CplexCallbackData <: MathProgCallbackData end
+abstract type CplexCallbackData <: MathProgCallbackData end
 
 # set to nothing to clear callback
 MathProgBase.setlazycallback!(m::CplexMathProgModel,f) = (m.lazycb = f)
