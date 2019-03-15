@@ -50,6 +50,9 @@ function close_CPLEX(env::Env)
     end
 end
 
+#= CPLEX API's used in this function are not longer supported and was deprecated since 12.8
+https://www.ibm.com/support/knowledgecenter/en/SSSA5P_12.9.0/ilog.odms.studio.help/CPLEX/ReleaseNotes/topics/releasenotes1290/removed.html
+
 function set_logfile(env::Env, filename::String)
   @assert isascii(filename)
   fp = @cpx_ccall(fopen, Ptr{Cvoid}, (Ptr{Cchar}, Ptr{Cchar}), filename, "w")
@@ -57,6 +60,15 @@ function set_logfile(env::Env, filename::String)
     error("CPLEX: Error setting logfile")
   end
   stat = @cpx_ccall(setlogfile, Cint, (Ptr{Cvoid}, Ptr{Cvoid}), env, fp)
+  if stat != 0
+    throw(CplexError(env, stat))
+  end
+end
+=#
+
+function set_logfile(env::Env, filename::String)
+  @assert isascii(filename)
+  stat = @cpx_ccall(setlogfilename, Cint, (Ptr{Cvoid}, Ptr{Cchar}, Ptr{Cchar}), env, filename, "w")
   if stat != 0
     throw(CplexError(env, stat))
   end
