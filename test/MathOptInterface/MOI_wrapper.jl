@@ -25,7 +25,7 @@ end
 @testset "Linear tests" begin
     @testset "Default Solver"  begin
         MOIT.contlineartest(SOLVER, CONFIG, [
-            "linear10",  # Requires interval
+            "linear10b", "linear10", # Requires interval
             # Requires infeasiblity certificates
             "linear8a", "linear8b", "linear8c", "linear11", "linear12",
             # VariablePrimalStart not implemented.
@@ -34,6 +34,9 @@ end
     end
     @testset "linear10" begin
         MOIT.linear10test(MOIB.SplitInterval{Float64}(SOLVER), CONFIG)
+    end
+    @testset "linear10b" begin
+        MOIT.linear10btest(MOIB.SplitInterval{Float64}(SOLVER), CONFIG)
     end
     @testset "No certificate" begin
         MOIT.linear12test(
