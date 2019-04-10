@@ -36,6 +36,7 @@ mutable struct Optimizer <: LQOI.LinQuadOptimizer
     LQOI.@LinQuadOptimizerBase
     env::Union{Nothing, Env}
     params::Dict{String, Any}
+    num_quadratic_constraints::Int
 
     """
         Optimizer(env = nothing; kwargs...)
@@ -338,21 +339,21 @@ function LQOI.delete_sos!(model::Optimizer, begin_index::Int, end_index::Int)
 end
 
 
-# function scalediagonal!(V, I, J, scale)
-#     #  LQOI assumes 0.5 x' Q x, but CPLEX requires the list of terms, e.g.,
-#     #  2x^2 + xy + y^2, so we multiply the diagonal of V by 0.5. We don't
-#     #  multiply the off-diagonal terms since we assume they are symmetric and we
-#     #  only need to give one.
-#     #
-#     #  We also need to make sure that after adding the constraint we un-scale
-#     #  the vector because we can't modify user-data.
-#     for i in 1:length(I)
-#         if I[i] == J[i]
-#             V[i] *= scale
-#         end
-#     end
-#     return
-# end
+function scalediagonal!(V, I, J, scale)
+    #  LQOI assumes 0.5 x' Q x, but CPLEX requires the list of terms, e.g.,
+    #  2x^2 + xy + y^2, so we multiply the diagonal of V by 0.5. We don't
+    #  multiply the off-diagonal terms since we assume they are symmetric and we
+    #  only need to give one.
+    #
+    #  We also need to make sure that after adding the constraint we un-scale
+    #  the vector because we can't modify user-data.
+    for i in 1:length(I)
+        if I[i] == J[i]
+            V[i] *= scale
+        end
+    end
+    return
+end
 
 
 function LQOI.set_quadratic_objective!(model::Optimizer, I::Vector{Int}, J::Vector{Int}, V::Vector{Float64})
@@ -375,32 +376,31 @@ function LQOI.get_quadratic_dual_solution!(model::Optimizer, dest)
     return
 end
 
-# function LQOI.add_quadratic_constraint!(model::Optimizer,
-#         affine_columns::Vector{Int}, affine_coefficients::Vector{Float64},
-#         rhs::Float64, sense::Cchar,
-#         I::Vector{Int}, J::Vector{Int}, V::Vector{Float64})
-#     @assert length(I) == length(J) == length(V)
-#     scalediagonal!(V, I, J, 0.5)
-#     add_qconstr!(model.inner, affine_columns, affine_coefficients, I, J, V, sense, rhs)
-#     scalediagonal!(V, I, J, 2.0)
-#     model.num_quadratic_constraints += 1
-#     _require_update(model)
-#     return
-# end
+function LQOI.add_quadratic_constraint!(model::Optimizer,
+        affine_columns::Vector{Int}, affine_coefficients::Vector{Float64},
+        rhs::Float64, sense::Cchar,
+        I::Vector{Int}, J::Vector{Int}, V::Vector{Float64})
+    @assert length(I) == length(J) == length(V)
+    scalediagonal!(V, I, J, 0.5)
+    add_qconstr!(model.inner, ivec(affine_columns), fvec(affine_coefficients), ivec(I), ivec(J), fvec(V), sense, rhs)
+    scalediagonal!(V, I, J, 2.0)
+    model.num_quadratic_constraints += 1
+    return
+end
 
-# function LQOI.get_quadratic_constraint(model::Optimizer, row::Int)
-#     _update_if_necessary(model)
-#     affine_cols, affine_coefficients, I, J, V = getqconstr(model.inner, row)
-#     # note: we return 1-index columns here
-#     affine_cols .+= 1
-#     I .+= 1
-#     J .+= 1
-#     return affine_cols, affine_coefficients, sparse(I, J, V)
-# end
+function LQOI.get_quadratic_constraint(model::Optimizer, row::Int)
+    #_update_if_necessary(model)
+    affine_cols, affine_coefficients, I, J, V = getqconstr(model.inner, row)
+    # note: we return 1-index columns here
+    affine_cols .+= 1
+    I .+= 1
+    J .+= 1
+    return affine_cols, affine_coefficients, sparse(I, J, V)
+end
 
-# LQOI.get_quadratic_rhs(model::Optimizer, row::Int) = LQOI.get_rhs
+LQOI.get_quadratic_rhs(model::Optimizer, row::Int) = LQOI.get_rhs
 
-# function LQOI.get_number_quadratic_constraints(model::Optimizer)
-#     # See the definition of Optimizer.
-#     return model.num_quadratic_constraints
-# end
+function LQOI.get_number_quadratic_constraints(model::Optimizer)
+    # See the definition of Optimizer.
+    return model.num_quadratic_constraints
+end
