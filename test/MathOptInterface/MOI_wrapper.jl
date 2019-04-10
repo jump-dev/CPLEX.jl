@@ -51,6 +51,13 @@ end
     end
 end
 
+@testset "Quadratic tests" begin
+    MOIT.contquadratictest(
+        SOLVER,
+        MOIT.TestConfig(atol=1e-3, rtol=1e-3, duals=false, query=false)
+    )
+end
+
 @testset "ModelLike tests" begin
     @test MOI.get(SOLVER, MOI.SolverName()) == "CPLEX"
     @testset "default_objective_test" begin
