@@ -159,3 +159,85 @@ function num_qconstr(model::Model)
                        model.env.ptr, model.lp)
     return ncons
 end
+
+function get_qconstr(model::Model, row::Int)
+    lnnz = Cint[0]
+    qnnz = Cint[0]
+    rhs = Cdouble[0]
+    rel = Cchar[Cchar('L')]
+    affine_cols = Cint[0]
+    affine_coefficients = Cdouble[0]
+    affine_space = Cint(0)
+    affine_surplus = Cint[0]
+    I = Cint[0]
+    J = Cint[0]
+    V = Cdouble[0]
+    qspace = Cint(0)
+    qsurplus_p = Cint[0]
+
+    stat = @cpx_ccall(getqconstr, Cint, (
+                          Ptr{Cvoid},   # env
+                          Ptr{Cvoid},   # model
+                          Ptr{Cint},    # lnnz
+                          Ptr{Cint},    # qnnz
+                          Ptr{Float64}, # rhs
+                          Ptr{Cchar},   # sense
+                          Ptr{Cint},    # lind
+                          Ptr{Float64}, # lval
+                          Cint,
+                          Ptr{Cint},    # lsurplus
+                          Ptr{Cint},    # qrow
+                          Ptr{Cint},    # qcol
+                          Ptr{Float64}, # qval
+                          Cint,         # qspace
+                          Ptr{Cint},    # qsurplus_p
+                          Cint    # name
+                          ),
+                          model.env.ptr, model.lp, 
+                          lnnz, qnnz, rhs, rel, 
+                          affine_cols, affine_coefficients, affine_space, affine_surplus,
+                          I, J, V, qspace, qsurplus_p, Cint(row-1))
+
+    # if stat != 0
+    #         throw(CplexError(model.env, stat))
+    # end
+
+    affine_space = Cint(affine_surplus[1]+2)
+    affine_cols = fill(Cint(0), affine_space)
+    affine_coefficients = fill(Cdouble(0), affine_space)
+
+    qspace = Cint(qsurplus_p[1]+2)
+    I = fill(Cint(0), qspace)
+    J = fill(Cint(0), qspace)
+    V = fill(Cdouble(0), qspace)
+
+    stat = @cpx_ccall(getqconstr, Cint, (
+                      Ptr{Cvoid},   # env
+                      Ptr{Cvoid},   # model
+                      Ptr{Cint},    # lnnz
+                      Ptr{Cint},    # qnnz
+                      Ptr{Float64}, # rhs
+                      Ptr{Cchar},   # sense
+                      Ptr{Cint},    # lind
+                      Ptr{Float64}, # lval
+                      Cint,
+                      Ptr{Cint},    # lsurplus
+                      Ptr{Cint},    # qrow
+                      Ptr{Cint},    # qcol
+                      Ptr{Float64}, # qval
+                      Cint,         # qspace
+                      Ptr{Cint},    # qsurplus_p
+                      Cint    # name
+                      ),
+                      model.env.ptr, model.lp, 
+                      lnnz, qnnz, rhs, rel, 
+                      affine_cols, affine_coefficients, affine_space, affine_surplus,
+                      I, J, V, qspace, qsurplus_p, Cint(row-1))
+
+    if stat != 0
+            throw(CplexError(model.env, stat))
+    end
+
+    #return affine_surplus, qsurplus_p, lnnz, qnnz, rhs
+    return affine_cols, affine_coefficients, I, J, V, rhs[1]
+end
