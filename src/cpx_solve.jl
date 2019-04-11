@@ -173,7 +173,7 @@ function c_api_getpi(model::Model, p::FVec)
     end
 end
 
-function c_api_getqconstrslack(model::Model, p::FVec)
+function c_api_getqconstrslack(model::Model, dest::Vector{Float64})
     ncons = num_qconstr(model)
     stat = @cpx_ccall(getqconstrslack, Cint, (
                       Ptr{Cvoid},
@@ -182,7 +182,7 @@ function c_api_getqconstrslack(model::Model, p::FVec)
                       Cint,
                       Cint
                       ),
-                      model.env.ptr, model.lp, p, 0, ncons-1)
+                      model.env.ptr, model.lp, dest, 0, ncons-1)
     if stat != 0
        throw(CplexError(model.env, stat))
     end
@@ -210,7 +210,7 @@ function c_api_getax(model::Model, Ax::FVec)
     end
 end
 
-function c_api_getxqxax(model::Model, xqxax::FVec)
+function c_api_getxqxax(model::Model, dest::Vector{Float64})
     ncons = num_qconstr(model)
     stat = @cpx_ccall(getxqxax, Cint, (
                       Ptr{Cvoid},
@@ -219,7 +219,7 @@ function c_api_getxqxax(model::Model, xqxax::FVec)
                       Cint,
                       Cint
                       ),
-                      model.env.ptr, model.lp, xqxax, 0, ncons-1)
+                      model.env.ptr, model.lp, dest, 0, ncons-1)
     if stat != 0
       throw(CplexError(model.env, stat))
     end

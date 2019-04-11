@@ -160,84 +160,58 @@ function num_qconstr(model::Model)
     return ncons
 end
 
-function get_qconstr(model::Model, row::Int)
-    lnnz = Cint[0]
-    qnnz = Cint[0]
-    rhs = Cdouble[0]
-    rel = Cchar[Cchar('L')]
-    affine_cols = Cint[0]
-    affine_coefficients = Cdouble[0]
-    affine_space = Cint(0)
-    affine_surplus = Cint[0]
-    I = Cint[0]
-    J = Cint[0]
-    V = Cdouble[0]
-    qspace = Cint(0)
-    qsurplus_p = Cint[0]
-
-    stat = @cpx_ccall(getqconstr, Cint, (
-                          Ptr{Cvoid},   # env
-                          Ptr{Cvoid},   # model
-                          Ptr{Cint},    # lnnz
-                          Ptr{Cint},    # qnnz
-                          Ptr{Float64}, # rhs
-                          Ptr{Cchar},   # sense
-                          Ptr{Cint},    # lind
-                          Ptr{Float64}, # lval
-                          Cint,
-                          Ptr{Cint},    # lsurplus
-                          Ptr{Cint},    # qrow
-                          Ptr{Cint},    # qcol
-                          Ptr{Float64}, # qval
-                          Cint,         # qspace
-                          Ptr{Cint},    # qsurplus_p
-                          Cint    # name
-                          ),
-                          model.env.ptr, model.lp, 
-                          lnnz, qnnz, rhs, rel, 
-                          affine_cols, affine_coefficients, affine_space, affine_surplus,
-                          I, J, V, qspace, qsurplus_p, Cint(row-1))
-
-    # if stat != 0
-    #         throw(CplexError(model.env, stat))
-    # end
-
-    affine_space = Cint(affine_surplus[1]+2)
-    affine_cols = fill(Cint(0), affine_space)
-    affine_coefficients = fill(Cdouble(0), affine_space)
-
-    qspace = Cint(qsurplus_p[1]+2)
-    I = fill(Cint(0), qspace)
-    J = fill(Cint(0), qspace)
-    V = fill(Cdouble(0), qspace)
-
-    stat = @cpx_ccall(getqconstr, Cint, (
-                      Ptr{Cvoid},   # env
-                      Ptr{Cvoid},   # model
-                      Ptr{Cint},    # lnnz
-                      Ptr{Cint},    # qnnz
-                      Ptr{Float64}, # rhs
-                      Ptr{Cchar},   # sense
-                      Ptr{Cint},    # lind
-                      Ptr{Float64}, # lval
-                      Cint,
-                      Ptr{Cint},    # lsurplus
-                      Ptr{Cint},    # qrow
-                      Ptr{Cint},    # qcol
-                      Ptr{Float64}, # qval
-                      Cint,         # qspace
-                      Ptr{Cint},    # qsurplus_p
-                      Cint    # name
-                      ),
-                      model.env.ptr, model.lp, 
-                      lnnz, qnnz, rhs, rel, 
-                      affine_cols, affine_coefficients, affine_space, affine_surplus,
-                      I, J, V, qspace, qsurplus_p, Cint(row-1))
-
+function c_api_getqconstr(model::Model, row::Int)
+    # In the first call, we ask CPLEX how many non-zero elements there are in
+    # the affine (-linsurplus_p ) and quadratic (-quadsurplus_p) components.
+    rhs_p = Ref{Cdouble}()
+    sense_p = Ref{Cchar}()
+    linsurplus_p = Ref{Cint}()
+    quadsurplus_p = Ref{Cint}()
+    stat = @cpx_ccall(
+        getqconstr, 
+        Cint, (
+            Ptr{Cvoid}, Ptr{Cvoid}, 
+            Ptr{Cint}, Ptr{Cint}, Ptr{Float64}, Ptr{Cchar},
+            Ptr{Cint}, Ptr{Float64}, Cint, Ptr{Cint},
+            Ptr{Cint}, Ptr{Cint}, Ptr{Float64}, Cint, Ptr{Cint},
+            Cint),
+        model.env.ptr, model.lp, 
+        C_NULL, C_NULL, rhs_p, sense_p, 
+        C_NULL, C_NULL, 0, linsurplus_p,
+        C_NULL, C_NULL, C_NULL, 0, quadsurplus_p,
+        Cint(row-1))
+    # In the second call, we initialize arrays to contain the number of non-zero
+    # elements computed in the first part and then actually query the
+    # coefficients.
+    linspace = -linsurplus_p[]
+    quadspace = -quadsurplus_p[]
+    linind = fill(Cint(0), linspace)
+    linval = fill(Cdouble(0.0), linspace)
+    linsurplus_p = Ref{Cint}()
+    quadrow = fill(Cint(0), quadspace)
+    quadcol = fill(Cint(0), quadspace)
+    quadval = fill(Cdouble(0.0), quadspace)
+    linnzcnt_p = Ref{Cint}()
+    quadnzcnt_p = Ref{Cint}()
+    stat = @cpx_ccall(
+        getqconstr, 
+        Cint, (
+            Ptr{Cvoid}, Ptr{Cvoid}, 
+            Ptr{Cint}, Ptr{Cint}, Ptr{Float64}, Ptr{Cchar},
+            Ptr{Cint}, Ptr{Float64}, Cint, Ptr{Cint},
+            Ptr{Cint}, Ptr{Cint}, Ptr{Float64}, Cint, Ptr{Cint},
+            Cint),
+        model.env.ptr, model.lp, 
+        linnzcnt_p, quadnzcnt_p, rhs_p, sense_p, 
+        linind, linval, linspace, linsurplus_p,
+        quadrow, quadcol, quadval, quadspace, quadsurplus_p,
+        Cint(row-1))
     if stat != 0
-            throw(CplexError(model.env, stat))
+        throw(CplexError(model.env, stat))
     end
-
-    #return affine_surplus, qsurplus_p, lnnz, qnnz, rhs
-    return affine_cols, affine_coefficients, I, J, V, rhs[1]
+    if quadsurplus_p[] < 0 || linsurplus_p[] < 0
+        error("Unable to query quadratic constraint, there were more " * 
+              "non-zero elements than expected.")
+    end
+    return linind, linval, quadrow, quadcol, quadval, sense_p[], rhs_p[]
 end

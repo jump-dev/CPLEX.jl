@@ -357,9 +357,7 @@ end
 
 function LQOI.set_quadratic_objective!(model::Optimizer, I::Vector{Int}, J::Vector{Int}, V::Vector{Float64})
     @assert length(I) == length(J) == length(V)
-    #scalediagonal!(V, I, J, 0.5)
     CPLEX.add_qpterms!(model.inner, I, J, V)
-    #scalediagonal!(V, I, J, 2.0)
     return
 end
 
@@ -387,8 +385,8 @@ function LQOI.add_quadratic_constraint!(model::Optimizer,
 end
 
 function LQOI.get_quadratic_constraint(model::Optimizer, row::Int)
-    #_update_if_necessary(model)
-    affine_cols, affine_coefficients, I, J, V, _ = get_qconstr(model.inner, row)
+    affine_cols, affine_coefficients, I, J, V, _, _ = c_api_getqconstr(model.inner, row)
+    #scalediagonal!(V, I, J, 2.0)
     # note: we return 1-index columns here
     affine_cols .+= 1
     I .+= 1
@@ -397,11 +395,15 @@ function LQOI.get_quadratic_constraint(model::Optimizer, row::Int)
 end
 
 function LQOI.get_quadratic_rhs(model::Optimizer, row::Int)
-    _, _, _, _, _, rhs = get_qconstr(model.inner, row)
+    _, _, _, _, _, _, rhs = c_api_getqconstr(model.inner, row)
     return rhs
 end
 
 function LQOI.get_number_quadratic_constraints(model::Optimizer)
-    # See the definition of Optimizer.
     return CPLEX.num_qconstr(model.inner)
 end
+
+function LQOI.get_quadratic_terms_objective(model::Optimizer)
+    #TODO
+end
+

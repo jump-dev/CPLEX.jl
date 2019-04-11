@@ -54,7 +54,7 @@ end
 @testset "Quadratic tests" begin
     MOIT.contquadratictest(
         SOLVER,
-        MOIT.TestConfig(atol=1e-3, rtol=1e-3, duals=false, query=false)
+        MOIT.TestConfig(atol=1e-3, rtol=1e-3, duals=true, query=true)
     )
 end
 
