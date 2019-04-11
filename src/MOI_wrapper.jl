@@ -36,7 +36,6 @@ mutable struct Optimizer <: LQOI.LinQuadOptimizer
     LQOI.@LinQuadOptimizerBase
     env::Union{Nothing, Env}
     params::Dict{String, Any}
-    num_quadratic_constraints::Int
 
     """
         Optimizer(env = nothing; kwargs...)
@@ -367,12 +366,12 @@ end
 LQOI.solve_quadratic_problem!(model::Optimizer) = LQOI.solve_linear_problem!(model)
 
 function LQOI.get_quadratic_primal_solution!(model::Optimizer, dest)
-    dest = CPLEX.get_solution(model.inner)
+    c_api_getxqxax(model.inner, dest)
     return
 end
 
 function LQOI.get_quadratic_dual_solution!(model::Optimizer, dest)
-    dest = CPLEX.get_constr_duals(model.inner)
+    c_api_getqconstrslack(model.inner, dest)
     return
 end
 
@@ -384,7 +383,6 @@ function LQOI.add_quadratic_constraint!(model::Optimizer,
     scalediagonal!(V, I, J, 0.5)
     add_qconstr!(model.inner, ivec(affine_columns), fvec(affine_coefficients), ivec(I), ivec(J), fvec(V), sense, rhs)
     scalediagonal!(V, I, J, 2.0)
-    model.num_quadratic_constraints += 1
     return
 end
 
@@ -402,5 +400,5 @@ LQOI.get_quadratic_rhs(model::Optimizer, row::Int) = LQOI.get_rhs
 
 function LQOI.get_number_quadratic_constraints(model::Optimizer)
     # See the definition of Optimizer.
-    return model.num_quadratic_constraints
+    return CPLEX.num_qconstr(model.inner)
 end
