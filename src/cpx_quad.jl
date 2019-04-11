@@ -187,7 +187,6 @@ function c_api_getqconstr(model::Model, row::Int)
     quadspace = -quadsurplus_p[]
     linind = fill(Cint(0), linspace)
     linval = fill(Cdouble(0.0), linspace)
-    linsurplus_p = Ref{Cint}()
     quadrow = fill(Cint(0), quadspace)
     quadcol = fill(Cint(0), quadspace)
     quadval = fill(Cdouble(0.0), quadspace)
