@@ -388,16 +388,16 @@ end
 
 function LQOI.get_quadratic_constraint(model::Optimizer, row::Int)
     #_update_if_necessary(model)
-    affine_cols, affine_coefficients, I, J, V, _ = getqconstr(model.inner, row)
+    affine_cols, affine_coefficients, I, J, V, _ = get_qconstr(model.inner, row)
     # note: we return 1-index columns here
     affine_cols .+= 1
     I .+= 1
     J .+= 1
-    return affine_cols, affine_coefficients, sparse(I, J, V)
+    return Int.(affine_cols), affine_coefficients, sparse(I, J, V)
 end
 
 function LQOI.get_quadratic_rhs(model::Optimizer, row::Int)
-    _, _, _, _, _, rhs = getqconstr(model.inner, row)
+    _, _, _, _, _, rhs = get_qconstr(model.inner, row)
     return rhs
 end
 
