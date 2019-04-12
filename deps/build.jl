@@ -23,7 +23,7 @@ end
 
 base_env = "CPLEX_STUDIO_BINARIES"
 
-const cpxvers = ["1280", "1290"]
+const cpxvers = ["128", "1280", "129", "1290"]
 
 libnames = String["cplex"]
 for v in reverse(cpxvers)
@@ -37,7 +37,7 @@ for v in reverse(cpxvers)
     end
 end
 
-const wincpxvers = ["1280", "1290"]
+const wincpxvers = ["128", "1280", "129", "1290"]
 @static if (VERSION >= v"0.7.0-DEV.3382" && Sys.iswindows()) || (VERSION < v"0.7.0-DEV.3382" && is_windows())
     for v in reverse(wincpxvers)
         env = base_env * v
