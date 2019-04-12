@@ -10,8 +10,6 @@ const CONFIG = MOIT.TestConfig()
 @testset "Unit Tests" begin
     MOIT.unittest(SOLVER, CONFIG, [
         "solve_affine_interval",  # not implemented
-        "solve_qp_edge_cases",    # not implemented
-        "solve_qcp_edge_cases",   # not implemented
         "solve_objbound_edge_cases"
     ])
     @testset "solve_affine_interval" begin

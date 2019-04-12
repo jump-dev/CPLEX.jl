@@ -152,12 +152,8 @@ function add_qconstr!(model::Model, lind::Vector, lval::Vector, qr::Vector, qc::
 end
 
 function num_qconstr(model::Model)
-    ncons = @cpx_ccall(getnumqconstrs, Cint, (
-                       Ptr{Cvoid},
-                       Ptr{Cvoid}
-                       ),
-                       model.env.ptr, model.lp)
-    return ncons
+    return @cpx_ccall(getnumqconstrs, Cint, (Ptr{Cvoid}, Ptr{Cvoid}),
+                      model.env.ptr, model.lp)
 end
 
 function c_api_getqconstr(model::Model, row::Int)
@@ -213,4 +209,43 @@ function c_api_getqconstr(model::Model, row::Int)
               "non-zero elements than expected.")
     end
     return linind, linval, quadrow, quadcol, quadval, sense_p[], rhs_p[]
+end
+
+function c_api_getquad(model::Model)
+    num_variables = num_var(model)
+    # In the first call, we ask CPLEX how many non-zero elements there are.
+    surplus_p = Ref{Cint}()
+    stat = @cpx_ccall(
+        getquad,
+        Cint, (
+             Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint},
+             Ptr{Cint}, Ptr{Cint}, Ptr{Float64},
+             Cint, Ptr{Cint}, Cint, Cint),
+             model.env.ptr, model.lp, C_NULL,
+             C_NULL, C_NULL, C_NULL,
+             0, surplus_p, 0, num_variables - 1)
+    # In the second call, we initialize arrays to contain the number of
+    # non-zero elements computed in the first part and then actually query the
+    # coefficients.
+    nzcnt_p = Ref{Cint}()
+    qmatbeg = fill(Cint(0), num_variables)
+    qmatind = fill(Cint(0), -surplus_p[])
+    qmatval = fill(0.0, -surplus_p[])
+    stat = @cpx_ccall(
+        getquad,
+        Cint, (
+            Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint},
+            Ptr{Cint}, Ptr{Cint}, Ptr{Float64},
+            Cint, Ptr{Cint}, Cint, Cint),
+        model.env.ptr, model.lp, nzcnt_p,
+        qmatbeg, qmatind, qmatval,
+        -surplus_p[], surplus_p, 0, num_variables - 1)
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+    if surplus_p[] < 0 || nzcnt_p[] != length(qmatind)
+        error("Unable to query quadratic constraint, there were more " *
+              "non-zero elements than expected.")
+    end
+    return qmatbeg, qmatind, qmatval
 end
