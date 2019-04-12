@@ -23,7 +23,8 @@ end
 @testset "Linear tests" begin
     @testset "Default Solver"  begin
         MOIT.contlineartest(SOLVER, CONFIG, [
-            "linear10",  # Requires interval
+            # Requires interval
+            "linear10", "linear10b",
             # Requires infeasiblity certificates
             "linear8a", "linear8b", "linear8c", "linear11", "linear12",
             # VariablePrimalStart not implemented.
@@ -32,18 +33,21 @@ end
     end
     @testset "linear10" begin
         MOIT.linear10test(MOIB.SplitInterval{Float64}(SOLVER), CONFIG)
+        MOIT.linear10btest(MOIB.SplitInterval{Float64}(SOLVER), CONFIG)
     end
     @testset "No certificate" begin
         MOIT.linear12test(
-            SOLVER,
-            MOIT.TestConfig(infeas_certificates=false)
-        )
+            SOLVER, MOIT.TestConfig(infeas_certificates=false))
     end
 end
+
+@testset "Linear Conic" begin
+    # TODO(odow): why no infeasiblity certificates here?
+    MOIT.lintest(SOLVER, MOIT.TestConfig(infeas_certificates=false))
+end
+
 @testset "Integer Linear tests" begin
-    MOIT.intlineartest(SOLVER, CONFIG, [
-        "int3"  # Requires Interval
-    ])
+    MOIT.intlineartest(SOLVER, CONFIG, ["int3"])
     @testset "int3" begin
         MOIT.int3test(MOIB.SplitInterval{Float64}(SOLVER), CONFIG)
     end
