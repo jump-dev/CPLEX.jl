@@ -9,7 +9,6 @@
     model = CPLEX.Model(env, "callback_test")
     CPLEX.add_vars!(model, [1.0], [0.0], [1.0])
     CPLEX.c_api_chgctype(model, Int32[1], Cchar['I'])
-    model.has_int = true
     function my_callback(cb_context::CPLEX.CallbackContext, context_id::Clong)
         CPLEX.cbabort(cb_context)
     end

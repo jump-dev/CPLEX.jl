@@ -9,8 +9,6 @@
     CPLEX.add_var!(model, 1.0, 0, 2)
     CPLEX.set_sense!(model, :Max)
     CPLEX.set_vartype!(model, ['I', 'I'])
-    model.has_int = true
-
     function my_callback(cb_context::CPLEX.CallbackContext, context_id::Clong)
         if context_id == CPLEX.CPX_CALLBACKCONTEXT_CANDIDATE
             primal_sol = Vector{Float64}(undef, 2)

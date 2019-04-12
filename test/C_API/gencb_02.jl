@@ -13,7 +13,6 @@
     CPLEX.set_sense!(model, :Max)
     CPLEX.set_vartype!(model, ['B', 'B'])
     CPLEX.add_constr!(model, [1.0, 1.0], '<', 1.5)
-    model.has_int = true
     was_heuristic_called = false
     function my_round_down_heur(
             cb_context::CPLEX.CallbackContext, context_id::Clong)
