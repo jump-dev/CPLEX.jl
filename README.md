@@ -49,7 +49,7 @@ julia> Pkg.build("CPLEX")
 Help! I got `LoadError: Unable to locate CPLEX installation`
 ----------------------------------
 
-Which version of CPLEX are you trying to install? Currently CPLEX.jl only supports 1260, 1261, 1262, 1263, 1270, 1271, and 1280. If it's not one of those, [file an issue](https://github.com/JuliaOpt/CPLEX.jl/issues/new) with the version number you'd like to support. Some steps need to be taken (like checking for new or renamed parameters) before CPLEX.jl can support new versions.
+Which version of CPLEX are you trying to install? Currently, CPLEX.jl only supports 1280 and 1290 given recent changes [the API](https://www.ibm.com/support/knowledgecenter/en/SSSA5P_12.9.0/ilog.odms.studio.help/CPLEX/ReleaseNotes/topics/releasenotes1290/removed.html). If your CPLEX version is < 1280, you can add the last supported version of CPLEX.jl via `julia> ] add CPLEX@0.4`. However, we recommend that you upgrade your version of CPLEX. If you want to support newer versions of CPLEX not listed above, [file an issue](https://github.com/JuliaOpt/CPLEX.jl/issues/new) with the version number you'd like to support. Some steps need to be taken (like checking for new or renamed parameters) before CPLEX.jl can support new versions.
 
 #### If you're on OS X or Linux
 
