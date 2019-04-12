@@ -77,9 +77,9 @@ LQOI.backend_type(model::Optimizer, ::MOI.EqualTo{Float64})     = Cchar('E')
 LQOI.backend_type(model::Optimizer, ::MOI.LessThan{Float64})    = Cchar('L')
 LQOI.backend_type(model::Optimizer, ::MOI.GreaterThan{Float64}) = Cchar('G')
 
-LQOI.backend_type(model::Optimizer, ::MOI.Zeros)                = Cchar('B')
+LQOI.backend_type(model::Optimizer, ::MOI.Zeros)                = Cchar('E')
 LQOI.backend_type(model::Optimizer, ::MOI.Nonpositives)         = Cchar('L')
-LQOI.backend_type(model::Optimizer, ::MOI.Nonnegatives)         = Cchar('E')
+LQOI.backend_type(model::Optimizer, ::MOI.Nonnegatives)         = Cchar('G')
 
 function LQOI.change_variable_bounds!(model::Optimizer,
         columns::Vector{Int}, values::Vector{Float64}, senses::Vector{Cchar})
@@ -169,6 +169,7 @@ function LQOI.change_objective_sense!(model::Optimizer, symbol)
     if symbol == :min
         c_api_chgobjsen(model.inner, Cint(1))
     else
+        @assert symbol == :max
         c_api_chgobjsen(model.inner, Cint(-1))
     end
     return
@@ -184,6 +185,7 @@ function LQOI.get_objectivesense(model::Optimizer)
     if s == 1
         return MOI.MIN_SENSE
     else
+        @assert s == -1
         return MOI.MAX_SENSE
     end
 end
