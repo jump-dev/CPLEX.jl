@@ -392,8 +392,11 @@ end
 
 function LQOI.get_quadratic_constraint(model::Optimizer, row::Int)
     affine_cols, affine_coefficients, I, J, V, _, _ = c_api_getqconstr(model.inner, row)
-    scalediagonal!(V, I, J, 2.0)
-    V .*= 0.5
+    for i in 1:length(I)
+        if I[i] != J[i]
+            V[i] *= 0.5  # Account for the 0.5 term in 0.5 x' Q x.
+        end
+    end
     # Convert 0-based indices into 1-based indices for the variables.
     return Int.(affine_cols .+ 1), affine_coefficients, sparse(I .+ 1, J .+ 1, V)
 end
@@ -408,7 +411,6 @@ function LQOI.get_number_quadratic_constraints(model::Optimizer)
 end
 
  function LQOI.get_quadratic_terms_objective(model::Optimizer)
-
     qmatbeg, qmatind, qmatval = c_api_getquad(model.inner)
     qmatind .+= 1
     qmatcol = fill(length(qmatbeg), length(qmatind))
