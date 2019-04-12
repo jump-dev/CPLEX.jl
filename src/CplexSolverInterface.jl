@@ -195,7 +195,7 @@ function MathProgBase.status(m::CplexMathProgModel)
     elseif ret in [:CPX_STAT_INFEASIBLE, :CPXMIP_INFEASIBLE]
         :Infeasible
     elseif ret in [:CPX_STAT_INForUNBD, :CPXMIP_INForUNBD]
-        Base.warn_once("CPLEX reported infeasible or unbounded. Set CPX_PARAM_REDUCE=1 to check
+        @warn("CPLEX reported infeasible or unbounded. Set CPX_PARAM_REDUCE=1 to check
                         infeasibility or CPX_PARAM_REDUCE=2 to check unboundedness.")
         :InfeasibleOrUnbounded
     elseif occursin("TIME_LIM", string(ret)) || occursin("MIP_ABORT", string(ret))
@@ -332,7 +332,7 @@ export cbaddboundbranchup!,
        cbgetdettimestamp,
        cbgetintfeas
 
-@compat abstract type CplexCallbackData <: MathProgCallbackData end
+abstract type CplexCallbackData <: MathProgCallbackData end
 
 # set to nothing to clear callback
 MathProgBase.setlazycallback!(m::CplexMathProgModel,f) = (m.lazycb = f)

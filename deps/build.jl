@@ -2,8 +2,6 @@
     using Libdl
 end
 
-using Compat # for occursin
-
 depsfile = joinpath(dirname(@__FILE__),"deps.jl")
 if isfile(depsfile)
     rm(depsfile)

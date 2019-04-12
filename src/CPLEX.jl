@@ -83,10 +83,8 @@ module CPLEX
     #        cbget_mipsol_sol,
     #        cplex_model
 
-    using Compat
-
-    using Compat.SparseArrays
-    using Compat.LinearAlgebra
+    using SparseArrays
+    using LinearAlgebra
 
     include("cpx_common.jl")
     include("cpx_env.jl")

@@ -14,7 +14,7 @@ function Model(env::Env, lp::Ptr{Cvoid})
         free_problem(model)
         notify_freed_model(env)
     end
-    @compat finalizer(model_finalizer, model)
+    finalizer(model_finalizer, model)
     set_terminate(model)
     return model
 end
