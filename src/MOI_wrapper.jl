@@ -6,6 +6,7 @@ const MOI  = LQOI.MathOptInterface
 const SUPPORTED_OBJECTIVES = [
     LQOI.Linear
     LQOI.SinVar
+    LQOI.Quad
 ]
 
 const SUPPORTED_CONSTRAINTS = [
@@ -25,7 +26,10 @@ const SUPPORTED_CONSTRAINTS = [
     (LQOI.VecVar, MOI.SOS2{Float64}),
     (LQOI.VecLin, MOI.Nonnegatives),
     (LQOI.VecLin, MOI.Nonpositives),
-    (LQOI.VecLin, MOI.Zeros)
+    (LQOI.VecLin, MOI.Zeros),
+    (LQOI.Quad, LQOI.EQ),
+    (LQOI.Quad, LQOI.LE),
+    (LQOI.Quad, LQOI.GE)
 ]
 
 mutable struct Optimizer <: LQOI.LinQuadOptimizer
@@ -334,3 +338,98 @@ function LQOI.delete_sos!(model::Optimizer, begin_index::Int, end_index::Int)
     c_api_delsos(model.inner, begin_index - 1, end_index - 1)
     return
 end
+
+
+function scalediagonal!(V, I, J, scale)
+    #  LQOI assumes 0.5 x' Q x, but CPLEX requires the list of terms, e.g.,
+    #  2x^2 + xy + y^2, so we multiply the diagonal of V by 0.5. We don't
+    #  multiply the off-diagonal terms since we assume they are symmetric and we
+    #  only need to give one.
+    #
+    #  We also need to make sure that after adding the constraint we un-scale
+    #  the vector because we can't modify user-data.
+    for i in 1:length(I)
+        if I[i] == J[i]
+            V[i] *= scale
+        end
+    end
+    return
+end
+
+
+function LQOI.set_quadratic_objective!(model::Optimizer, I::Vector{Int}, J::Vector{Int}, V::Vector{Float64})
+    @assert length(I) == length(J) == length(V)
+    CPLEX.add_qpterms!(model.inner, I, J, V)
+    return
+end
+
+function LQOI.solve_quadratic_problem!(model::Optimizer)
+    model.inner.has_qc = true
+    LQOI.solve_linear_problem!(model)
+end
+
+function LQOI.get_quadratic_primal_solution!(model::Optimizer, dest)
+    c_api_getxqxax(model.inner, dest)
+    return
+end
+
+function LQOI.get_quadratic_dual_solution!(model::Optimizer, dest)
+    c_api_getqconstrslack(model.inner, dest)
+    return
+end
+
+function LQOI.add_quadratic_constraint!(model::Optimizer,
+        affine_columns::Vector{Int}, affine_coefficients::Vector{Float64},
+        rhs::Float64, sense::Cchar,
+        I::Vector{Int}, J::Vector{Int}, V::Vector{Float64})
+    @assert length(I) == length(J) == length(V)
+    scalediagonal!(V, I, J, 0.5)
+    add_qconstr!(model.inner, Cint.(affine_columns), affine_coefficients,
+                 Cint.(I), Cint.(J), V, sense, rhs)
+    scalediagonal!(V, I, J, 2.0)
+    return
+end
+
+function LQOI.get_quadratic_constraint(model::Optimizer, row::Int)
+    affine_cols, affine_coefficients, I, J, V, _, _ = c_api_getqconstr(model.inner, row)
+    for i in 1:length(I)
+        if I[i] != J[i]
+            V[i] *= 0.5  # Account for the 0.5 term in 0.5 x' Q x.
+        end
+    end
+    # Convert 0-based indices into 1-based indices for the variables.
+    return Int.(affine_cols .+ 1), affine_coefficients, sparse(I .+ 1, J .+ 1, V)
+end
+
+function LQOI.get_quadratic_rhs(model::Optimizer, row::Int)
+    _, _, _, _, _, _, rhs = c_api_getqconstr(model.inner, row)
+    return rhs
+end
+
+function LQOI.get_number_quadratic_constraints(model::Optimizer)
+    return CPLEX.num_qconstr(model.inner)
+end
+
+ function LQOI.get_quadratic_terms_objective(model::Optimizer)
+    qmatbeg, qmatind, qmatval = c_api_getquad(model.inner)
+    qmatind .+= 1
+    qmatcol = fill(length(qmatbeg), length(qmatind))
+    # qmatbeg[i] stores the initial element (0-indexed) in qmatind and qmatval
+    # for the i'th variable. In the next loop, we exclude the last variable
+    # because it is implicitly set via the call to `fill`.
+    for i in 1:length(qmatbeg) - 1
+        start_index = qmatbeg[i] + 1  # +1 converts to 1-based.
+        stop_index = qmatbeg[i + 1]
+        for j in start_index:stop_index
+        qmatcol[j] = i
+        end
+    end
+    for i in 1:length(qmatval)
+        if qmatind[i] != qmatcol[i]
+            qmatval[i] *= 0.5  # Account for the 0.5 term in 0.5 x' Q x.
+        end
+    end
+    # qmatind is ::Vector{Cint}, so we convert back to ::Vector{Int}.
+    return sparse(Int.(qmatind), qmatcol, qmatval)
+ end
+
