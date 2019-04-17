@@ -6,11 +6,10 @@ mutable struct Model
     has_sos::Bool # problem has Special Ordered Sets?
     callback::Any
     terminator::Vector{Cint}
-    conflict::Any # result from conflict refiner, if called
 end
 function Model(env::Env, lp::Ptr{Cvoid})
     notify_new_model(env)
-    model = Model(env, lp, false, false, false, nothing, Cint[0], nothing)
+    model = Model(env, lp, false, false, false, nothing, Cint[0])
     function model_finalizer(model)
         if model.lp != C_NULL
             free_problem(model)
@@ -256,7 +255,8 @@ mutable struct ConflictRefinerData
     colstat::Vector{Cint} # state of the columns that participates
 end
 
-function c_api_refineconflict(model::Model)
+function refineconflict(model::Model)
+    # First, compute the conflict. 
     confnumrows_p = Vector{Cint}(undef, 1)
     confnumcols_p = Vector{Cint}(undef, 1)
     stat = @cpx_ccall(refineconflict, Cint, (
@@ -269,20 +269,14 @@ function c_api_refineconflict(model::Model)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
-    model.conflict = ConflictRefinerData(0, # status code that makes no sense for a conflict
-                                         confnumrows_p[1], Vector{Cint}(undef, 0), Vector{Cint}(undef, 0),
-                                         confnumcols_p[1], Vector{Cint}(undef, 0), Vector{Cint}(undef, 0))
-end
 
-function c_api_getconflict(model::Model)
-    @assert model.conflict != nothing
-
+    # Then, retrieve it. 
     confstat_p = Vector{Cint}(undef, 1)
-    rowind = Vector{Cint}(undef, model.conflict.nrows)
-    rowbdstat = Vector{Cint}(undef, model.conflict.nrows)
+    rowind = Vector{Cint}(undef, confnumrows_p[1])
+    rowbdstat = Vector{Cint}(undef, confnumrows_p[1])
     confnumrows_p = Vector{Cint}(undef, 1)
-    colind = Vector{Cint}(undef, model.conflict.ncols)
-    colbdstat = Vector{Cint}(undef, model.conflict.ncols)
+    colind = Vector{Cint}(undef, confnumcols_p[1])
+    colbdstat = Vector{Cint}(undef, confnumcols_p[1])
     confnumcols_p  = Vector{Cint}(undef, 1)
     stat = @cpx_ccall(getconflict, Cint, (
                       Ptr{Cvoid},
@@ -300,11 +294,5 @@ function c_api_getconflict(model::Model)
         throw(CplexError(model.env, stat))
     end
 
-    model.conflict.stat = confstat_p[1]
-    model.conflict.rowind = rowind
-    model.conflict.rowstat = rowbdstat
-    model.conflict.colind = colind
-    model.conflict.colstat = colbdstat
-
-    return confstat_p[1]
+    return ConflictRefinerData(confstat_p[1], confnumrows_p[1], rowind, rowbdstat, confnumcols_p[1], colind, colbdstat)
 end
