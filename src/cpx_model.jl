@@ -255,44 +255,38 @@ mutable struct ConflictRefinerData
     colstat::Vector{Cint} # state of the columns that participates
 end
 
-function refineconflict(model::Model)
+function c_api_getconflict(model::Model)
+    # This function always calls refineconflict first, which starts the conflict refiner. 
+    # In other words, any call to this function is expensive. 
+
     # First, compute the conflict. 
     confnumrows_p = Vector{Cint}(undef, 1)
     confnumcols_p = Vector{Cint}(undef, 1)
-    stat = @cpx_ccall(refineconflict, Cint, (
-                      Ptr{Cvoid},
-                      Ptr{Cvoid},
-                      Ptr{Cint},
-                      Ptr{Cint}
-                      ),
-                      model.env.ptr, model.lp, confnumrows_p, confnumcols_p)
+    stat = @cpx_ccall(
+                refineconflict, 
+                Cint, 
+                (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}, Ptr{Cint}),
+                model.env.ptr, model.lp, confnumrows_p, confnumcols_p)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
 
     # Then, retrieve it. 
-    confstat_p = Vector{Cint}(undef, 1)
+    confstat_p = Ref{Cint}()
     rowind = Vector{Cint}(undef, confnumrows_p[1])
     rowbdstat = Vector{Cint}(undef, confnumrows_p[1])
-    confnumrows_p = Vector{Cint}(undef, 1)
+    confnumrows_p = Ref{Cint}()
     colind = Vector{Cint}(undef, confnumcols_p[1])
     colbdstat = Vector{Cint}(undef, confnumcols_p[1])
-    confnumcols_p  = Vector{Cint}(undef, 1)
-    stat = @cpx_ccall(getconflict, Cint, (
-                      Ptr{Cvoid},
-                      Ptr{Cvoid},
-                      Ptr{Cint},
-                      Ptr{Cint},
-                      Ptr{Cint},
-                      Ptr{Cint},
-                      Ptr{Cint},
-                      Ptr{Cint},
-                      Ptr{Cint}
-                      ),
-                      model.env.ptr, model.lp, confstat_p, rowind, rowbdstat, confnumrows_p, colind, colbdstat, confnumcols_p)
+    confnumcols_p  = Ref{Cint}()
+    stat = @cpx_ccall(
+                getconflict, 
+                Cint, 
+                (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}),
+                model.env.ptr, model.lp, confstat_p, rowind, rowbdstat, confnumrows_p, colind, colbdstat, confnumcols_p)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
 
-    return ConflictRefinerData(confstat_p[1], confnumrows_p[1], rowind, rowbdstat, confnumcols_p[1], colind, colbdstat)
+    return ConflictRefinerData(confstat_p[], confnumrows_p[], rowind, rowbdstat, confnumcols_p[], colind, colbdstat)
 end

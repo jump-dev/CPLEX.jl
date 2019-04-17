@@ -469,7 +469,7 @@ An optimizer attribute indicating the status of the last computed conflict.
 struct ConflictStatus <: MOI.AbstractOptimizerAttribute  end
 MOI.is_set_by_optimize(::ConflictStatus) = true
 
-function MOI.get(model::Optimizer, attribute::ConflictStatus)
+function MOI.get(model::Optimizer, ::ConflictStatus)
     if model.conflict == nothing
         return MOI.OPTIMIZE_NOT_CALLED
     elseif model.conflict.stat == CPX_STAT_CONFLICT_MINIMAL
@@ -492,6 +492,8 @@ function MOI.get(model::Optimizer, attribute::ConflictStatus)
         return MOI.TIME_LIMIT
     elseif model.conflict.stat == CPX_STAT_CONFLICT_ABORT_USER
         return MOI.OTHER_LIMIT
+    else
+        return MOI.OTHER_LIMIT
     end
 end
 
@@ -502,13 +504,13 @@ end
 """
     ConstraintConflictStatus()
 
-A constraint attribute indicating whether the constraint participates in the last computed conflict.
+A Boolean constraint attribute indicating whether the constraint participates in the last computed conflict.
 """
 struct ConstraintConflictStatus <: MOI.AbstractConstraintAttribute end
 MOI.is_set_by_optimize(::ConstraintConflictStatus) = true
 
-function MOI.get(model::Optimizer, attribute::ConstraintConflictStatus, index::MOI.ConstraintIndex)
-    return in(index, model.conflict.rowind)
+function MOI.get(model::Optimizer, ::ConstraintConflictStatus, index::MOI.ConstraintIndex)
+    return index in model.conflict.rowind
 end
 
 function MOI.supports(::Optimizer, ::ConstraintConflictStatus, ::Type{<:MOI.ConstraintIndex})
@@ -518,12 +520,12 @@ end
 """
     VariableConflictStatus()
 
-A variable attribute indicating whether the variable participates in the last computed conflict.
+A Boolean variable attribute indicating whether the variable participates in the last computed conflict.
 """
 struct VariableConflictStatus <: MOI.AbstractVariableAttribute end
 MOI.is_set_by_optimize(::VariableConflictStatus) = true
 
-function MOI.get(model::Optimizer, attribute::VariableConflictStatus, index::MOI.VariableIndex)
+function MOI.get(model::Optimizer, ::VariableConflictStatus, index::MOI.VariableIndex)
     return in(index, model.conflict.colind)
 end
 
