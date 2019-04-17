@@ -457,7 +457,7 @@ function LQOI.make_problem_type_continuous(optimizer::Optimizer)
     return
 
 function compute_conflict(model::Optimizer)
-    model.conflict = refineconflict(model.inner)
+    model.conflict = c_api_getconflict(model.inner)
     return
 end
 

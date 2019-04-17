@@ -260,8 +260,8 @@ function c_api_getconflict(model::Model)
     # In other words, any call to this function is expensive. 
 
     # First, compute the conflict. 
-    confnumrows_p = Vector{Cint}(undef, 1)
-    confnumcols_p = Vector{Cint}(undef, 1)
+    confnumrows_p = Ref{Cint}()
+    confnumcols_p = Ref{Cint}()
     stat = @cpx_ccall(
                 refineconflict, 
                 Cint, 
@@ -273,11 +273,11 @@ function c_api_getconflict(model::Model)
 
     # Then, retrieve it. 
     confstat_p = Ref{Cint}()
-    rowind = Vector{Cint}(undef, confnumrows_p[1])
-    rowbdstat = Vector{Cint}(undef, confnumrows_p[1])
+    rowind = Vector{Cint}(undef, confnumrows_p[])
+    rowbdstat = Vector{Cint}(undef, confnumrows_p[])
     confnumrows_p = Ref{Cint}()
-    colind = Vector{Cint}(undef, confnumcols_p[1])
-    colbdstat = Vector{Cint}(undef, confnumcols_p[1])
+    colind = Vector{Cint}(undef, confnumcols_p[])
+    colbdstat = Vector{Cint}(undef, confnumcols_p[])
     confnumcols_p  = Ref{Cint}()
     stat = @cpx_ccall(
                 getconflict, 
