@@ -36,6 +36,7 @@ mutable struct Optimizer <: LQOI.LinQuadOptimizer
     LQOI.@LinQuadOptimizerBase
     env::Union{Nothing, Env}
     params::Dict{String, Any}
+    conflict::Union{Nothing, ConflictRefinerData}
 
     """
         Optimizer(env = nothing; kwargs...)
@@ -69,6 +70,7 @@ function MOI.empty!(model::Optimizer)
     for (name, value) in model.params
         set_param!(model.inner.env, name, value)
     end
+    model.conflict = nothing
     return
 end
 
@@ -453,4 +455,78 @@ function LQOI.make_problem_type_continuous(optimizer::Optimizer)
     # prob_type_toggle_map is defined in file CplexSolverInterface.jl
     set_prob_type!(optimizer.inner, prob_type_toggle_map[prob_type])
     return
+
+function compute_conflict(model::Optimizer)
+    model.conflict = refineconflict(model.inner)
+    return
+end
+
+"""
+    ConflictStatus()
+
+An optimizer attribute indicating the status of the last computed conflict.
+"""
+struct ConflictStatus <: MOI.AbstractOptimizerAttribute  end
+MOI.is_set_by_optimize(::ConflictStatus) = true
+
+function MOI.get(model::Optimizer, attribute::ConflictStatus)
+    if model.conflict == nothing
+        return MOI.OPTIMIZE_NOT_CALLED
+    elseif model.conflict.stat == CPX_STAT_CONFLICT_MINIMAL
+        return MOI.OPTIMAL
+    elseif model.conflict.stat == CPX_STAT_CONFLICT_FEASIBLE
+        return MOI.INFEASIBLE
+    elseif model.conflict.stat == CPX_STAT_CONFLICT_ABORT_CONTRADICTION
+        return MOI.OTHER_LIMIT
+    elseif model.conflict.stat == CPX_STAT_CONFLICT_ABORT_DETTIME_LIM
+        return MOI.TIME_LIMIT
+    elseif model.conflict.stat == CPX_STAT_CONFLICT_ABORT_IT_LIM
+        return MOI.ITERATION_LIMIT
+    elseif model.conflict.stat == CPX_STAT_CONFLICT_ABORT_MEM_LIM
+        return MOI.MEMORY_LIMIT
+    elseif model.conflict.stat == CPX_STAT_CONFLICT_ABORT_NODE_LIM
+        return MOI.NODE_LIMIT
+    elseif model.conflict.stat == CPX_STAT_CONFLICT_ABORT_OBJ_LIM
+        return MOI.OBJECTIVE_LIMIT
+    elseif model.conflict.stat == CPX_STAT_CONFLICT_ABORT_TIME_LIM
+        return MOI.TIME_LIMIT
+    elseif model.conflict.stat == CPX_STAT_CONFLICT_ABORT_USER
+        return MOI.OTHER_LIMIT
+    end
+end
+
+function MOI.supports(::Optimizer, ::ConflictStatus)
+    return true
+end
+
+"""
+    ConstraintConflictStatus()
+
+A constraint attribute indicating whether the constraint participates in the last computed conflict.
+"""
+struct ConstraintConflictStatus <: MOI.AbstractConstraintAttribute end
+MOI.is_set_by_optimize(::ConstraintConflictStatus) = true
+
+function MOI.get(model::Optimizer, attribute::ConstraintConflictStatus, index::MOI.ConstraintIndex)
+    return in(index, model.conflict.rowind)
+end
+
+function MOI.supports(::Optimizer, ::ConstraintConflictStatus, ::Type{<:MOI.ConstraintIndex})
+    return true
+end
+
+"""
+    VariableConflictStatus()
+
+A variable attribute indicating whether the variable participates in the last computed conflict.
+"""
+struct VariableConflictStatus <: MOI.AbstractVariableAttribute end
+MOI.is_set_by_optimize(::VariableConflictStatus) = true
+
+function MOI.get(model::Optimizer, attribute::VariableConflictStatus, index::MOI.VariableIndex)
+    return in(index, model.conflict.colind)
+end
+
+function MOI.supports(::Optimizer, ::VariableConflictStatus, ::Type{<:MOI.VariableIndex})
+    return true
 end
