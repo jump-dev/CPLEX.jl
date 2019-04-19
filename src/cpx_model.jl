@@ -225,8 +225,7 @@ function set_warm_start!(model::Model, indx::IVec, val::FVec, effortlevel::Integ
 end
 
 function free_problem(model::Model)
-    tmp = model.lp
-    stat = @cpx_ccall(freeprob, Cint, (Ptr{Cvoid}, Ptr{Cvoid}), model.env.ptr, tmp)
+    stat = @cpx_ccall(freeprob, Cint, (Ptr{Cvoid}, Ptr{Cvoid}), model.env.ptr, model.lp)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
