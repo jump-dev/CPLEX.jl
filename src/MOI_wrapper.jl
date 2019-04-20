@@ -532,7 +532,7 @@ MOI.is_set_by_optimize(::ConstraintConflictStatus) = true
 
 function MOI.get(model::Optimizer, ::ConstraintConflictStatus, index::MOI.ConstraintIndex)
     _ensure_conflict_computed(model)
-    return index in model.conflict.rowind
+    return index.value in model.conflict.rowind
 end
 
 function MOI.supports(::Optimizer, ::ConstraintConflictStatus, ::Type{<:MOI.ConstraintIndex})
@@ -549,7 +549,7 @@ MOI.is_set_by_optimize(::VariableConflictStatus) = true
 
 function MOI.get(model::Optimizer, ::VariableConflictStatus, index::MOI.VariableIndex)
     _ensure_conflict_computed(model)
-    return index in model.conflict.colind
+    return index.value in model.conflict.colind
 end
 
 function MOI.supports(::Optimizer, ::VariableConflictStatus, ::Type{<:MOI.VariableIndex})
