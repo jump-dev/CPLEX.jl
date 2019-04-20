@@ -457,14 +457,17 @@ function LQOI.make_problem_type_continuous(optimizer::Optimizer)
     return
 
 """
-Computes a conflict for the current model. This function should be used in case the model
-is infeasible, in order to determine a subset of the the constraints and of the variable
-that keep the model infeasible (this subset is called a conflict).
+    compute_conflict(model::Optimizer)
 
-Calling this function is required before trying to get any conflict attribute like
-`ConstraintConflictStatus` and `VariableConflictStatus`. Once a conflict is computed
-and the model is modified, the conflict is not automatically purged, and the old conflict
-is returned without a warning.
+Compute a minimal subset of the constraints and variables that keep the model
+infeasible.
+
+See also `CPLEX.ConflictStatus`, `CPLEX.VariableConflictStatus`, and
+`CPLEX.ConstraintConflictStatus`.
+
+Note that if `model` is modified after a call to `compute_conflict`, the
+conflict is not purged, and any calls to the above attributes will return values
+for the original conflict without a warning.
 """
 function compute_conflict(model::Optimizer)
     model.conflict = c_api_getconflict(model.inner)
@@ -474,7 +477,7 @@ end
 function _ensure_conflict_computed(model::Optimizer)
     if model.conflict === nothing
         error("Cannot access conflict status. Call `CPLEX.compute_conflict(model)` first. " *
-            "In case the model is modified, the computed conflict will not be purged.")
+              "In case the model is modified, the computed conflict will not be purged.")
     end
 end
 
@@ -532,7 +535,7 @@ MOI.is_set_by_optimize(::ConstraintConflictStatus) = true
 
 function MOI.get(model::Optimizer, ::ConstraintConflictStatus, index::MOI.ConstraintIndex)
     _ensure_conflict_computed(model)
-    return index.value in model.conflict.rowind
+    return LQOI.get_column(model, index) in model.conflict.rowind
 end
 
 function MOI.supports(::Optimizer, ::ConstraintConflictStatus, ::Type{<:MOI.ConstraintIndex})
@@ -549,7 +552,7 @@ MOI.is_set_by_optimize(::VariableConflictStatus) = true
 
 function MOI.get(model::Optimizer, ::VariableConflictStatus, index::MOI.VariableIndex)
     _ensure_conflict_computed(model)
-    return index.value in model.conflict.colind
+    return LQOI.get_column(model, index) in model.conflict.colind
 end
 
 function MOI.supports(::Optimizer, ::VariableConflictStatus, ::Type{<:MOI.VariableIndex})
