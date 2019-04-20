@@ -263,10 +263,10 @@ function c_api_getconflict(model::Model)
     confnumrows_p = Ref{Cint}()
     confnumcols_p = Ref{Cint}()
     stat = @cpx_ccall(
-                refineconflict, 
-                Cint, 
-                (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}, Ptr{Cint}),
-                model.env.ptr, model.lp, confnumrows_p, confnumcols_p)
+        refineconflict, 
+        Cint, 
+        (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}, Ptr{Cint}),
+        model.env.ptr, model.lp, confnumrows_p, confnumcols_p)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
@@ -280,10 +280,10 @@ function c_api_getconflict(model::Model)
     colbdstat = Vector{Cint}(undef, confnumcols_p[])
     confnumcols_p  = Ref{Cint}()
     stat = @cpx_ccall(
-                getconflict, 
-                Cint, 
-                (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}),
-                model.env.ptr, model.lp, confstat_p, rowind, rowbdstat, confnumrows_p, colind, colbdstat, confnumcols_p)
+        getconflict, 
+        Cint, 
+        (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}),
+        model.env.ptr, model.lp, confstat_p, rowind, rowbdstat, confnumrows_p, colind, colbdstat, confnumcols_p)
     if stat != 0
         throw(CplexError(model.env, stat))
     end

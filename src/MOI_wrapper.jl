@@ -456,21 +456,42 @@ function LQOI.make_problem_type_continuous(optimizer::Optimizer)
     set_prob_type!(optimizer.inner, prob_type_toggle_map[prob_type])
     return
 
+"""
+Computes a conflict for the current model. This function should be used in case the model
+is infeasible, in order to determine a subset of the the constraints and of the variable
+that keep the model infeasible (this subset is called a conflict).
+
+Calling this function is required before trying to get any conflict attribute like
+`ConstraintConflictStatus` and `VariableConflictStatus`. Once a conflict is computed
+and the model is modified, the conflict is not automatically purged, and the old conflict
+is returned without a warning.
+"""
 function compute_conflict(model::Optimizer)
     model.conflict = c_api_getconflict(model.inner)
     return
 end
 
+function _ensure_conflict_computed(model::Optimizer)
+    if model.conflict === nothing
+        error("Cannot access conflict status. Call `CPLEX.compute_conflict(model)` first. " *
+            "In case the model is modified, the computed conflict will not be purged.")
+    end
+end
+
 """
     ConflictStatus()
 
-An optimizer attribute indicating the status of the last computed conflict.
+Return an `MOI.TerminationStatusCode` indicating the status of the last computed conflict.
+
+If a minimal conflict is found, it will return `MOI.OPTIMAL`. If the problem is feasible, it will
+return `MOI.INFEASIBLE`. If `compute_conflict` has not been called yet, it will return
+`MOI.OPTIMIZE_NOT_CALLED`.
 """
 struct ConflictStatus <: MOI.AbstractOptimizerAttribute  end
 MOI.is_set_by_optimize(::ConflictStatus) = true
 
 function MOI.get(model::Optimizer, ::ConflictStatus)
-    if model.conflict == nothing
+    if model.conflict === nothing
         return MOI.OPTIMIZE_NOT_CALLED
     elseif model.conflict.stat == CPX_STAT_CONFLICT_MINIMAL
         return MOI.OPTIMAL
@@ -510,6 +531,7 @@ struct ConstraintConflictStatus <: MOI.AbstractConstraintAttribute end
 MOI.is_set_by_optimize(::ConstraintConflictStatus) = true
 
 function MOI.get(model::Optimizer, ::ConstraintConflictStatus, index::MOI.ConstraintIndex)
+    _ensure_conflict_computed(model)
     return index in model.conflict.rowind
 end
 
@@ -526,7 +548,8 @@ struct VariableConflictStatus <: MOI.AbstractVariableAttribute end
 MOI.is_set_by_optimize(::VariableConflictStatus) = true
 
 function MOI.get(model::Optimizer, ::VariableConflictStatus, index::MOI.VariableIndex)
-    return in(index, model.conflict.colind)
+    _ensure_conflict_computed(model)
+    return index in model.conflict.colind
 end
 
 function MOI.supports(::Optimizer, ::VariableConflictStatus, ::Type{<:MOI.VariableIndex})
