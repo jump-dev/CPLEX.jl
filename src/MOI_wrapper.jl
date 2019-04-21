@@ -490,7 +490,7 @@ If a minimal conflict is found, it will return `MOI.OPTIMAL`. If the problem is 
 return `MOI.INFEASIBLE`. If `compute_conflict` has not been called yet, it will return
 `MOI.OPTIMIZE_NOT_CALLED`.
 """
-struct ConflictStatus <: MOI.AbstractOptimizerAttribute  end
+struct ConflictStatus <: MOI.AbstractModelAttribute  end
 MOI.is_set_by_optimize(::ConflictStatus) = true
 
 function MOI.get(model::Optimizer, ::ConflictStatus)

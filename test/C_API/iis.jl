@@ -11,9 +11,6 @@
 @testset "IIS" begin
     env = CPLEX.Env()
 
-    # method = getparam(env, "Method")
-    # println("method = $method")
-
     model = CPLEX.Model(env, "iis")
     CPLEX.set_sense!(model, :Max)
 
