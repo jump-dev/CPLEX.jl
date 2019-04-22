@@ -533,6 +533,10 @@ A Boolean constraint attribute indicating whether the constraint participates in
 struct ConstraintConflictStatus <: MOI.AbstractConstraintAttribute end
 MOI.is_set_by_optimize(::ConstraintConflictStatus) = true
 
+function MOI.get(model::Optimizer, ::ConstraintConflictStatus, index::MOI.ConstraintIndex{<:MOI.SingleVariable, <:LQOI.LinSets})
+    return MOI.get(model, CPLEX.VariableConflictStatus(), model[index])
+end
+
 function MOI.get(model::Optimizer, ::ConstraintConflictStatus, index::MOI.ConstraintIndex{<:MOI.ScalarAffineFunction, <:LQOI.LE})
     _ensure_conflict_computed(model)
     return LQOI.cmap(model).less_than[index] in model.conflict.rowind
@@ -546,6 +550,10 @@ end
 function MOI.get(model::Optimizer, ::ConstraintConflictStatus, index::MOI.ConstraintIndex{<:MOI.ScalarAffineFunction, <:LQOI.EQ})
     _ensure_conflict_computed(model)
     return LQOI.cmap(model).equal_to[index] in model.conflict.rowind
+end
+
+function MOI.supports(::Optimizer, ::ConstraintConflictStatus, ::Type{MOI.ConstraintIndex{<:MOI.SingleVariable, T}}) where {T <: LQOI.LinSets}
+    return true
 end
 
 function MOI.supports(::Optimizer, ::ConstraintConflictStatus, ::Type{MOI.ConstraintIndex{<:MOI.ScalarAffineFunction, T}}) where {T <: LQOI.LinSets}

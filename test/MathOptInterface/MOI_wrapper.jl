@@ -187,7 +187,7 @@ end
 
     # Once it's called, no problem.
     CPLEX.compute_conflict(model)
-    @test !MOI.get(model, CPLEX.VariableConflictStatus(), x)
-    @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c1)
-    @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c2)
+    @test MOI.get(model, CPLEX.VariableConflictStatus(), x) == false
+    @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c1) == true
+    @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c2) == true
 end
