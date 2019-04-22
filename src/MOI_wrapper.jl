@@ -539,17 +539,17 @@ end
 
 function MOI.get(model::Optimizer, ::ConstraintConflictStatus, index::MOI.ConstraintIndex{<:MOI.ScalarAffineFunction, <:LQOI.LE})
     _ensure_conflict_computed(model)
-    return LQOI.cmap(model).less_than[index] in model.conflict.rowind
+    return (LQOI.cmap(model).less_than[index] - 1) in model.conflict.rowind
 end
 
 function MOI.get(model::Optimizer, ::ConstraintConflictStatus, index::MOI.ConstraintIndex{<:MOI.ScalarAffineFunction, <:LQOI.GE})
     _ensure_conflict_computed(model)
-    return LQOI.cmap(model).greater_than[index] in model.conflict.rowind
+    return (LQOI.cmap(model).greater_than[index] - 1) in model.conflict.rowind
 end
 
 function MOI.get(model::Optimizer, ::ConstraintConflictStatus, index::MOI.ConstraintIndex{<:MOI.ScalarAffineFunction, <:LQOI.EQ})
     _ensure_conflict_computed(model)
-    return LQOI.cmap(model).equal_to[index] in model.conflict.rowind
+    return (LQOI.cmap(model).equal_to[index] - 1) in model.conflict.rowind
 end
 
 function MOI.supports(::Optimizer, ::ConstraintConflictStatus, ::Type{MOI.ConstraintIndex{<:MOI.SingleVariable, T}}) where {T <: LQOI.LinSets}
@@ -570,7 +570,7 @@ MOI.is_set_by_optimize(::VariableConflictStatus) = true
 
 function MOI.get(model::Optimizer, ::VariableConflictStatus, index::MOI.VariableIndex)
     _ensure_conflict_computed(model)
-    return LQOI.get_column(model, index) in model.conflict.colind
+    return (LQOI.get_column(model, index) - 1) in model.conflict.colind
 end
 
 function MOI.supports(::Optimizer, ::VariableConflictStatus, ::Type{<:MOI.VariableIndex})
