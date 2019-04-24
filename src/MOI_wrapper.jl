@@ -569,20 +569,3 @@ end
 function MOI.supports(::Optimizer, ::ConstraintConflictStatus, ::Type{MOI.ConstraintIndex{<:MOI.ScalarAffineFunction, T}}) where {T <: LQOI.LinSets}
     return true
 end
-
-"""
-    VariableConflictStatus()
-
-A Boolean variable attribute indicating whether the variable participates in the last computed conflict.
-"""
-struct VariableConflictStatus <: MOI.AbstractVariableAttribute end
-MOI.is_set_by_optimize(::VariableConflictStatus) = true
-
-function MOI.get(model::Optimizer, ::VariableConflictStatus, index::MOI.VariableIndex)
-    _ensure_conflict_computed(model)
-    return (LQOI.get_column(model, index) - 1) in model.conflict.colind
-end
-
-function MOI.supports(::Optimizer, ::VariableConflictStatus, ::Type{<:MOI.VariableIndex})
-    return true
-end
