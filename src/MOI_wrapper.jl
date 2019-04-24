@@ -562,11 +562,7 @@ function MOI.get(model::Optimizer, ::ConstraintConflictStatus, index::MOI.Constr
     return (LQOI.cmap(model).equal_to[index] - 1) in model.conflict.rowind
 end
 
-function MOI.supports(::Optimizer, ::ConstraintConflictStatus, ::Type{MOI.ConstraintIndex{<:MOI.SingleVariable, LQOI.LE}})
-    return true
-end
-
-function MOI.supports(::Optimizer, ::ConstraintConflictStatus, ::Type{MOI.ConstraintIndex{<:MOI.SingleVariable, LQOI.GE}})
+function MOI.supports(::Optimizer, ::ConstraintConflictStatus, ::Type{MOI.ConstraintIndex{<:MOI.SingleVariable, <:Union{LQOI.LE, LQOI.GE}}})
     return true
 end
 
