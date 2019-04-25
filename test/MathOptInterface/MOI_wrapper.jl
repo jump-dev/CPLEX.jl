@@ -239,7 +239,7 @@ end
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c2) == true
     end
 
-    @testset "Two conflicting constraints" begin
+    @testset "Two conflicting constraints (GreaterThan, LessThan)" begin
         model = CPLEX.Optimizer()
         x = MOI.add_variable(model)
         y = MOI.add_variable(model)
@@ -255,6 +255,29 @@ end
         @test_throws ErrorException MOI.get(model, CPLEX.ConstraintConflictStatus(), c1)
 
         # Once it's called, no problem.
+        CPLEX.compute_conflict(model)
+        @test MOI.get(model, CPLEX.ConstraintConflictStatus(), b1) == true
+        @test MOI.get(model, CPLEX.ConstraintConflictStatus(), b2) == true
+        @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c1) == true
+        @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c2) == false
+    end
+
+    @testset "Two conflicting constraints (EqualTo)" begin
+        model = CPLEX.Optimizer()
+        x = MOI.add_variable(model)
+        y = MOI.add_variable(model)
+        b1 = MOI.add_constraint(model, MOI.SingleVariable(x), MOI.GreaterThan(0.0))
+        b2 = MOI.add_constraint(model, MOI.SingleVariable(y), MOI.GreaterThan(0.0))
+        cf1 = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0, 1.0], [x, y]), 0.0)
+        c1 = MOI.add_constraint(model, cf1, MOI.EqualTo(-1.0))
+        cf2 = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0, -1.0], [x, y]), 0.0)
+        c2 = MOI.add_constraint(model, cf2, MOI.GreaterThan(1.0))
+
+        # Getting the results before the conflict refiner has been called must return an error. 
+        @test MOI.get(model, CPLEX.ConflictStatus()) == MOI.OPTIMIZE_NOT_CALLED
+        @test_throws ErrorException MOI.get(model, CPLEX.ConstraintConflictStatus(), c1)
+
+        # Once it's called, no problem. 
         CPLEX.compute_conflict(model)
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), b1) == true
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), b2) == true
