@@ -547,19 +547,9 @@ function MOI.get(model::Optimizer, ::ConstraintConflictStatus, index::MOI.Constr
         model.conflict.colstat[var_in_conflict] == CPLEX.CPX_CONFLICT_LB
 end
 
-function MOI.get(model::Optimizer, ::ConstraintConflictStatus, index::MOI.ConstraintIndex{<:MOI.ScalarAffineFunction, <:LQOI.LE})
+function MOI.get(model::Optimizer, ::ConstraintConflictStatus, index::MOI.ConstraintIndex{<:MOI.ScalarAffineFunction, <:Union{LQOI.LE, LQOI.GE, LQOI.EQ}})
     _ensure_conflict_computed(model)
-    return (LQOI.cmap(model).less_than[index] - 1) in model.conflict.rowind
-end
-
-function MOI.get(model::Optimizer, ::ConstraintConflictStatus, index::MOI.ConstraintIndex{<:MOI.ScalarAffineFunction, <:LQOI.GE})
-    _ensure_conflict_computed(model)
-    return (LQOI.cmap(model).greater_than[index] - 1) in model.conflict.rowind
-end
-
-function MOI.get(model::Optimizer, ::ConstraintConflictStatus, index::MOI.ConstraintIndex{<:MOI.ScalarAffineFunction, <:LQOI.EQ})
-    _ensure_conflict_computed(model)
-    return (LQOI.cmap(model).equal_to[index] - 1) in model.conflict.rowind
+    return (model[index] - 1) in model.conflict.rowind
 end
 
 function MOI.supports(::Optimizer, ::ConstraintConflictStatus, ::Type{MOI.ConstraintIndex{<:MOI.SingleVariable, <:Union{LQOI.LE, LQOI.GE}}})
