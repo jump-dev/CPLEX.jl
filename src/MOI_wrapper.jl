@@ -564,10 +564,10 @@ function MOI.get(model::Optimizer, ::ConstraintConflictStatus, index::MOI.Constr
     return (model[index] - 1) in model.conflict.rowind
 end
 
-function MOI.supports(::Optimizer, ::ConstraintConflictStatus, ::Type{MOI.ConstraintIndex{<:MOI.SingleVariable, T}}) where {T <: LQOI.LinSets}
+function MOI.supports(::Optimizer, ::ConstraintConflictStatus, ::Type{MOI.ConstraintIndex{<:MOI.SingleVariable, <:LQOI.LinSets}})
     return true
 end
 
-function MOI.supports(::Optimizer, ::ConstraintConflictStatus, ::Type{MOI.ConstraintIndex{<:MOI.ScalarAffineFunction, T}}) where {T <: LQOI.LinSets}
+function MOI.supports(::Optimizer, ::ConstraintConflictStatus, ::Type{MOI.ConstraintIndex{<:MOI.ScalarAffineFunction, <:Union{LQOI.LE, LQOI.GE, LQOI.EQ}}})
     return true
 end
