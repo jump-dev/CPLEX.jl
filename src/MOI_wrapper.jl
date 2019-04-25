@@ -533,18 +533,30 @@ A Boolean constraint attribute indicating whether the constraint participates in
 struct ConstraintConflictStatus <: MOI.AbstractConstraintAttribute end
 MOI.is_set_by_optimize(::ConstraintConflictStatus) = true
 
-function MOI.get(model::Optimizer, ::ConstraintConflictStatus, index::MOI.ConstraintIndex{<:MOI.SingleVariable, <:LQOI.LE})
+function _sinvar_get_conflict_status(model::Optimizer, index::MOI.ConstraintIndex)
     _ensure_conflict_computed(model)
     var_in_conflict = findfirst(isequal(LQOI.get_column(model, model[index]) - 1), model.conflict.colind)
-    return model.conflict.colstat[var_in_conflict] == CPLEX.CPX_CONFLICT_MEMBER ||
-        model.conflict.colstat[var_in_conflict] == CPLEX.CPX_CONFLICT_UB
+
+    if var_in_conflict === nothing
+        return nothing
+    else
+        return model.conflict.colstat[var_in_conflict]
+    end
+end
+
+function MOI.get(model::Optimizer, ::ConstraintConflictStatus, index::MOI.ConstraintIndex{<:MOI.SingleVariable, <:LQOI.LE})
+    status = _sinvar_get_conflict_status(model, index)
+    return status !== nothing && (status == CPLEX.CPX_CONFLICT_MEMBER || status == CPLEX.CPX_CONFLICT_UB)
 end
 
 function MOI.get(model::Optimizer, ::ConstraintConflictStatus, index::MOI.ConstraintIndex{<:MOI.SingleVariable, <:LQOI.GE})
-    _ensure_conflict_computed(model)
-    var_in_conflict = findfirst(isequal(LQOI.get_column(model, model[index]) - 1), model.conflict.colind)
-    return model.conflict.colstat[var_in_conflict] == CPLEX.CPX_CONFLICT_MEMBER ||
-        model.conflict.colstat[var_in_conflict] == CPLEX.CPX_CONFLICT_LB
+    status = _sinvar_get_conflict_status(model, index)
+    return status !== nothing && (status == CPLEX.CPX_CONFLICT_MEMBER || status == CPLEX.CPX_CONFLICT_LB)
+end
+
+function MOI.get(model::Optimizer, ::ConstraintConflictStatus, index::MOI.ConstraintIndex{<:MOI.SingleVariable, <:LQOI.EQ})
+    status = _sinvar_get_conflict_status(model, index)
+    return status !== nothing && (status == CPLEX.CPX_CONFLICT_MEMBER || status == CPLEX.CPX_CONFLICT_LB || status == CPLEX.CPX_CONFLICT_UB)
 end
 
 function MOI.get(model::Optimizer, ::ConstraintConflictStatus, index::MOI.ConstraintIndex{<:MOI.ScalarAffineFunction, <:Union{LQOI.LE, LQOI.GE, LQOI.EQ}})
@@ -552,7 +564,7 @@ function MOI.get(model::Optimizer, ::ConstraintConflictStatus, index::MOI.Constr
     return (model[index] - 1) in model.conflict.rowind
 end
 
-function MOI.supports(::Optimizer, ::ConstraintConflictStatus, ::Type{MOI.ConstraintIndex{<:MOI.SingleVariable, <:Union{LQOI.LE, LQOI.GE}}})
+function MOI.supports(::Optimizer, ::ConstraintConflictStatus, ::Type{MOI.ConstraintIndex{<:MOI.SingleVariable, <:Union{LQOI.LE, LQOI.GE, LQOI.EQ}}})
     return true
 end
 
