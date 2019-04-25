@@ -554,7 +554,7 @@ function MOI.get(model::Optimizer, ::ConstraintConflictStatus, index::MOI.Constr
     return status !== nothing && (status == CPLEX.CPX_CONFLICT_MEMBER || status == CPLEX.CPX_CONFLICT_LB)
 end
 
-function MOI.get(model::Optimizer, ::ConstraintConflictStatus, index::MOI.ConstraintIndex{<:MOI.SingleVariable, <:LQOI.EQ})
+function MOI.get(model::Optimizer, ::ConstraintConflictStatus, index::MOI.ConstraintIndex{<:MOI.SingleVariable, <:Union{LQOI.EQ, LQOI.IV}})
     status = _sinvar_get_conflict_status(model, index)
     return status !== nothing && (status == CPLEX.CPX_CONFLICT_MEMBER || status == CPLEX.CPX_CONFLICT_LB || status == CPLEX.CPX_CONFLICT_UB)
 end
@@ -564,7 +564,7 @@ function MOI.get(model::Optimizer, ::ConstraintConflictStatus, index::MOI.Constr
     return (model[index] - 1) in model.conflict.rowind
 end
 
-function MOI.supports(::Optimizer, ::ConstraintConflictStatus, ::Type{MOI.ConstraintIndex{<:MOI.SingleVariable, <:Union{LQOI.LE, LQOI.GE, LQOI.EQ}}})
+function MOI.supports(::Optimizer, ::ConstraintConflictStatus, ::Type{MOI.ConstraintIndex{<:MOI.SingleVariable, T}}) where {T <: LQOI.LinSets}
     return true
 end
 

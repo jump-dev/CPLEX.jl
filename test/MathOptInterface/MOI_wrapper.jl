@@ -211,8 +211,23 @@ end
         model = CPLEX.Optimizer()
         x = MOI.add_variable(model)
         c1 = MOI.add_constraint(model, MOI.SingleVariable(x), MOI.EqualTo(1.0))
-        c2 = MOI.add_constraint(model, MOI.SingleVariable(x), MOI.LessThan(1.0))
-        c3 = MOI.add_constraint(model, MOI.SingleVariable(x), MOI.GreaterThan(2.0))
+        c2 = MOI.add_constraint(model, MOI.SingleVariable(x), MOI.GreaterThan(2.0))
+
+        # Getting the results before the conflict refiner has been called must return an error. 
+        @test MOI.get(model, CPLEX.ConflictStatus()) == MOI.OPTIMIZE_NOT_CALLED
+        @test_throws ErrorException MOI.get(model, CPLEX.ConstraintConflictStatus(), c1)
+
+        # Once it's called, no problem. 
+        CPLEX.compute_conflict(model)
+        @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c1) == true
+        @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c2) == true
+    end
+
+    @testset "Variable bounds (SingleVariable and Interval)" begin
+        model = CPLEX.Optimizer()
+        x = MOI.add_variable(model)
+        c1 = MOI.add_constraint(model, MOI.SingleVariable(x), MOI.Interval(1.0, 3.0))
+        c2 = MOI.add_constraint(model, MOI.SingleVariable(x), MOI.LessThan(0.0))
 
         # Getting the results before the conflict refiner has been called must return an error.
         @test MOI.get(model, CPLEX.ConflictStatus()) == MOI.OPTIMIZE_NOT_CALLED
@@ -222,7 +237,6 @@ end
         CPLEX.compute_conflict(model)
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c1) == true
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c2) == true
-        @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c3) == true
     end
 
     @testset "Two conflicting constraints" begin
