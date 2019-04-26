@@ -482,6 +482,9 @@ function compute_conflict(model::Optimizer)
         end
     end
     return
+
+    # TODO: decide what to do about the POSSIBLE statuses for the constraints (CPX_CONFLICT_POSSIBLE_MEMBER, 
+    # CPX_CONFLICT_POSSIBLE_UB, CPX_CONFLICT_POSSIBLE_LB). 
 end
 
 function _ensure_conflict_computed(model::Optimizer)
