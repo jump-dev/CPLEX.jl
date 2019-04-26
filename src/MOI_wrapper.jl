@@ -470,7 +470,15 @@ conflict is not purged, and any calls to the above attributes will return values
 for the original conflict without a warning.
 """
 function compute_conflict(model::Optimizer)
-    model.conflict = c_api_getconflict(model.inner)
+    try 
+        model.conflict = c_api_getconflict(model.inner)
+    catch exc
+        if isa(exc, CplexError) && exc.code == CPXERR_NO_CONFLICT
+            model.conflict = ConflictRefinerData(CPX_STAT_CONFLICT_FEASIBLE, 0, Cint[], Cint[], 0, Cint[], Cint[])
+        else
+            throw(exc)
+        end
+    end
     return
 end
 

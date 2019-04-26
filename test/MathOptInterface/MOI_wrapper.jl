@@ -186,6 +186,7 @@ end
 
         # Once it's called, no problem.
         CPLEX.compute_conflict(model)
+        @test MOI.get(model, CPLEX.ConflictStatus()) == MOI.OPTIMAL
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c1) == true
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c2) == true
     end
@@ -203,6 +204,7 @@ end
 
         # Once it's called, no problem.
         CPLEX.compute_conflict(model)
+        @test MOI.get(model, CPLEX.ConflictStatus()) == MOI.OPTIMAL
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c1) == true
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c2) == true
     end
@@ -219,6 +221,7 @@ end
 
         # Once it's called, no problem. 
         CPLEX.compute_conflict(model)
+        @test MOI.get(model, CPLEX.ConflictStatus()) == MOI.OPTIMAL
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c1) == true
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c2) == true
     end
@@ -235,6 +238,7 @@ end
 
         # Once it's called, no problem.
         CPLEX.compute_conflict(model)
+        @test MOI.get(model, CPLEX.ConflictStatus()) == MOI.OPTIMAL
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c1) == true
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c2) == true
     end
@@ -256,6 +260,7 @@ end
 
         # Once it's called, no problem.
         CPLEX.compute_conflict(model)
+        @test MOI.get(model, CPLEX.ConflictStatus()) == MOI.OPTIMAL
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), b1) == true
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), b2) == true
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c1) == true
@@ -279,6 +284,7 @@ end
 
         # Once it's called, no problem. 
         CPLEX.compute_conflict(model)
+        @test MOI.get(model, CPLEX.ConflictStatus()) == MOI.OPTIMAL
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), b1) == true
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), b2) == true
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c1) == true
@@ -304,10 +310,28 @@ end
 
         # Once it's called, no problem.
         CPLEX.compute_conflict(model)
+        @test MOI.get(model, CPLEX.ConflictStatus()) == MOI.OPTIMAL
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), b1) == true
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), b2) == true
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), b3) == false
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c1) == true
+        @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c2) == false
+    end
+
+    @testset "No conflict" begin
+        model = CPLEX.Optimizer()
+        x = MOI.add_variable(model)
+        c1 = MOI.add_constraint(model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0], [x]), 0.0), MOI.GreaterThan(1.0))
+        c2 = MOI.add_constraint(model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0], [x]), 0.0), MOI.LessThan(2.0))
+
+        # Getting the results before the conflict refiner has been called must return an error. 
+        @test MOI.get(model, CPLEX.ConflictStatus()) == MOI.OPTIMIZE_NOT_CALLED
+        @test_throws ErrorException MOI.get(model, CPLEX.ConstraintConflictStatus(), c1)
+
+        # Once it's called, no problem. 
+        CPLEX.compute_conflict(model)
+        @test MOI.get(model, CPLEX.ConflictStatus()) == MOI.INFEASIBLE
+        @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c1) == false
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c2) == false
     end
 end
