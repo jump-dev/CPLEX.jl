@@ -11,7 +11,11 @@ function Model(env::Env, lp::Ptr{Cvoid})
     notify_new_model(env)
     model = Model(env, lp, false, false, false, nothing, Cint[0])
     function model_finalizer(model)
-        free_problem(model)
+        if model.lp != C_NULL
+            free_problem(model)
+        else
+            # User must have called `free_problem` directly.
+        end
         notify_freed_model(env)
     end
     finalizer(model_finalizer, model)
@@ -226,6 +230,7 @@ end
 
 function free_problem(model::Model)
     stat = @cpx_ccall(freeprob, Cint, (Ptr{Cvoid}, Ptr{Cvoid}), model.env.ptr, model.lp)
+    model.lp = C_NULL
     if stat != 0
         throw(CplexError(model.env, stat))
     end
