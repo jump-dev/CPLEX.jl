@@ -462,17 +462,16 @@ function LQOI.make_problem_type_continuous(optimizer::Optimizer)
 Compute a minimal subset of the constraints and variables that keep the model
 infeasible.
 
-See also `CPLEX.ConflictStatus`, `CPLEX.VariableConflictStatus`, and
-`CPLEX.ConstraintConflictStatus`.
+See also `CPLEX.ConflictStatus` and `CPLEX.ConstraintConflictStatus`.
 
 Note that if `model` is modified after a call to `compute_conflict`, the
 conflict is not purged, and any calls to the above attributes will return values
 for the original conflict without a warning.
 """
 function compute_conflict(model::Optimizer)
-    # In case there is no conflict, c_api_getconflict throws an error, while the conflict 
-    # data structure can handle more gracefully this case (via a status check). 
-    try 
+    # In case there is no conflict, c_api_getconflict throws an error, while the conflict
+    # data structure can handle more gracefully this case (via a status check).
+    try
         model.conflict = c_api_getconflict(model.inner)
     catch exc
         if isa(exc, CplexError) && exc.code == CPXERR_NO_CONFLICT
@@ -483,8 +482,8 @@ function compute_conflict(model::Optimizer)
     end
     return
 
-    # TODO: decide what to do about the POSSIBLE statuses for the constraints (CPX_CONFLICT_POSSIBLE_MEMBER, 
-    # CPX_CONFLICT_POSSIBLE_UB, CPX_CONFLICT_POSSIBLE_LB). 
+    # TODO: decide what to do about the POSSIBLE statuses for the constraints (CPX_CONFLICT_POSSIBLE_MEMBER,
+    # CPX_CONFLICT_POSSIBLE_UB, CPX_CONFLICT_POSSIBLE_LB).
 end
 
 function _ensure_conflict_computed(model::Optimizer)
