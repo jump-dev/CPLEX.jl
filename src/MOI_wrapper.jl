@@ -49,11 +49,16 @@ mutable struct Optimizer <: LQOI.LinQuadOptimizer
     function Optimizer(env::Union{Nothing, Env} = nothing; kwargs...)
         model = new()
         model.env = env
-        # For consistency with MPB, output logs to stdout by default.
-        model.params = Dict{String, Any}("CPX_PARAM_SCRIND" => 1)
+        model.params = Dict{String, Any}()
         for (name, value) in kwargs
             model.params[string(name)] = value
         end
+
+        # For consistency with MPB, output logs to stdout by default.
+        if !("CPX_PARAM_SCRIND" in keys(model.params)) && !("CPXPARAM_ScreenOutput" in keys(model.params))
+            model.params["CPX_PARAM_SCRIND"] 1
+        end
+
         MOI.empty!(model)
         return model
     end
@@ -432,4 +437,3 @@ end
     # qmatind is ::Vector{Cint}, so we convert back to ::Vector{Int}.
     return sparse(Int.(qmatind), qmatcol, qmatval)
  end
-
