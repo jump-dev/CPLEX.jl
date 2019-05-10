@@ -180,12 +180,15 @@ function LQOI.delete_variables!(model::Optimizer,
 end
 
 function LQOI.solve_mip_problem!(model::Optimizer)
-    model.inner.has_int = true
-    LQOI.solve_linear_problem!(model)
+    LQOI.make_problem_type_integer(model)
+    optimize!(model.inner)
+    return
 end
 
-function LQOI.solve_linear_problem!(model::Optimizer)  
+function LQOI.solve_linear_problem!(model::Optimizer)
+    LQOI.make_problem_type_continuous(model)
     optimize!(model.inner)
+    return
 end
 
 function LQOI.get_termination_status(model::Optimizer)
@@ -267,4 +270,16 @@ end
 
 function LQOI.get_objective_value(model::Optimizer)
     return c_api_getobjval(model.inner)
+end
+
+function LQOI.make_problem_type_integer(optimizer::Optimizer)
+    optimizer.inner.has_int = true
+    set_prob_type!(optimizer.inner, :MILP)
+    return
+end
+
+function LQOI.make_problem_type_continuous(optimizer::Optimizer)
+    optimizer.inner.has_int = false
+    set_prob_type!(optimizer.inner, :LP)
+    return
 end
