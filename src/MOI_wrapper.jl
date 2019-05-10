@@ -55,8 +55,8 @@ mutable struct Optimizer <: LQOI.LinQuadOptimizer
         end
 
         # For consistency with MPB, output logs to stdout by default.
-        if !("CPX_PARAM_SCRIND" in keys(model.params)) && !("CPXPARAM_ScreenOutput" in keys(model.params))
-            model.params["CPX_PARAM_SCRIND"] 1
+        if !haskey(model.params, "CPX_PARAM_SCRIND") && !haskey(model.params, "CPXPARAM_ScreenOutput")
+            model.params["CPX_PARAM_SCRIND"] = 1
         end
 
         MOI.empty!(model)
