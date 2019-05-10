@@ -11,10 +11,14 @@ function Model(env::Env, lp::Ptr{Cvoid})
     notify_new_model(env)
     model = Model(env, lp, false, false, false, nothing, Cint[0])
     function model_finalizer(model)
-        free_problem(model)
+        if model.lp != C_NULL
+            free_problem(model)
+        else
+            # User must have called `free_problem` directly.
+        end
         notify_freed_model(env)
     end
-    @compat finalizer(model_finalizer, model)
+    finalizer(model_finalizer, model)
     set_terminate(model)
     return model
 end
@@ -33,6 +37,13 @@ function read_model(model::Model, filename::String)
     stat = @cpx_ccall(readcopyprob, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cchar}, Ptr{Cchar}), model.env.ptr, model.lp, filename, C_NULL)
     if stat != 0
         throw(CplexError(model.env, stat))
+    end
+    prob_type = get_prob_type(model)
+    if prob_type in [:MILP,:MIQP, :MIQCP]
+        model.has_int = true
+    end
+    if prob_type in [:QP, :MIQP, :QCP, :MIQCP]
+        model.has_qc = true
     end
 end
 
@@ -218,8 +229,8 @@ function set_warm_start!(model::Model, indx::IVec, val::FVec, effortlevel::Integ
 end
 
 function free_problem(model::Model)
-    tmp = Ptr{Cvoid}[model.lp]
-    stat = @cpx_ccall(freeprob, Cint, (Ptr{Cvoid}, Ptr{Cvoid}), model.env.ptr, tmp)
+    stat = @cpx_ccall(freeprob, Cint, (Ptr{Cvoid}, Ptr{Cvoid}), model.env.ptr, model.lp)
+    model.lp = C_NULL
     if stat != 0
         throw(CplexError(model.env, stat))
     end

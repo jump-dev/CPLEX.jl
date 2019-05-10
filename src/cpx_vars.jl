@@ -56,8 +56,8 @@ function add_var!(model::Model, constridx::IVec, constrcoef::FVec, l::FVec, u::F
                           Ptr{Cdouble},
                           Ptr{Ptr{Cchar}}
                           ),
-                          model.env.ptr, model.lp, nvars, length(constridx), 
-                          objcoef, Cint[0], constridx .- Cint(1), constrcoef, 
+                          model.env.ptr, model.lp, nvars, length(constridx),
+                          objcoef, Cint[0], constridx .- Cint(1), constrcoef,
                           l, u, C_NULL)
         if stat != 0
             throw(CplexError(model.env, stat))
@@ -89,7 +89,7 @@ function c_api_getlb(model::Model, col_start::Cint, col_end::Cint)
                       Cint,
                       Cint
                       ),
-                      model.env.ptr, model.lp, lb, 
+                      model.env.ptr, model.lp, lb,
                       col_start - Cint(1), col_end - Cint(1))
     if stat != 0
         throw(CplexError(model.env, stat))
@@ -114,7 +114,7 @@ function get_varLB(model::Model)
     return lb
 end
 
-function c_api_chgbds(model::Model, indices::IVec, lu::CVec, bd::FVec)    
+function c_api_chgbds(model::Model, indices::IVec, lu::CVec, bd::FVec)
     cnt = length(indices)
     stat = @cpx_ccall(chgbds, Cint, (
                       Ptr{Cvoid},
@@ -160,7 +160,7 @@ function c_api_getub(model::Model, col_start::Cint, col_end::Cint)
                       Cint,
                       Cint
                       ),
-                      model.env.ptr, model.lp, ub, 
+                      model.env.ptr, model.lp, ub,
                       col_start - Cint(1), col_end - Cint(1))
     if stat != 0
         throw(CplexError(model.env, stat))
@@ -206,45 +206,23 @@ function set_varUB!(model::Model, u::FVec)
     end
 end
 
-function c_api_chgctype(model::Model, indices::IVec, types::CVec)
+function c_api_chgctype(model::Model, indices::Vector{Cint}, types::Vector{Cchar})
     nvars = length(indices)
-    stat = @cpx_ccall(chgctype, Cint, (
-                      Ptr{Cvoid},
-                      Ptr{Cvoid},
-                      Cint,
-                      Ptr{Cint},
-                      Ptr{Cchar}
-                      ),
-                      model.env.ptr, model.lp, nvars, indices .- Cint(1), types)
+    stat = @cpx_ccall(chgctype,
+        Cint,
+        (Ptr{Cvoid}, Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cchar}),
+        model.env.ptr, model.lp, nvars, indices .- Cint(1), types)
+    if any(c_type -> c_type != 'C', types)
+        model.has_int = true
+    end
     if stat != 0
         throw(CplexError(model.env, stat))
-    end    
+    end
+    return stat
 end
 
 function set_vartype!(model::Model, vtype::Vector{Char})
-    nvars = num_var(model)
-    stat = @cpx_ccall(chgctype, Cint, (
-                      Ptr{Cvoid},
-                      Ptr{Cvoid},
-                      Cint,
-                      Ptr{Cint},
-                      Ptr{Cchar}
-                      ),
-                      model.env.ptr, model.lp, length(vtype), 
-                      Cint[0:length(vtype)-1;], convert(Vector{Cchar},vtype))
-    if stat != 0
-        throw(CplexError(model.env, stat))
-    end
-    #if !isempty(find(.!(vtype.=='C'))) # replace the line below by this one once we stop supporting Julia v0.5
-    
-    if VERSION >= v"0.7.0-DEV.3382"
-        find_ret = findall(broadcast(!, vtype.=='C'))
-    else
-        find_ret = find(broadcast(!, vtype.=='C'))
-    end        
-    if !isempty(find_ret)
-        model.has_int = true
-    end
+    return c_api_chgctype(model, Cint.(1:length(vtype)), Cchar.(vtype))
 end
 
 function get_vartype(model::Model)

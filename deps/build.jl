@@ -2,8 +2,6 @@
     using Libdl
 end
 
-using Compat # for occursin
-
 depsfile = joinpath(dirname(@__FILE__),"deps.jl")
 if isfile(depsfile)
     rm(depsfile)
@@ -23,7 +21,7 @@ end
 
 base_env = "CPLEX_STUDIO_BINARIES"
 
-const cpxvers = ["1260","1261","1262","1263","1270", "1271","128","1280"]
+const cpxvers = ["128", "1280", "129", "1290"]
 
 libnames = String["cplex"]
 for v in reverse(cpxvers)
@@ -37,7 +35,7 @@ for v in reverse(cpxvers)
     end
 end
 
-const wincpxvers = ["126","1261","1262","1263","127","1270","1271","128","1280"]
+const wincpxvers = ["128", "1280", "129", "1290"]
 @static if (VERSION >= v"0.7.0-DEV.3382" && Sys.iswindows()) || (VERSION < v"0.7.0-DEV.3382" && is_windows())
     for v in reverse(wincpxvers)
         env = base_env * v

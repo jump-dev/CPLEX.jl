@@ -83,28 +83,20 @@ module CPLEX
     #        cbget_mipsol_sol,
     #        cplex_model
 
-    using Compat
-
-    using Compat.SparseArrays
-    using Compat.LinearAlgebra
+    using SparseArrays
+    using LinearAlgebra
 
     include("cpx_common.jl")
     include("cpx_env.jl")
     v = version()
-    if startswith(v,"12.6")
-        include("full_defines_126.jl")
-        include("cpx_params_126.jl")
-    elseif startswith(v,"12.7.1")
-        include("full_defines_1271.jl")
-        include("cpx_params_1271.jl")
-    elseif startswith(v,"12.7")
-        include("full_defines_127.jl")
-        include("cpx_params_127.jl")
-    elseif startswith(v,"12.8")
+    if startswith(v,"12.8")
         include("full_defines_1280.jl")
         include("cpx_params_1280.jl")
+    elseif startswith(v,"12.9")
+        include("full_defines_1290.jl")
+        include("cpx_params_1290.jl")
     else
-        error("Unsupported CPLEX version $v. Only 12.6, 12.7 and 12.8 are currently supported.")
+        error("Unsupported CPLEX version $v. Only 12.8 and 12.9 are currently supported.")
     end
     include("cpx_model.jl")
     include("cpx_params.jl")
@@ -114,7 +106,8 @@ module CPLEX
     include("cpx_solve.jl")
     include("cpx_callbacks.jl")
     include("cpx_highlevel.jl")
+    include("cpx_generic_callbacks.jl")
 
     include("CplexSolverInterface.jl")
-    include("MOIWrapper.jl")
+    include("MOI_wrapper.jl")
 end

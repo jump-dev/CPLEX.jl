@@ -39,12 +39,17 @@ NOTE: CPLEX [does not officially support linking to their dynamic C library](htt
 Note for windows
 ----------------
 
-Currently, CPLEX.jl is compatible only with 64-bit CPLEX and 64-bit Julia on Windows. CPLEX.jl attempts to automatically find the CPLEX library based on the `CPLEX_STUDIO_BINARIES` environmental variable set by the CPLEX installer.
+Currently, CPLEX.jl is compatible only with 64-bit CPLEX and 64-bit Julia on Windows. CPLEX.jl attempts to automatically find the CPLEX library based on the `CPLEX_STUDIO_BINARIESXXX` environmental variable set by the CPLEX installer where `XXX` is the CPLEX version. For example:
+```julia
+julia> ENV["CPLEX_STUDIO_BINARIES128"] = "C:/IBM/CPLEX_Studio128/cplex/bin/x64_win64"
+
+julia> Pkg.build("CPLEX")
+```
 
 Help! I got `LoadError: Unable to locate CPLEX installation`
 ----------------------------------
 
-Which version of CPLEX are you trying to install? Currently CPLEX.jl only supports 1260, 1261, 1262, 1263, 1270, 1271, and 1280. If it's not one of those, [file an issue](https://github.com/JuliaOpt/CPLEX.jl/issues/new) with the version number you'd like to support. Some steps need to be taken (like checking for new or renamed parameters) before CPLEX.jl can support new versions.
+Which version of CPLEX are you trying to install? Currently, CPLEX.jl only supports 1280 and 1290 given recent changes [the API](https://www.ibm.com/support/knowledgecenter/en/SSSA5P_12.9.0/ilog.odms.studio.help/CPLEX/ReleaseNotes/topics/releasenotes1290/removed.html). If your CPLEX version is < 1280, you can add the last supported version of CPLEX.jl via `julia> ] add CPLEX@0.4`. However, we recommend that you upgrade your version of CPLEX. If you want to support newer versions of CPLEX not listed above, [file an issue](https://github.com/JuliaOpt/CPLEX.jl/issues/new) with the version number you'd like to support. Some steps need to be taken (like checking for new or renamed parameters) before CPLEX.jl can support new versions.
 
 #### If you're on OS X or Linux
 
@@ -72,6 +77,9 @@ Another alternative is to run
 ```
 CPLEX_STUDIO_BINARIES="path/to/cplex/installation" julia -e 'Pkg.build("CPLEX")'
 ```
+#### If you're on Windows
+
+The environment variable needs to be `CPLEX_STUDIO_BINARIESXXX` where `XXX` is the version of CPLEX.
 
 Parameters
 ----------

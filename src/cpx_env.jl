@@ -17,7 +17,7 @@ mutable struct Env
               env.finalize_called = true
           end
       end
-      @compat finalizer(env_finalizer, env)
+      finalizer(env_finalizer, env)
       return env
     end
 end
@@ -52,11 +52,7 @@ end
 
 function set_logfile(env::Env, filename::String)
   @assert isascii(filename)
-  fp = @cpx_ccall(fopen, Ptr{Cvoid}, (Ptr{Cchar}, Ptr{Cchar}), filename, "w")
-  if fp == C_NULL
-    error("CPLEX: Error setting logfile")
-  end
-  stat = @cpx_ccall(setlogfile, Cint, (Ptr{Cvoid}, Ptr{Cvoid}), env, fp)
+  stat = @cpx_ccall(setlogfilename, Cint, (Ptr{Cvoid}, Ptr{Cchar}, Ptr{Cchar}), env, filename, "w")
   if stat != 0
     throw(CplexError(env, stat))
   end

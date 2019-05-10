@@ -1,6 +1,6 @@
-function c_api_addrows(model::Model, cbegins::IVec, inds::IVec, coeffs::FVec, 
+function c_api_addrows(model::Model, cbegins::IVec, inds::IVec, coeffs::FVec,
                    rel::CVec, rhs::FVec)
-    
+
     nnz   = length(inds)
     ncons = length(rhs)
     (nnz == length(coeffs)) || error("Incompatible constraint arg dimensions.")
@@ -20,8 +20,8 @@ function c_api_addrows(model::Model, cbegins::IVec, inds::IVec, coeffs::FVec,
                           Ptr{Ptr{Cchar}},  # col names
                           Ptr{Ptr{Cchar}}   # row names
                           ),
-                          model.env.ptr, model.lp, 0, ncons, nnz, rhs, rel, 
-                          cbegins .- Cint(1), inds .- Cint(1), coeffs, 
+                          model.env.ptr, model.lp, 0, ncons, nnz, rhs, rel,
+                          cbegins .- Cint(1), inds .- Cint(1), coeffs,
                           C_NULL, C_NULL)
 
         if stat != 0
@@ -31,7 +31,7 @@ function c_api_addrows(model::Model, cbegins::IVec, inds::IVec, coeffs::FVec,
 end
 
 # same as add_rows but does conversion of sense chars
-function add_constrs!(model::Model, cbegins::IVec, inds::IVec, coeffs::FVec, 
+function add_constrs!(model::Model, cbegins::IVec, inds::IVec, coeffs::FVec,
                       rel::CVec, rhs::FVec)
 
     for k in 1:length(rel)
@@ -43,7 +43,7 @@ function add_constrs!(model::Model, cbegins::IVec, inds::IVec, coeffs::FVec,
             rel[k] = convert(Cchar, 'E')
         end
     end
-    
+
     c_api_addrows(model, cbegins, inds, coeffs, rel, rhs)
 end
 
@@ -150,7 +150,7 @@ function c_api_getnumrows(model::Model)
     return ncons
 end
 # Needed by MathProgBase Interface
-num_constr(model::Model) = c_api_getnumrows(model) 
+num_constr(model::Model) = c_api_getnumrows(model)
 
 function get_constr_senses(model::Model)
     ncons = num_constr(model)
@@ -178,7 +178,7 @@ function c_api_chgsense(model::Model, indices::IVec, senses::CVec)
                       Ptr{Cint},
                       Ptr{Cchar}
                       ),
-                      model.env.ptr, model.lp, ncons, 
+                      model.env.ptr, model.lp, ncons,
                       indices .- Cint(1), senses)
     if stat != 0
         throw(CplexError(model.env, stat))
@@ -194,16 +194,16 @@ function set_constr_senses!(model::Model, senses::Vector)
                       Ptr{Cint},
                       Ptr{Cchar}
                       ),
-                      model.env.ptr, model.lp, ncons, Cint[0:ncons-1;], 
+                      model.env.ptr, model.lp, ncons, Cint[0:ncons-1;],
                       convert(Vector{Cchar},senses))
     if stat != 0
         throw(CplexError(model.env, stat))
     end
 end
 
-function c_api_getrhs(model::Model, rhs::Vector{Cdouble}, 
+function c_api_getrhs(model::Model, rhs::Vector{Cdouble},
         row_start::Cint, row_end::Cint)
-        
+
     stat = @cpx_ccall(getrhs, Cint, (
                       Ptr{Cvoid},
                       Ptr{Cvoid},
@@ -211,13 +211,13 @@ function c_api_getrhs(model::Model, rhs::Vector{Cdouble},
                       Cint,
                       Cint
                       ),
-                      model.env.ptr, model.lp, rhs, 
+                      model.env.ptr, model.lp, rhs,
                       row_start - Cint(1), row_end - Cint(1))
     if stat != 0
         throw(CplexError(model.env, stat))
     end
 end
-    
+
 function get_rhs(model::Model)
     ncons = num_constr(model)
     rhs = Vector{Cdouble}(undef, ncons)
@@ -359,8 +359,8 @@ end
 
 function c_api_getrows(model::Model, mbegin::Cint, mend::Cint)
     nzcnt_p = Vector{Cint}(undef, 1)
-    m = mend - mbegin + 1   
-    nnz = get_nnz(model)  
+    m = mend - mbegin + 1
+    nnz = get_nnz(model)
     rmatbeg = Vector{Cint}(undef, m+1)
     rmatind = Vector{Cint}(undef, nnz)
     rmatval = Vector{Cdouble}(undef, nnz)
@@ -377,8 +377,8 @@ function c_api_getrows(model::Model, mbegin::Cint, mend::Cint)
                     Cint,
                     Cint
                     ),
-                    model.env.ptr, model.lp, nzcnt_p, 
-                    rmatbeg, rmatind, rmatval, 
+                    model.env.ptr, model.lp, nzcnt_p,
+                    rmatbeg, rmatind, rmatval,
                     nnz, surplus_p, mbegin-Cint(1), mend-Cint(1))
     if stat != 0 || surplus_p[1] < 0
         throw(CplexError(model.env, stat))
@@ -442,6 +442,44 @@ function add_sos!(model::Model, sostype::Symbol, idx::Vector{Int}, weight::Vecto
     return nothing
 end
 
+# int CPXgetsos( CPXCENVptr env, CPXCLPptr lp, int * numsosnz_p, char * sostype,
+# int * sosbeg, int * sosind, double * soswt, int sosspace, int * surplus_p, int
+# begin, int end )
+function c_api_getsos(model::Model, index::Int)
+    numsosnz_p = Ref{Cint}()
+    surplus_p = Ref{Cint}()
+    sos_type = Ref{Cchar}()
+    sos_beg = Ref{Cint}()
+    stat = @cpx_ccall(getsos, Cint, (
+        Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}, Ptr{Cchar}, Ptr{Cint}, Ptr{Cint},
+        Ptr{Cdouble}, Cint, Ptr{Cint}, Cint, Cint),
+        model.env.ptr, model.lp, numsosnz_p, sos_type, sos_beg, C_NULL, C_NULL,
+        0, surplus_p, index, index)
+
+    num_terms = -surplus_p[]
+    columns = fill(Cint(0), num_terms)
+    weights = fill(Cdouble(0.0), num_terms)
+    stat = @cpx_ccall(getsos, Cint, (
+        Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}, Ptr{Cchar}, Ptr{Cint}, Ptr{Cint},
+        Ptr{Cdouble}, Cint, Ptr{Cint}, Cint, Cint),
+        model.env.ptr, model.lp, numsosnz_p, sos_type, sos_beg, columns, weights,
+        num_terms, surplus_p, index, index)
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+    return (columns, weights, sos_type[])
+end
+
+# int CPXdelsos( CPXCENVptr env, CPXLPptr lp, int begin, int end )
+function c_api_delsos(model::Model, begin_index::Int, end_index::Int)
+    stat = @cpx_ccall(delsos, Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Cint, Cint),
+        model.env.ptr, model.lp, begin_index, end_index)
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+    return
+end
+
 add_indicator_constraint(model::Model, idx, coeff, sense, rhs, indicator) =
     add_indicator_constraint(model::Model, idx, coeff, sense, rhs, indicator, 0)
 add_indicator_constraint(model::Model, idx, coeff, sense, rhs, indicator, comp) =
@@ -474,9 +512,9 @@ function c_api_chgcoef(model::Model, row::Cint, col::Cint, coef::Cdouble)
                       Ptr{Cvoid},        # problem
                       Cint,             # row
                       Cint,             # col
-                      Cdouble,          # coef                      
+                      Cdouble,          # coef
                       ),
-                      model.env.ptr, model.lp, 
+                      model.env.ptr, model.lp,
                       row - Cint(1), col - Cint(1), coef)
 
     if stat != 0

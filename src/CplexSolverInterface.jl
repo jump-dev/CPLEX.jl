@@ -69,13 +69,6 @@ end
 
 function MathProgBase.loadproblem!(m::CplexMathProgModel, filename::String)
    read_model(m.inner, filename)
-   prob_type = get_prob_type(m.inner)
-   if prob_type in [:MILP,:MIQP, :MIQCP]
-      m.inner.has_int = true
-   end
-   if prob_type in [:QP, :MIQP, :QCP, :MIQCP]
-      m.inner.has_qc = true
-   end
 end
 
 function MathProgBase.loadproblem!(m::CplexMathProgModel, A, collb, colub, obj, rowlb, rowub, sense)
@@ -202,7 +195,7 @@ function MathProgBase.status(m::CplexMathProgModel)
     elseif ret in [:CPX_STAT_INFEASIBLE, :CPXMIP_INFEASIBLE]
         :Infeasible
     elseif ret in [:CPX_STAT_INForUNBD, :CPXMIP_INForUNBD]
-        Base.warn_once("CPLEX reported infeasible or unbounded. Set CPX_PARAM_REDUCE=1 to check
+        @warn("CPLEX reported infeasible or unbounded. Set CPX_PARAM_REDUCE=1 to check
                         infeasibility or CPX_PARAM_REDUCE=2 to check unboundedness.")
         :InfeasibleOrUnbounded
     elseif occursin("TIME_LIM", string(ret)) || occursin("MIP_ABORT", string(ret))
@@ -339,7 +332,7 @@ export cbaddboundbranchup!,
        cbgetdettimestamp,
        cbgetintfeas
 
-@compat abstract type CplexCallbackData <: MathProgCallbackData end
+abstract type CplexCallbackData <: MathProgCallbackData end
 
 # set to nothing to clear callback
 MathProgBase.setlazycallback!(m::CplexMathProgModel,f) = (m.lazycb = f)
@@ -723,7 +716,7 @@ function masterbranchcallback(env::Ptr{Cvoid},
         end
     end
     if model.branchcb != nothing && state == :MIPBranch
-        numbranchingvars = unsafe_wrap(Array, nodebeg, convert(Cint,nodecnt))::Vector{Cint} + 1
+        numbranchingvars = unsafe_wrap(Array, nodebeg, convert(Cint,nodecnt))::Vector{Cint} .+ 1
         idxs = unsafe_wrap(Array, indices, sum(numbranchingvars))::Vector{Cint}
         vals = unsafe_wrap(Array, bd, sum(numbranchingvars))::Vector{Cdouble}
         dirs = unsafe_wrap(Array, lu, sum(numbranchingvars))::Vector{Cchar}
