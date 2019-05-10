@@ -120,3 +120,17 @@ end
         end
     end
 end
+
+@testset "Issue 229" begin
+    model = CPLEX.Optimizer()
+    @test haskey(model.params, "CPX_PARAM_SCRIND")
+    @test model.params["CPX_PARAM_SCRIND"] == 1
+
+    model = CPLEX.Optimizer(CPX_PARAM_SCRIND=0)
+    @test haskey(model.params, "CPX_PARAM_SCRIND")
+    @test model.params["CPX_PARAM_SCRIND"] == 0
+
+    model = CPLEX.Optimizer(CPXPARAM_ScreenOutput=0)
+    @test !haskey(model.params, "CPX_PARAM_SCRIND")
+    @test haskey(model.params, "CPXPARAM_ScreenOutput")
+end
