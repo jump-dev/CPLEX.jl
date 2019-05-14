@@ -144,7 +144,7 @@ end
     vc2 = MOI.add_constraint(model, MOI.SingleVariable(v[2]), MOI.GreaterThan(0.0))
     @test MOI.get(model, MOI.NumberOfConstraints{MOI.SingleVariable,MOI.GreaterThan{Float64}}()) == 2
 
-    objf = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([-1.0,0.0,0.0], [v]), 0.0)
+    objf = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([-1.0,0.0], v), 0.0)
     MOI.set(model, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), objf)
     MOI.set(model, MOI.ObjectiveSense(), MOI.MIN_SENSE)
 
