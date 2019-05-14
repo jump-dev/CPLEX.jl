@@ -434,13 +434,14 @@ function LQOI.get_quadratic_terms_objective(model::Optimizer)
     return sparse(Int.(qmatind), qmatcol, qmatval)
 end
 
-const integer_types = Set{Symbol}([:MILP, :MIQP, :MIQCP])
-const continuous_types = Set{Symbol}([:LP, :QP, :QCP])
+const INTEGER_TYPES = Set{Symbol}([:MILP, :MIQP, :MIQCP])
+const CONTINUOUS_TYPES = Set{Symbol}([:LP, :QP, :QCP])
 
 function LQOI.make_problem_type_integer(optimizer::Optimizer)
     optimizer.inner.has_int = true
     prob_type = get_prob_type(optimizer.inner)
-    prob_type in integer_types && return
+    prob_type in INTEGER_TYPES && return
+    # prob_type_toggle_map is defined in file CplexSolverInterface.jl
     set_prob_type!(optimizer.inner, prob_type_toggle_map[prob_type])
     return
 end
@@ -448,7 +449,8 @@ end
 function LQOI.make_problem_type_continuous(optimizer::Optimizer)
     optimizer.inner.has_int = false
     prob_type = get_prob_type(optimizer.inner)
-    prob_type in continuous_types && return
+    prob_type in CONTINUOUS_TYPES && return
+    # prob_type_toggle_map is defined in file CplexSolverInterface.jl
     set_prob_type!(optimizer.inner, prob_type_toggle_map[prob_type])
     return
 end
