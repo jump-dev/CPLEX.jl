@@ -120,3 +120,54 @@ end
         end
     end
 end
+
+@testset "Continuous -> Integer -> Continuous" begin
+    atol = 1e-5
+    rtol = 1e-5
+
+    model = CPLEX.Optimizer(CPX_PARAM_SCRIND = 0)
+    MOI.empty!(model)
+    @test MOI.is_empty(model)
+
+    # min -x
+    # st   x + y <= 1.5   (x + y - 1.5 ∈ Nonpositives)
+    #       x, y >= 0   (x, y ∈ Nonnegatives)
+
+    v = MOI.add_variables(model, 2)
+    @test MOI.get(model, MOI.NumberOfVariables()) == 2
+
+    cf = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0,1.0], v), 0.0)
+    c = MOI.add_constraint(model, cf, MOI.LessThan(1.5))
+    @test MOI.get(model, MOI.NumberOfConstraints{MOI.ScalarAffineFunction{Float64},MOI.LessThan{Float64}}()) == 1
+
+    vc1 = MOI.add_constraint(model, MOI.SingleVariable(v[1]), MOI.GreaterThan(0.0))
+    vc2 = MOI.add_constraint(model, MOI.SingleVariable(v[2]), MOI.GreaterThan(0.0))
+    @test MOI.get(model, MOI.NumberOfConstraints{MOI.SingleVariable,MOI.GreaterThan{Float64}}()) == 2
+
+    objf = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([-1.0,0.0], v), 0.0)
+    MOI.set(model, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}(), objf)
+    MOI.set(model, MOI.ObjectiveSense(), MOI.MIN_SENSE)
+
+    @test MOI.get(model, MOI.ObjectiveSense()) == MOI.MIN_SENSE
+    @test MOI.get(model, MOI.TerminationStatus()) == MOI.OPTIMIZE_NOT_CALLED
+
+    MOI.optimize!(model)
+
+    @test MOI.get(model, MOI.TerminationStatus()) == MOI.OPTIMAL
+    @test MOI.get(model, MOI.PrimalStatus()) == MOI.FEASIBLE_POINT
+    @test MOI.get(model, MOI.ObjectiveValue()) ≈ -1.5 atol=atol rtol=rtol
+    @test MOI.get(model, MOI.VariablePrimal(), v) ≈ [1.5, 0] atol=atol rtol=rtol
+    @test MOI.get(model, MOI.ConstraintPrimal(), c) ≈ 1.5 atol=atol rtol=rtol
+
+    # Add integrality constraints
+    int1 = MOI.add_constraint(model, MOI.SingleVariable(v[1]), MOI.Integer())
+    int2 = MOI.add_constraint(model, MOI.SingleVariable(v[2]), MOI.Integer())
+    MOI.optimize!(model)
+    @test MOI.get(model, MOI.ObjectiveValue()) ≈ -1.0 atol=atol rtol=rtol
+
+    # Remove integrality constraints
+    MOI.delete(model, int1)
+    MOI.delete(model, int2)
+    MOI.optimize!(model)
+    @test MOI.get(model, MOI.ObjectiveValue()) ≈ -1.5 atol=atol rtol=rtol
+end

@@ -209,12 +209,13 @@ function LQOI.delete_variables!(model::Optimizer, first_col::Int, last_col::Int)
 end
 
 function LQOI.solve_mip_problem!(model::Optimizer)
-    model.inner.has_int = true
-    LQOI.solve_linear_problem!(model)
+    LQOI.make_problem_type_integer(model)
+    optimize!(model.inner)
     return
 end
 
 function LQOI.solve_linear_problem!(model::Optimizer)
+    LQOI.make_problem_type_continuous(model)
     optimize!(model.inner)
     return
 end
@@ -410,7 +411,7 @@ function LQOI.get_number_quadratic_constraints(model::Optimizer)
     return CPLEX.num_qconstr(model.inner)
 end
 
- function LQOI.get_quadratic_terms_objective(model::Optimizer)
+function LQOI.get_quadratic_terms_objective(model::Optimizer)
     qmatbeg, qmatind, qmatval = c_api_getquad(model.inner)
     qmatind .+= 1
     qmatcol = fill(length(qmatbeg), length(qmatind))
@@ -421,7 +422,7 @@ end
         start_index = qmatbeg[i] + 1  # +1 converts to 1-based.
         stop_index = qmatbeg[i + 1]
         for j in start_index:stop_index
-        qmatcol[j] = i
+            qmatcol[j] = i
         end
     end
     for i in 1:length(qmatval)
@@ -431,5 +432,25 @@ end
     end
     # qmatind is ::Vector{Cint}, so we convert back to ::Vector{Int}.
     return sparse(Int.(qmatind), qmatcol, qmatval)
- end
+end
 
+const INTEGER_TYPES = Set{Symbol}([:MILP, :MIQP, :MIQCP])
+const CONTINUOUS_TYPES = Set{Symbol}([:LP, :QP, :QCP])
+
+function LQOI.make_problem_type_integer(optimizer::Optimizer)
+    optimizer.inner.has_int = true
+    prob_type = get_prob_type(optimizer.inner)
+    prob_type in INTEGER_TYPES && return
+    # prob_type_toggle_map is defined in file CplexSolverInterface.jl
+    set_prob_type!(optimizer.inner, prob_type_toggle_map[prob_type])
+    return
+end
+
+function LQOI.make_problem_type_continuous(optimizer::Optimizer)
+    optimizer.inner.has_int = false
+    prob_type = get_prob_type(optimizer.inner)
+    prob_type in CONTINUOUS_TYPES && return
+    # prob_type_toggle_map is defined in file CplexSolverInterface.jl
+    set_prob_type!(optimizer.inner, prob_type_toggle_map[prob_type])
+    return
+end
