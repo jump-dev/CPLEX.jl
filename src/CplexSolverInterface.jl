@@ -53,7 +53,7 @@ function MathProgBase.setparameters!(s::CplexSolver; mpboptions...)
     return
 end
 
-function MathProgBase.setparameters!(s::CplexMathProgModel; mpboptions...)
+function MathProgBase.setparameters!(m::CplexMathProgModel; mpboptions...)
     for (optname, optval) in mpboptions
         if optname == :TimeLimit
             setparam!(m.inner, "CPX_PARAM_TILIM", optval)
