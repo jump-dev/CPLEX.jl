@@ -244,3 +244,49 @@ function set_terminate(model::Model)
 end
 
 terminate(model::Model) = (model.terminator[1] = 1)
+
+mutable struct ConflictRefinerData
+    stat::Int
+    nrows::Int # number of rows participating in the conflict
+    rowind::Vector{Cint} # index of the rows that participate
+    rowstat::Vector{Cint} # state of the rows that participate
+    ncols::Int # number of columns participating in the conflict
+    colind::Vector{Cint} # index of the columns that participate
+    colstat::Vector{Cint} # state of the columns that participates
+end
+
+function c_api_getconflict(model::Model)
+    # This function always calls refineconflict first, which starts the conflict refiner. 
+    # In other words, any call to this function is expensive. 
+
+    # First, compute the conflict. 
+    confnumrows_p = Ref{Cint}()
+    confnumcols_p = Ref{Cint}()
+    stat = @cpx_ccall(
+        refineconflict, 
+        Cint, 
+        (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}, Ptr{Cint}),
+        model.env.ptr, model.lp, confnumrows_p, confnumcols_p)
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+
+    # Then, retrieve it. 
+    confstat_p = Ref{Cint}()
+    rowind = Vector{Cint}(undef, confnumrows_p[])
+    rowbdstat = Vector{Cint}(undef, confnumrows_p[])
+    confnumrows_p = Ref{Cint}()
+    colind = Vector{Cint}(undef, confnumcols_p[])
+    colbdstat = Vector{Cint}(undef, confnumcols_p[])
+    confnumcols_p  = Ref{Cint}()
+    stat = @cpx_ccall(
+        getconflict, 
+        Cint, 
+        (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}),
+        model.env.ptr, model.lp, confstat_p, rowind, rowbdstat, confnumrows_p, colind, colbdstat, confnumcols_p)
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+
+    return ConflictRefinerData(confstat_p[], confnumrows_p[], rowind, rowbdstat, confnumcols_p[], colind, colbdstat)
+end
