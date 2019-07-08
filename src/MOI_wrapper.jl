@@ -460,6 +460,7 @@ function LQOI.make_problem_type_continuous(optimizer::Optimizer)
     # prob_type_toggle_map is defined in file CplexSolverInterface.jl
     set_prob_type!(optimizer.inner, prob_type_toggle_map[prob_type])
     return
+end
 
 """
     compute_conflict(model::Optimizer)
