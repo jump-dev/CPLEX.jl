@@ -4,3 +4,5 @@
 *.sublime*
 *.log
 *.cov
+Manifest.toml
+
