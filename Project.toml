@@ -1,0 +1,23 @@
+name = "CPLEX"
+uuid = "a076750e-1247-5638-91d2-ce28b192dca0"
+repo = "https://github.com/JuliaOpt/CPLEX.jl"
+version = "0.5.0"
+
+[deps]
+Libdl = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
+LinQuadOptInterface = "f8899e07-120b-5979-ab1d-7b97bb9e1a48"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+MathProgBase = "fdba3010-5040-5b88-9595-932c9decdf73"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+
+[compat]
+LinQuadOptInterface = "~0.6.0"
+MathProgBase = "~0.5.0, ~0.6, ~0.7"
+julia = "1"
+
+[extras]
+Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Pkg", "Test"]
