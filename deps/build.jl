@@ -15,8 +15,8 @@ function write_depsfile(path)
     end
 end
 
-@static if (VERSION >= v"0.7.0-DEV.3382" && Sys.isapple()) || (VERSION < v"0.7.0-DEV.3382" && is_apple())
-    Libdl.dlopen("libstdc++",Libdl.RTLD_GLOBAL)
+@static if Sys.isapple()
+    Libdl.dlopen("libstdc++", Libdl.RTLD_GLOBAL)
 end
 
 base_env = "CPLEX_STUDIO_BINARIES"
@@ -38,9 +38,9 @@ const cpxvers = ["128", "1280", "129", "1290"]
 
 libnames = String["cplex"]
 for v in reverse(cpxvers)
-    if (VERSION >= v"0.7.0-DEV.3382" && Sys.isapple()) || (VERSION < v"0.7.0-DEV.3382" && is_apple())
+    if Sys.isapple()
         push!(libnames, "libcplex$v.dylib")
-    elseif (VERSION >= v"0.7.0-DEV.3382" && Sys.isunix()) || (VERSION < v"0.7.0-DEV.3382" && is_unix())
+    elseif Sys.isunix()
         push!(libnames, "libcplex$v.so")
         if haskey(ENV, base_env)
             push!(libnames, joinpath(ENV[base_env], "libcplex$v.so"))
@@ -52,7 +52,7 @@ for v in reverse(cpxvers)
 end
 
 const wincpxvers = ["128", "1280", "129", "1290"]
-@static if (VERSION >= v"0.7.0-DEV.3382" && Sys.iswindows()) || (VERSION < v"0.7.0-DEV.3382" && is_windows())
+@static if Sys.iswindows()
     for v in reverse(wincpxvers)
         env = base_env * v
         if haskey(ENV, env)
