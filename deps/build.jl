@@ -9,7 +9,7 @@ end
 
 function write_depsfile(path)
     open(depsfile,"w") do f
-        print(f,"const libcplex = ")
+        print(f, "const libcplex = ")
         show(f, path) # print with backslashes excaped on windows
         println(f)
     end
@@ -20,11 +20,19 @@ end
 end
 
 base_env = "CPLEX_STUDIO_BINARIES"
-cplex_path = splitdir(strip(try
-        read(`which cplex`, String)
+
+cplex_path = try
+        @static if Sys.isapple() || Sys.isunix()
+            read(`which cplex`, String)
+        elseif Sys.iswindows()
+            read(`where cplex`, String)
+        end
     catch
         nothing
-    end))[1]
+    end
+if cplex_path !== nothing
+    cplex_path = splitdir(strip(cplex_path))[1]
+end
 
 const cpxvers = ["128", "1280", "129", "1290"]
 
@@ -47,15 +55,19 @@ const wincpxvers = ["128", "1280", "129", "1290"]
 @static if (VERSION >= v"0.7.0-DEV.3382" && Sys.iswindows()) || (VERSION < v"0.7.0-DEV.3382" && is_windows())
     for v in reverse(wincpxvers)
         env = base_env * v
-        if haskey(ENV,env)
-            for d in split(ENV[env],';')
+        if haskey(ENV, env)
+            for d in split(ENV[env], ';')
                 occursin("cplex", d) || continue
                 if length(v) == 3 # annoying inconsistency
-                    push!(libnames,joinpath(d,"cplex$(v)0"))
+                    push!(libnames, joinpath(d,"cplex$(v)0"))
                 else
-                    push!(libnames,joinpath(d,"cplex$(v)"))
+                    push!(libnames, joinpath(d,"cplex$(v)"))
                 end
             end
+        end
+        if cplex_path !== nothing
+            push!(libnames, joinpath(cplex_path, "cplex$(v)"))
+            push!(libnames, joinpath(cplex_path, "cplex$(v)0"))
         end
     end
 end
