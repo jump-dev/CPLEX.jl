@@ -22,15 +22,17 @@ end
 base_env = "CPLEX_STUDIO_BINARIES"
 
 cplex_path = try
-        @static if Sys.isapple() || Sys.isunix()
-            read(`which cplex`, String)
-        elseif Sys.iswindows()
-            read(`where cplex`, String)
-        end
-    catch
-        nothing
+    # Find the path to the CPLEX executable.
+    @static if Sys.isapple() || Sys.isunix()
+        read(`which cplex`, String)
+    elseif Sys.iswindows()
+        read(`where cplex`, String)
     end
+catch
+    nothing
+end
 if cplex_path !== nothing
+    # Extract the path to the folder containing the CPLEX executable.
     cplex_path = splitdir(strip(cplex_path))[1]
 end
 
