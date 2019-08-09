@@ -20,6 +20,11 @@ end
 end
 
 base_env = "CPLEX_STUDIO_BINARIES"
+cplex_path = splitdir(strip(try
+        read(`which cplex`, String)
+    catch
+        nothing
+    end))[1]
 
 const cpxvers = ["128", "1280", "129", "1290"]
 
@@ -31,6 +36,9 @@ for v in reverse(cpxvers)
         push!(libnames, "libcplex$v.so")
         if haskey(ENV, base_env)
             push!(libnames, joinpath(ENV[base_env], "libcplex$v.so"))
+        end
+        if cplex_path !== nothing
+            push!(libnames, joinpath(cplex_path, "libcplex$v.so"))
         end
     end
 end
