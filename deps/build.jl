@@ -2,13 +2,13 @@
     using Libdl
 end
 
-depsfile = joinpath(dirname(@__FILE__),"deps.jl")
+depsfile = joinpath(dirname(@__FILE__), "deps.jl")
 if isfile(depsfile)
     rm(depsfile)
 end
 
 function write_depsfile(path)
-    open(depsfile,"w") do f
+    open(depsfile, "w") do f
         print(f, "const libcplex = ")
         show(f, path) # print with backslashes excaped on windows
         println(f)
@@ -61,9 +61,9 @@ const wincpxvers = ["128", "1280", "129", "1290"]
             for d in split(ENV[env], ';')
                 occursin("cplex", d) || continue
                 if length(v) == 3 # annoying inconsistency
-                    push!(libnames, joinpath(d,"cplex$(v)0"))
+                    push!(libnames, joinpath(d, "cplex$(v)0"))
                 else
-                    push!(libnames, joinpath(d,"cplex$(v)"))
+                    push!(libnames, joinpath(d, "cplex$(v)"))
                 end
             end
         end
