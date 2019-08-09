@@ -33,7 +33,7 @@ catch
 end
 if cplex_path !== nothing
     # Extract the path to the folder containing the CPLEX executable.
-    cplex_path = splitdir(strip(cplex_path))[1]
+    cplex_path = dirname(strip(cplex_path))
 end
 
 const cpxvers = ["128", "1280", "129", "1290"]
