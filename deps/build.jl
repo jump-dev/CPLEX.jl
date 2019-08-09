@@ -36,7 +36,8 @@ if cplex_path !== nothing
     cplex_path = dirname(strip(cplex_path))
 end
 
-const cpxvers = ["128", "1280", "129", "1290"]
+base_cpxvers = ["128", "129"]
+cpxvers = [base_cpxvers; base_cpxvers .* "0"]
 
 libnames = String["cplex"]
 for v in reverse(cpxvers)
@@ -53,23 +54,20 @@ for v in reverse(cpxvers)
     end
 end
 
-const wincpxvers = ["128", "1280", "129", "1290"]
+base_wincpxvers = ["128", "129"]
+wincpxvers = [base_wincpxvers; base_wincpxvers .* "0"]
+
 @static if Sys.iswindows()
     for v in reverse(wincpxvers)
         env = base_env * v
         if haskey(ENV, env)
             for d in split(ENV[env], ';')
                 occursin("cplex", d) || continue
-                if length(v) == 3 # annoying inconsistency
-                    push!(libnames, joinpath(d, "cplex$(v)0"))
-                else
-                    push!(libnames, joinpath(d, "cplex$(v)"))
-                end
+                push!(libnames, joinpath(d, "cplex$(v)"))
             end
         end
         if cplex_path !== nothing
             push!(libnames, joinpath(cplex_path, "cplex$(v)"))
-            push!(libnames, joinpath(cplex_path, "cplex$(v)0"))
         end
     end
 end
