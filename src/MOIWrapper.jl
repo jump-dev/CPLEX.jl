@@ -130,7 +130,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
         MOI.empty!(model)  # MOI.empty!(model) re-sets the `.inner` field.
         for (name, value) in kwargs
             model.params[string(name)] = value
-            setparam!(model.inner, name, value)
+            set_param!(model.inner, name, value)
         end
         if !haskey(model.params, "InfUnbdInfo")
             MOI.set(model, MOI.RawParameter("InfUnbdInfo"), 1)
@@ -151,13 +151,13 @@ function MOI.empty!(model::Optimizer)
         model.inner = Model(model.env, "", finalize_env = false)
     end
     for (name, value) in model.params
-        setparam!(model.inner, name, value)
+        set_param!(model.inner, name, value)
     end
     if model.silent
         # Set the parameter on the internal model, but don't modify the entry in
         # model.params so that if Silent() is set to `true`, the user-provided
         # value will be restored.
-        setparam!(model.inner, "CPX_PARAM_SCRIND", 0)
+        set_param!(model.inner, "CPX_PARAM_SCRIND", 0)
     end
     model.objective_type = SCALAR_AFFINE
     model.is_feasibility = true
@@ -171,7 +171,7 @@ function MOI.empty!(model::Optimizer)
     model.has_infeasibility_cert = false
     empty!(model.callback_variable_primal)
     for (name,value) in model.params
-        setparam!(model.inner, name, value)
+        set_param!(model.inner, name, value)
     end
     model.conflict = nothing
     return
@@ -283,12 +283,12 @@ MOI.supports(::Optimizer, ::ConflictStatus) = true
 
 function MOI.set(model::Optimizer, param::MOI.RawParameter, value)
     model.params[param.name] = value
-    setparam!(model.inner, param.name, value)
+    set_param!(model.inner, param.name, value)
     return
 end
 
 function MOI.get(model::Optimizer, param::MOI.RawParameter)
-    return getparam(model.inner, param.name)
+    return get_param(model.inner, param.name)
 end
 
 function MOI.set(model::Optimizer, ::MOI.TimeLimitSec, limit::Real)
@@ -1951,7 +1951,7 @@ end
 function MOI.set(model::Optimizer, ::MOI.Silent, flag::Bool)
     model.silent = flag
     output_flag = flag ? 0 : get(model.params, "OutputFlag", 1)
-    setparam!(model.inner, "OutputFlag", output_flag)
+    set_param!(model.inner, "OutputFlag", output_flag)
     return
 end
 
