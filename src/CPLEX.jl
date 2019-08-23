@@ -109,5 +109,5 @@ module CPLEX
     include("cpx_generic_callbacks.jl")
 
     include("CplexSolverInterface.jl")
-    include("MOIwrapper.jl")
+    include("MOIWrapper.jl")
 end
