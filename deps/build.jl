@@ -1,6 +1,4 @@
-@static if VERSION >= v"0.7.0-DEV.3382"
-    using Libdl
-end
+using Libdl
 
 depsfile = joinpath(dirname(@__FILE__), "deps.jl")
 if isfile(depsfile)
