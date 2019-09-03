@@ -54,11 +54,8 @@ for v in reverse(cpxvers)
     end
 end
 
-base_wincpxvers = ["128", "129"]
-wincpxvers = [base_wincpxvers; base_wincpxvers .* "0"]
-
 @static if Sys.iswindows()
-    for v in reverse(wincpxvers)
+    for v in reverse(cpxvers)
         env = base_env * v
         if haskey(ENV, env)
             for d in split(ENV[env], ';')
