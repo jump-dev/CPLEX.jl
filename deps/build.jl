@@ -41,19 +41,6 @@ cpxvers = [base_cpxvers; base_cpxvers .* "0"]
 
 libnames = String["cplex"]
 
-@static if ! Sys.iswindows()
-    extension = if Sys.isapple(); ".dylib"; else; ".so"; end
-    for v in reverse(cpxvers)
-        push!(libnames, "libcplex$(v).$(extension)")
-        if haskey(ENV, base_env)
-            push!(libnames, joinpath(ENV[base_env], "libcplex$(v).$(extension)"))
-        end
-        if cplex_path !== nothing
-            push!(libnames, joinpath(cplex_path, "libcplex$(v).$(extension)"))
-        end
-    end
-end
-
 @static if Sys.iswindows()
     for v in reverse(cpxvers)
         env = base_env * v
@@ -65,6 +52,17 @@ end
         end
         if cplex_path !== nothing
             push!(libnames, joinpath(cplex_path, "cplex$(v)"))
+        end
+    end
+else
+    extension = Sys.isapple() ? ".dylib" : ".so"
+    for v in reverse(cpxvers)
+        push!(libnames, "libcplex$(v).$(extension)")
+        if haskey(ENV, base_env)
+            push!(libnames, joinpath(ENV[base_env], "libcplex$(v).$(extension)"))
+        end
+        if cplex_path !== nothing
+            push!(libnames, joinpath(cplex_path, "libcplex$(v).$(extension)"))
         end
     end
 end
