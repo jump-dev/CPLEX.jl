@@ -36,6 +36,8 @@ end
 
 base_cpxvers = ["128", "129"]
 cpxvers = [base_cpxvers; base_cpxvers .* "0"]
+cpx_prefix = Sys.iswindows() ? "" : "lib"
+cpx_extension = Sys.iswindows() ? "" : (Sys.isapple() ? ".dylib" : ".so")
 
 libnames = String["cplex"]
 
@@ -53,14 +55,14 @@ libnames = String["cplex"]
         end
     end
 else
-    extension = Sys.isapple() ? ".dylib" : ".so"
+
     for v in reverse(cpxvers)
         push!(libnames, "libcplex$(v).$(extension)")
         if haskey(ENV, base_env)
-            push!(libnames, joinpath(ENV[base_env], "libcplex$(v).$(extension)"))
+            push!(libnames, joinpath(ENV[base_env], "$(prefix)cplex$(v).$(extension)"))
         end
         if cplex_path !== nothing
-            push!(libnames, joinpath(cplex_path, "libcplex$(v).$(extension)"))
+            push!(libnames, joinpath(cplex_path, "$(prefix)cplex$(v).$(extension)"))
         end
     end
 end
