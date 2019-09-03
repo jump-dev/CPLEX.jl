@@ -40,16 +40,16 @@ base_cpxvers = ["128", "129"]
 cpxvers = [base_cpxvers; base_cpxvers .* "0"]
 
 libnames = String["cplex"]
-for v in reverse(cpxvers)
-    if Sys.isapple()
-        push!(libnames, "libcplex$v.dylib")
-    elseif Sys.isunix()
-        push!(libnames, "libcplex$v.so")
+
+@static if ! Sys.iswindows()
+    extension = if Sys.isapple(); ".dylib"; else; ".so"; end
+    for v in reverse(cpxvers)
+        push!(libnames, "libcplex$(v).$(extension)")
         if haskey(ENV, base_env)
-            push!(libnames, joinpath(ENV[base_env], "libcplex$v.so"))
+            push!(libnames, joinpath(ENV[base_env], "libcplex$(v).$(extension)"))
         end
         if cplex_path !== nothing
-            push!(libnames, joinpath(cplex_path, "libcplex$v.so"))
+            push!(libnames, joinpath(cplex_path, "libcplex$(v).$(extension)"))
         end
     end
 end
