@@ -17,10 +17,12 @@ end
     Libdl.dlopen("libstdc++", Libdl.RTLD_GLOBAL)
 end
 
+base_cpxvers = ["128", "129"]
+cpxvers = [base_cpxvers; base_cpxvers .* "0"]
 base_env = "CPLEX_STUDIO_BINARIES"
 
+# Find the path to the CPLEX executable.
 cplex_path = try
-    # Find the path to the CPLEX executable.
     @static if Sys.isapple() || Sys.isunix()
         read(`which cplex`, String)
     elseif Sys.iswindows()
@@ -34,41 +36,30 @@ if cplex_path !== nothing
     cplex_path = dirname(strip(cplex_path))
 end
 
-base_cpxvers = ["128", "129"]
-cpxvers = [base_cpxvers; base_cpxvers .* "0"]
+# Iterate through a series of places where CPLEX could be found: either in the path (directly the callable library or
+# the CPLEX executable) or from an environment variable.
 cpx_prefix = Sys.iswindows() ? "" : "lib"
-cpx_extension = Sys.iswindows() ? "" : (Sys.isapple() ? ".dylib" : ".so")
+cpx_extension = Sys.iswindows() ? "dll" : (Sys.isapple() ? "dylib" : "so")
 
 libnames = String["cplex"]
+for v in reverse(cpxvers)
+    push!(libnames, "$(cpx_prefix)cplex$(v).$(cpx_extension)")
+    if cplex_path !== nothing
+        push!(libnames, joinpath(cplex_path, "$(cpx_prefix)cplex$(v).$(cpx_extension)"))
+    end
 
-@static if Sys.iswindows()
-    for v in reverse(cpxvers)
-        env = base_env * v
+    for env in [base_env, base_env * v]
         if haskey(ENV, env)
             for d in split(ENV[env], ';')
                 occursin("cplex", d) || continue
-                push!(libnames, joinpath(d, "cplex$(v)"))
+                push!(libnames, joinpath(d, "$(cpx_prefix)cplex$(v).$(cpx_extension)"))
             end
-        end
-        if cplex_path !== nothing
-            push!(libnames, joinpath(cplex_path, "cplex$(v)"))
-        end
-    end
-else
-
-    for v in reverse(cpxvers)
-        push!(libnames, "libcplex$(v).$(extension)")
-        if haskey(ENV, base_env)
-            push!(libnames, joinpath(ENV[base_env], "$(prefix)cplex$(v).$(extension)"))
-        end
-        if cplex_path !== nothing
-            push!(libnames, joinpath(cplex_path, "$(prefix)cplex$(v).$(extension)"))
         end
     end
 end
 
+# Perform the actual search in the potential places.
 found = false
-
 for l in libnames
     d = Libdl.dlopen_e(l)
     if d != C_NULL
