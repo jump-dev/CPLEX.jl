@@ -2,7 +2,7 @@
 macro cpx_ccall(func, args...)
     f = "CPX$(func)"
     args = map(esc,args)
-    @static Sys.isunix())
+    @static if Sys.isunix()
         return quote
             ccall(($f,libcplex), $(args...))
         end

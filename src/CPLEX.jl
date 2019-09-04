@@ -3,7 +3,7 @@ __precompile__()
 module CPLEX
     using Libdl
 
-    @static if Sys.isapple())
+    @static if Sys.isapple()
         Libdl.dlopen("libstdc++",Libdl.RTLD_GLOBAL)
     end
 
