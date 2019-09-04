@@ -39,20 +39,19 @@ end
 # Iterate through a series of places where CPLEX could be found: either in the path (directly the callable library or
 # the CPLEX executable) or from an environment variable.
 cpx_prefix = Sys.iswindows() ? "" : "lib"
-cpx_extension = Sys.iswindows() ? "dll" : (Sys.isapple() ? "dylib" : "so")
 
 libnames = String["cplex"]
 for v in reverse(cpxvers)
-    push!(libnames, "$(cpx_prefix)cplex$(v).$(cpx_extension)")
+    push!(libnames, "$(cpx_prefix)cplex$(v).$(Libdl.dlext)")
     if cplex_path !== nothing
-        push!(libnames, joinpath(cplex_path, "$(cpx_prefix)cplex$(v).$(cpx_extension)"))
+        push!(libnames, joinpath(cplex_path, "$(cpx_prefix)cplex$(v).$(Libdl.dlext)"))
     end
 
     for env in [base_env, base_env * v]
         if haskey(ENV, env)
             for d in split(ENV[env], ';')
                 occursin("cplex", d) || continue
-                push!(libnames, joinpath(d, "$(cpx_prefix)cplex$(v).$(cpx_extension)"))
+                push!(libnames, joinpath(d, "$(cpx_prefix)cplex$(v).$(Libdl.dlext)"))
             end
         end
     end
