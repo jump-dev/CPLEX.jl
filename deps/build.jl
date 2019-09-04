@@ -64,6 +64,7 @@ for l in libnames
     if d != C_NULL
         global found = true
         write_depsfile(Libdl.dlpath(d))
+        @info("Using CPLEX found in location `$(libname)`")
         break
     end
 end
