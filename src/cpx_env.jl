@@ -4,7 +4,7 @@ mutable struct Env
     finalize_called::Bool
 
     function Env()
-      stat = Vector{Cint}(undef, 1)
+      stat = Ref{Cint}()
       tmp = @cpx_ccall(openCPLEX, Ptr{Cvoid}, (Ptr{Cint},), stat)
       if tmp == C_NULL
           error("CPLEX: Error creating environment")
