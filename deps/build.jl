@@ -1,64 +1,70 @@
-@static if VERSION >= v"0.7.0-DEV.3382"
-    using Libdl
-end
+using Libdl
 
-depsfile = joinpath(dirname(@__FILE__),"deps.jl")
+depsfile = joinpath(dirname(@__FILE__), "deps.jl")
 if isfile(depsfile)
     rm(depsfile)
 end
 
 function write_depsfile(path)
-    open(depsfile,"w") do f
-        print(f,"const libcplex = ")
+    open(depsfile, "w") do f
+        print(f, "const libcplex = ")
         show(f, path) # print with backslashes excaped on windows
         println(f)
     end
 end
 
-@static if (VERSION >= v"0.7.0-DEV.3382" && Sys.isapple()) || (VERSION < v"0.7.0-DEV.3382" && is_apple())
-    Libdl.dlopen("libstdc++",Libdl.RTLD_GLOBAL)
+@static if Sys.isapple()
+    Libdl.dlopen("libstdc++", Libdl.RTLD_GLOBAL)
 end
 
+base_cpxvers = ["128", "129"]
+cpxvers = [base_cpxvers; base_cpxvers .* "0"]
 base_env = "CPLEX_STUDIO_BINARIES"
 
-const cpxvers = ["128", "1280", "129", "1290"]
+# Find the path to the CPLEX executable.
+cplex_path = try
+    @static if Sys.isapple() || Sys.isunix()
+        read(`which cplex`, String)
+    elseif Sys.iswindows()
+        read(`where cplex`, String)
+    end
+catch
+    nothing
+end
+if cplex_path !== nothing
+    # Extract the path to the folder containing the CPLEX executable.
+    cplex_path = dirname(strip(cplex_path))
+end
+
+# Iterate through a series of places where CPLEX could be found: either in the path (directly the callable library or
+# the CPLEX executable) or from an environment variable.
+cpx_prefix = Sys.iswindows() ? "" : "lib"
 
 libnames = String["cplex"]
 for v in reverse(cpxvers)
-    if (VERSION >= v"0.7.0-DEV.3382" && Sys.isapple()) || (VERSION < v"0.7.0-DEV.3382" && is_apple())
-        push!(libnames, "libcplex$v.dylib")
-    elseif (VERSION >= v"0.7.0-DEV.3382" && Sys.isunix()) || (VERSION < v"0.7.0-DEV.3382" && is_unix())
-        push!(libnames, "libcplex$v.so")
-        if haskey(ENV, base_env)
-            push!(libnames, joinpath(ENV[base_env], "libcplex$v.so"))
-        end
+    push!(libnames, "$(cpx_prefix)cplex$(v).$(Libdl.dlext)")
+    if cplex_path !== nothing
+        push!(libnames, joinpath(cplex_path, "$(cpx_prefix)cplex$(v).$(Libdl.dlext)"))
     end
-end
 
-const wincpxvers = ["128", "1280", "129", "1290"]
-@static if (VERSION >= v"0.7.0-DEV.3382" && Sys.iswindows()) || (VERSION < v"0.7.0-DEV.3382" && is_windows())
-    for v in reverse(wincpxvers)
-        env = base_env * v
-        if haskey(ENV,env)
-            for d in split(ENV[env],';')
+    for env in [base_env, base_env * v]
+        if haskey(ENV, env)
+            for d in split(ENV[env], ';')
                 occursin("cplex", d) || continue
-                if length(v) == 3 # annoying inconsistency
-                    push!(libnames,joinpath(d,"cplex$(v)0"))
-                else
-                    push!(libnames,joinpath(d,"cplex$(v)"))
-                end
+                push!(libnames, joinpath(d, "$(cpx_prefix)cplex$(v).$(Libdl.dlext)"))
             end
         end
     end
 end
 
+# Perform the actual search in the potential places.
 found = false
-
 for l in libnames
     d = Libdl.dlopen_e(l)
     if d != C_NULL
         global found = true
         write_depsfile(Libdl.dlpath(d))
+        @info("Using CPLEX found in location `$(libname)`")
         break
     end
 end

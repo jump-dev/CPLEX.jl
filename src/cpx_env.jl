@@ -4,21 +4,21 @@ mutable struct Env
     finalize_called::Bool
 
     function Env()
-      stat = Vector{Cint}(undef, 1)
-      tmp = @cpx_ccall(openCPLEX, Ptr{Cvoid}, (Ptr{Cint},), stat)
-      if tmp == C_NULL
-          error("CPLEX: Error creating environment")
-      end
-      env = new(tmp, 0, false)
-      function env_finalizer(env)
-          if env.num_models == 0
-              close_CPLEX(env)
-          else
-              env.finalize_called = true
-          end
-      end
-      finalizer(env_finalizer, env)
-      return env
+        stat = Vector{Cint}(undef, 1)
+        tmp = @cpx_ccall(openCPLEX, Ptr{Cvoid}, (Ptr{Cint},), stat)
+        if tmp == C_NULL
+            error("CPLEX: Error creating environment")
+        end
+        env = new(tmp, 0, false)
+        function env_finalizer(env)
+            if env.num_models == 0
+                close_CPLEX(env)
+            else
+                env.finalize_called = true
+            end
+        end
+        finalizer(env_finalizer, env)
+        return env
     end
 end
 

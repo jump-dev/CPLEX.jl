@@ -1,12 +1,9 @@
 __precompile__()
 
 module CPLEX
+    using Libdl
 
-    if VERSION >= v"0.7.0-DEV.3382"
-        using Libdl
-    end
-
-    @static if (VERSION >= v"0.7.0-DEV.3382" && Sys.isapple()) || (VERSION < v"0.7.0-DEV.3382" && is_apple())
+    @static if Sys.isapple()
         Libdl.dlopen("libstdc++",Libdl.RTLD_GLOBAL)
     end
 
