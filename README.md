@@ -23,7 +23,7 @@ Setting up CPLEX on OS X and Linux
 
 2. Once CPLEX is installed on your machine, point the `LD_LIBRARY_PATH` variable to the directory containing the CPLEX library by adding, for example, ``export LD_LIBRARY_PATH="/path/to/cplex/bin/x86-64_linux":$LD_LIBRARY_PATH`` to your start-up file (e.g. ``.bash_profile``, [adding library path on Ubuntu](http://stackoverflow.com/questions/13428910/how-to-set-the-environmental-variable-ld-library-path-in-linux for a)). On linux, make sure this directory contains ``libcplexXXX.so`` where ``XXX`` is stands for the version number; on OS-X the file should be named ``libcplexXXX.dylib``. Alternatively, you can also use the `CPLEX_STUDIO_BINARIES` environment variable as follows:
   ```
-  $ CPLEX_STUDIO_BINARIES=/path/to/cplex/bin/x86-64_linux julia -e 'Pkg.add("CPLEX"); Pkg.build("CPLEX")'
+  $ CPLEX_STUDIO_BINARIES=/path/to/cplex/bin/x86-64_linux julia -e 'import Pkg; Pkg.add("CPLEX"); Pkg.build("CPLEX")'
   ```
 
 3. At the Julia prompt, run
