@@ -11,6 +11,3 @@ branches:
   only:
   - master
   - "/^release-.*$/"
-env:
-  global:
-    secure: DaNdXjGimdqgZKNU7tarR2EHw9q6AEkO9aGW0SzUI3nWdWdcdssGL/GDGVVzz8zESqdJ4n7V8PqImyi5UNPKtcZpLFMRiOfWrq8S4uhhIdUs9t8R5k6bf76xtTiVb5xVNzq9cPwe3ktcV6odmLnu6I/kY/VYwOPU9mhVtaWBmT8=
