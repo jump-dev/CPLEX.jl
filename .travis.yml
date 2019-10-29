@@ -13,4 +13,4 @@ branches:
   - "/^release-.*$/"
 env:
   global:
-    secure: DlLHJfhnRTodFqT1vbxkX5qwaSPKX5geq09kewkmk4TE1COFMeJXfH2KzpXCpKy0BREYuk5ZCDp5zNsYspNKzRt3Libl9Utz948NKcYSDgKRPAfvqs8Y5R57/TQvcvq6Y5UYPQ4USnktfEuXLCmJeGrnp1WtXUpvD5h6RjHgeKk=
+    secure: DaNdXjGimdqgZKNU7tarR2EHw9q6AEkO9aGW0SzUI3nWdWdcdssGL/GDGVVzz8zESqdJ4n7V8PqImyi5UNPKtcZpLFMRiOfWrq8S4uhhIdUs9t8R5k6bf76xtTiVb5xVNzq9cPwe3ktcV6odmLnu6I/kY/VYwOPU9mhVtaWBmT8=
