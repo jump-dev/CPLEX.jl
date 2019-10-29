@@ -77,7 +77,7 @@ function try_travis_installation()
     write_depsfile(local_filename)
 end
 
-if get(ENV, "TRAVIS", false)
+if get(ENV, "TRAVIS", "false") == "true"
     try_travis_installation()
 else
     try_local_installation()
