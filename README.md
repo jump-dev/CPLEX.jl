@@ -1,20 +1,25 @@
 CPLEX.jl
 ========
 
-CPLEX.jl is an unofficial interface to the [IBM® ILOG® CPLEX® Optimization
+`CPLEX.jl` is an interface to the [IBM® ILOG® CPLEX® Optimization
 Studio](https://www.ibm.com/products/ilog-cplex-optimization-studio). It
 provides an interface to the low-level C API, as well as an implementation of
-the solver-independent [`MathProgBase`](https://github.com/JuliaOpt/MathProgBase.jl)
-and [`MathOptInterface`](https://github.com/JuliaOpt/MathOptInterface.jl) API's.
+the solver-independent
+[`MathProgBase`](https://github.com/JuliaOpt/MathProgBase.jl) and
+[`MathOptInterface`](https://github.com/JuliaOpt/MathOptInterface.jl) API's.
 
-You cannot use CPLEX.jl without having purchased and installed a copy of CPLEX
-Optimization Studio from [IBM](http://www.ibm.com/). This package is available
-free of charge and in no way replaces or alters any functionality of IBM's CPLEX
-Optimization Studio product.
+You cannot use `CPLEX.jl` without having purchased and installed a copy of CPLEX
+Optimization Studio from [IBM](http://www.ibm.com/). However, CPLEX is
+available for free to [academics and students](http://ibm.biz/Bdzvqw).
+
+This package is available free of charge and in no way replaces or alters any
+functionality of IBM's CPLEX Optimization Studio product.
 
 *Note: This wrapper is maintained by the JuliaOpt community and is not
-officially supported by IBM. If you are a commercial customer interested in
-official support for CPLEX in Julia, let them know!.*
+officially supported by IBM. However, we thank IBM for providing us with a
+CPLEX license to test `CPLEX.jl` on Travis. If you are a commercial customer
+interested in official support for CPLEX in Julia, let them know!.*
+
 
 Setting up CPLEX on OS X and Linux
 ----------------------------------
