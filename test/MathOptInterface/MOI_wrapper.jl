@@ -1,43 +1,26 @@
-using MathOptInterface, CPLEX, Test
+using CPLEX
+using MathOptInterface
+using Test
 
 const MOI  = MathOptInterface
 const MOIT = MOI.Test
 const MOIB = MOI.Bridges
 
-const SOLVER = CPLEX.Optimizer(CPX_PARAM_SCRIND = 0)
 const CONFIG = MOIT.TestConfig()
 
+const OPTIMIZER = CPLEX.Optimizer()
+MOI.set(OPTIMIZER, MOI.RawParameter("CPX_PARAM_SCRIND"), 0)
+const SOLVER = MOI.Bridges.full_bridge_optimizer(OPTIMIZER, Float64)
+
 @testset "Unit Tests" begin
-    MOIT.unittest(SOLVER, CONFIG, [
-        "solve_affine_interval",  # not implemented
-        "solve_objbound_edge_cases"
-    ])
-    @testset "solve_affine_interval" begin
-        MOIT.solve_affine_interval(MOIB.SplitInterval{Float64}(SOLVER), CONFIG)
-    end
-    MOIT.modificationtest(SOLVER, CONFIG, [
-        "solve_func_scalaraffine_lessthan"
-    ])
+    MOIT.basic_constraint_tests(SOLVER, CONFIG)
+    MOIT.unittest(SOLVER, CONFIG)
+    MOIT.modificationtest(SOLVER, CONFIG)
 end
 
 @testset "Linear tests" begin
     @testset "Default Solver"  begin
-        MOIT.contlineartest(SOLVER, CONFIG, [
-            # Requires interval
-            "linear10", "linear10b",
-            # Requires infeasiblity certificates
-            "linear8a", "linear8b", "linear8c", "linear11", "linear12",
-            # VariablePrimalStart not implemented.
-            "partial_start"
-        ])
-    end
-    @testset "linear10" begin
-        MOIT.linear10test(MOIB.SplitInterval{Float64}(SOLVER), CONFIG)
-        MOIT.linear10btest(MOIB.SplitInterval{Float64}(SOLVER), CONFIG)
-    end
-    @testset "No certificate" begin
-        MOIT.linear12test(
-            SOLVER, MOIT.TestConfig(infeas_certificates=false))
+        MOIT.contlineartest(SOLVER, CONFIG)
     end
 end
 
@@ -47,10 +30,7 @@ end
 end
 
 @testset "Integer Linear tests" begin
-    MOIT.intlineartest(SOLVER, CONFIG, ["int3"])
-    @testset "int3" begin
-        MOIT.int3test(MOIB.SplitInterval{Float64}(SOLVER), CONFIG)
-    end
+    MOIT.intlineartest(SOLVER, CONFIG)
 end
 
 @testset "Quadratic tests" begin
@@ -125,8 +105,9 @@ end
     atol = 1e-5
     rtol = 1e-5
 
-    model = CPLEX.Optimizer(CPX_PARAM_SCRIND = 0)
+    model = CPLEX.Optimizer()
     MOI.empty!(model)
+    MOI.set(OPTIMIZER, MOI.RawParameter("CPX_PARAM_SCRIND"), 0)
     @test MOI.is_empty(model)
 
     # min -x
@@ -170,20 +151,6 @@ end
     MOI.delete(model, int2)
     MOI.optimize!(model)
     @test MOI.get(model, MOI.ObjectiveValue()) ≈ -1.5 atol=atol rtol=rtol
-end
-	
-@testset "Issue 229" begin
-    model = CPLEX.Optimizer()
-    @test haskey(model.params, "CPX_PARAM_SCRIND")
-    @test model.params["CPX_PARAM_SCRIND"] == 1
-
-    model = CPLEX.Optimizer(CPX_PARAM_SCRIND=0)
-    @test haskey(model.params, "CPX_PARAM_SCRIND")
-    @test model.params["CPX_PARAM_SCRIND"] == 0
-
-    model = CPLEX.Optimizer(CPXPARAM_ScreenOutput=0)
-    @test !haskey(model.params, "CPX_PARAM_SCRIND")
-    @test haskey(model.params, "CPXPARAM_ScreenOutput")
 end
 
 @testset "Conflict refiner" begin
@@ -229,11 +196,11 @@ end
         c1 = MOI.add_constraint(model, MOI.SingleVariable(x), MOI.EqualTo(1.0))
         c2 = MOI.add_constraint(model, MOI.SingleVariable(x), MOI.GreaterThan(2.0))
 
-        # Getting the results before the conflict refiner has been called must return an error. 
+        # Getting the results before the conflict refiner has been called must return an error.
         @test MOI.get(model, CPLEX.ConflictStatus()) == MOI.OPTIMIZE_NOT_CALLED
         @test_throws ErrorException MOI.get(model, CPLEX.ConstraintConflictStatus(), c1)
 
-        # Once it's called, no problem. 
+        # Once it's called, no problem.
         CPLEX.compute_conflict(model)
         @test MOI.get(model, CPLEX.ConflictStatus()) == MOI.OPTIMAL
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c1) == true
@@ -292,11 +259,11 @@ end
         cf2 = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0, -1.0], [x, y]), 0.0)
         c2 = MOI.add_constraint(model, cf2, MOI.GreaterThan(1.0))
 
-        # Getting the results before the conflict refiner has been called must return an error. 
+        # Getting the results before the conflict refiner has been called must return an error.
         @test MOI.get(model, CPLEX.ConflictStatus()) == MOI.OPTIMIZE_NOT_CALLED
         @test_throws ErrorException MOI.get(model, CPLEX.ConstraintConflictStatus(), c1)
 
-        # Once it's called, no problem. 
+        # Once it's called, no problem.
         CPLEX.compute_conflict(model)
         @test MOI.get(model, CPLEX.ConflictStatus()) == MOI.OPTIMAL
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), b1) == true
@@ -338,11 +305,11 @@ end
         c1 = MOI.add_constraint(model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0], [x]), 0.0), MOI.GreaterThan(1.0))
         c2 = MOI.add_constraint(model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0], [x]), 0.0), MOI.LessThan(2.0))
 
-        # Getting the results before the conflict refiner has been called must return an error. 
+        # Getting the results before the conflict refiner has been called must return an error.
         @test MOI.get(model, CPLEX.ConflictStatus()) == MOI.OPTIMIZE_NOT_CALLED
         @test_throws ErrorException MOI.get(model, CPLEX.ConstraintConflictStatus(), c1)
 
-        # Once it's called, no problem. 
+        # Once it's called, no problem.
         CPLEX.compute_conflict(model)
         @test MOI.get(model, CPLEX.ConflictStatus()) == MOI.INFEASIBLE
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c1) == false
