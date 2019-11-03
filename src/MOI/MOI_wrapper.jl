@@ -109,6 +109,9 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     # `MOI.empty!`.
     env::Union{Nothing, Env}
 
+    # The model name. TODO(odow): pass through to .inner.
+    name::String
+
     # A flag to keep track of MOI.Silent, which over-rides the OutputFlag
     # parameter.
     silent::Bool
@@ -145,11 +148,6 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     # lazily built on-demand, so most of the time, they are `nothing`.
     name_to_variable::Union{Nothing, Dict{String, Union{Nothing, MOI.VariableIndex}}}
     name_to_constraint_index::Union{Nothing, Dict{String, Union{Nothing, MOI.ConstraintIndex}}}
-
-    # These two flags allow us to distinguish between FEASIBLE_POINT and
-    # INFEASIBILITY_CERTIFICATE when querying VariablePrimal and ConstraintDual.
-    has_unbounded_ray::Bool
-    has_infeasibility_cert::Bool
 
     # TODO: add functionality to the lower-level API to support querying single
     # elements of the solution.
@@ -204,6 +202,7 @@ Base.show(io::IO, model::Optimizer) = show(io, model.inner)
 
 function MOI.empty!(model::Optimizer)
     model.inner = Model(model.env === nothing ? Env() : model.env)
+    model.name = ""
     if model.silent
         MOI.set(model, MOI.RawParameter("CPX_PARAM_SCRIND"), 0)
     end
@@ -215,8 +214,6 @@ function MOI.empty!(model::Optimizer)
     empty!(model.sos_constraint_info)
     model.name_to_variable = nothing
     model.name_to_constraint_index = nothing
-    model.has_unbounded_ray = false
-    model.has_infeasibility_cert = false
     empty!(model.callback_variable_primal)
     model.cached_solution = nothing
     model.callback_state = CB_NONE
@@ -228,6 +225,7 @@ function MOI.empty!(model::Optimizer)
 end
 
 function MOI.is_empty(model::Optimizer)
+    !isempty(model.name) && return false
     model.objective_type != SCALAR_AFFINE && return false
     model.is_feasibility == false && return false
     !isempty(model.variable_info) && return false
@@ -236,8 +234,6 @@ function MOI.is_empty(model::Optimizer)
     length(model.sos_constraint_info) != 0 && return false
     model.name_to_variable !== nothing && return false
     model.name_to_constraint_index !== nothing && return false
-    model.has_unbounded_ray && return false
-    model.has_infeasibility_cert && return false
     length(model.callback_variable_primal) != 0 && return false
     model.cached_solution !== nothing && return false
     model.callback_state != CB_NONE && return false
@@ -357,13 +353,13 @@ function MOI.get(model::Optimizer, ::MOI.ListOfConstraintAttributesSet)
 end
 
 function _indices_and_coefficients(
-    indices::AbstractVector{<:Integer},
+    indices::AbstractVector{Cint},
     coefficients::AbstractVector{Float64},
     model::Optimizer,
     f::MOI.ScalarAffineFunction{Float64}
 )
     for (i, term) in enumerate(f.terms)
-        indices[i] = _info(model, term.variable_index).column
+        indices[i] = Cint(_info(model, term.variable_index).column)
         coefficients[i] = term.coefficient
     end
     return indices, coefficients
@@ -374,24 +370,24 @@ function _indices_and_coefficients(
 )
     f_canon = MOI.Utilities.canonical(f)
     nnz = length(f_canon.terms)
-    indices = Vector{Int}(undef, nnz)
+    indices = Vector{Cint}(undef, nnz)
     coefficients = Vector{Float64}(undef, nnz)
     _indices_and_coefficients(indices, coefficients, model, f_canon)
     return indices, coefficients
 end
 
 function _indices_and_coefficients(
-    I::AbstractVector{<:Integer},
-    J::AbstractVector{<:Integer},
+    I::AbstractVector{Cint},
+    J::AbstractVector{Cint},
     V::AbstractVector{Float64},
-    indices::AbstractVector{Int},
+    indices::AbstractVector{Cint},
     coefficients::AbstractVector{Float64},
     model::Optimizer,
     f::MOI.ScalarQuadraticFunction
 )
     for (i, term) in enumerate(f.quadratic_terms)
-        I[i] = _info(model, term.variable_index_1).column
-        J[i] = _info(model, term.variable_index_2).column
+        I[i] = Cint(_info(model, term.variable_index_1).column)
+        J[i] = Cint(_info(model, term.variable_index_2).column)
         V[i] =  term.coefficient
         # CPLEX returns a list of terms. MOI requires 0.5 x' Q x. So, to get
         # from
@@ -408,7 +404,7 @@ function _indices_and_coefficients(
         end
     end
     for (i, term) in enumerate(f.affine_terms)
-        indices[i] = _info(model, term.variable_index).column
+        indices[i] = Cint(_info(model, term.variable_index).column)
         coefficients[i] = term.coefficient
     end
     return
@@ -420,10 +416,10 @@ function _indices_and_coefficients(
     f_canon = MOI.Utilities.canonical(f)
     nnz_quadratic = length(f_canon.quadratic_terms)
     nnz_affine = length(f_canon.affine_terms)
-    I = Vector{Int}(undef, nnz_quadratic)
-    J = Vector{Int}(undef, nnz_quadratic)
+    I = Vector{Cint}(undef, nnz_quadratic)
+    J = Vector{Cint}(undef, nnz_quadratic)
     V = Vector{Float64}(undef, nnz_quadratic)
-    indices = Vector{Int}(undef, nnz_affine)
+    indices = Vector{Cint}(undef, nnz_affine)
     coefficients = Vector{Float64}(undef, nnz_affine)
     _indices_and_coefficients(I, J, V, indices, coefficients, model, f_canon)
     return indices, coefficients, I, J, V
@@ -648,7 +644,9 @@ end
 function MOI.set(
     model::Optimizer, ::MOI.ObjectiveFunction{F}, f::F
 ) where {F <: MOI.ScalarQuadraticFunction{Float64}}
-    affine_indices, affine_coefficients, I, J, V = _indices_and_coefficients(model, f)
+    affine_indices, affine_coefficients, I, J, V = _indices_and_coefficients(
+        model, f
+    )
     # We need to zero out any existing linear objective.
     obj = zeros(length(model.variable_info))
     for (i, c) in zip(affine_indices, affine_coefficients)
@@ -697,7 +695,7 @@ function MOI.modify(
     ::MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}},
     chg::MOI.ScalarConstantChange{Float64}
 )
-    CPLEX.c_api_setobjoffset(model.inner, chg.new_constant)
+    CPLEX.c_api_chgobjoffset(model.inner, chg.new_constant)
     return
 end
 
@@ -999,7 +997,8 @@ function _get_variable_lower_bound(model, info)
         @assert info.lower_bound_if_soc < 0.0
         return info.lower_bound_if_soc
     end
-    return CPLEX.c_api_getlb(model.inner, Cint(info.column), Cint(info.column))[1]
+    lb = CPLEX.c_api_getlb(model.inner, Cint(info.column), Cint(info.column))[1]
+    return lb == -CPX_INFBOUND ? -Inf : lb
 end
 
 function _set_variable_upper_bound(model, info, value)
@@ -1008,7 +1007,8 @@ function _set_variable_upper_bound(model, info, value)
 end
 
 function _get_variable_upper_bound(model, info)
-    return CPLEX.c_api_getub(model.inner, Cint(info.column), Cint(info.column))[1]
+    ub = CPLEX.c_api_getub(model.inner, Cint(info.column), Cint(info.column))[1]
+    return ub == CPX_INFBOUND ? Inf : ub
 end
 
 function MOI.delete(
@@ -1331,7 +1331,9 @@ function MOI.add_constraint(
         ConstraintInfo(length(model.affine_constraint_info) + 1, s)
     indices, coefficients = _indices_and_coefficients(model, f)
     sense, rhs = _sense_and_rhs(s)
-    CPLEX.c_api_addrows(model.inner, Cint[1], Cint.(indices), coefficients, [sense], [rhs])
+    CPLEX.c_api_addrows(
+        model.inner, Cint[1], indices, coefficients, [sense], [rhs]
+    )
     return MOI.ConstraintIndex{typeof(f), typeof(s)}(model.last_constraint_index)
 end
 
@@ -1564,9 +1566,7 @@ function MOI.add_constraint(
     end
     indices, coefficients, I, J, V = _indices_and_coefficients(model, f)
     sense, rhs = _sense_and_rhs(s)
-    CPLEX.add_qconstr!(
-        model.inner, Cint.(indices), Cint.(coefficients), I, J, V, sense, rhs
-    )
+    CPLEX.add_qconstr!(model.inner, indices, coefficients, I, J, V, sense, rhs)
     model.last_constraint_index += 1
     model.quadratic_constraint_info[model.last_constraint_index] =
         ConstraintInfo(length(model.quadratic_constraint_info) + 1, s)
@@ -1586,7 +1586,7 @@ function MOI.delete(
     c::MOI.ConstraintIndex{MOI.ScalarQuadraticFunction{Float64}, S}
 ) where {S}
     info = _info(model, c)
-    CPLEX.c_api_delqconstrs(model, Cint(info.row - 1), Cint(info.row - 1))
+    CPLEX.c_api_delqconstrs(model.inner, Cint(info.row - 1), Cint(info.row - 1))
     for (key, info_2) in model.quadratic_constraint_info
         if info_2.row > info.row
             info_2.row -= 1
@@ -1824,6 +1824,7 @@ function MOI.optimize!(model::Optimizer)
     if status == MOI.FEASIBLE_POINT
         CPLEX.c_api_getdj(model.inner, model.cached_solution.variable_dual)
         CPLEX.c_api_getpi(model.inner, model.cached_solution.linear_dual)
+        # model.cached_solution.linear_dual .*= -1
         CPLEX.c_api_getqconstrslack(model.inner, model.cached_solution.quadratic_dual)
     elseif status == MOI.INFEASIBILITY_CERTIFICATE
         copy!(
@@ -2055,9 +2056,6 @@ function MOI.get(
     _throw_if_optimize_in_progress(model, attr)
     MOI.check_result_index_bounds(model, attr)
     row = _info(model, c).row
-    if model.has_infeasibility_cert
-        return -_dual_multiplier(model) * model.cached_solution.linear_dual[row]
-    end
     return _dual_multiplier(model) * model.cached_solution.linear_dual[row]
 end
 
@@ -2084,13 +2082,12 @@ end
 
 function MOI.get(model::Optimizer, attr::MOI.SolveTime)
     _throw_if_optimize_in_progress(model, attr)
-    # TODO
+    return 0  # TODO
 end
 
 function MOI.get(model::Optimizer, attr::MOI.SimplexIterations)
     _throw_if_optimize_in_progress(model, attr)
-    # TODO
-    return 0
+    return 0  # TODO
 end
 
 function MOI.get(model::Optimizer, attr::MOI.BarrierIterations)
@@ -2111,7 +2108,7 @@ end
 function MOI.get(model::Optimizer, attr::MOI.DualObjectiveValue)
     _throw_if_optimize_in_progress(model, attr)
     MOI.check_result_index_bounds(model, attr)
-    return 0  # TODO
+    return CPLEX.get_best_bound(model.inner)
 end
 
 function MOI.get(model::Optimizer, attr::MOI.ResultCount)
@@ -2131,12 +2128,11 @@ function MOI.set(model::Optimizer, ::MOI.Silent, flag::Bool)
 end
 
 function MOI.get(model::Optimizer, ::MOI.Name)
-    # TODO
-    return ""
+    return model.name
 end
 
 function MOI.set(model::Optimizer, ::MOI.Name, name::String)
-    # TODO
+    model.name = name
     return
 end
 
@@ -2689,7 +2685,7 @@ function MOI.add_constraint(
     lb = _get_variable_lower_bound(model, t_info)
     if isnan(t_info.lower_bound_if_soc) && lb < 0.0
         t_info.lower_bound_if_soc = lb
-        _set_variable_lower_bound(model, t_info, 0.0)
+        CPLEX.c_api_chgbds(model.inner, Cint[t_info.column], Cchar['L'], [0.0])
     end
     t_info.num_soc_constraints += 1
 

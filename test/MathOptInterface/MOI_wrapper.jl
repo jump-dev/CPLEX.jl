@@ -31,7 +31,7 @@ end
 @testset "Integer Linear tests" begin
     MOIT.intlineartest(SOLVER, CONFIG, [
         # Indicator sets not supported.
-        "indicator1", "indicator2", "indicator3"
+        "indicator1", "indicator2", "indicator3", "indicator4"
     ])
 end
 

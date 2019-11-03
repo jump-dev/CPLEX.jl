@@ -252,7 +252,7 @@ end
 
 # int CPXdelqconstrs( CPXCENVptr env, CPXLPptr lp, int begin, int end )
 function c_api_delqconstrs(model::Model,  first::Cint, last::Cint)
-    stat =@cpx_ccall(
+    stat = @cpx_ccall(
         delqconstrs,
         Cint,
         (Ptr{Cvoid}, Ptr{Cvoid}, Cint, Cint),
