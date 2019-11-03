@@ -212,7 +212,7 @@ function c_api_chgctype(model::Model, indices::Vector{Cint}, types::Vector{Cchar
         Cint,
         (Ptr{Cvoid}, Ptr{Cvoid}, Cint, Ptr{Cint}, Ptr{Cchar}),
         model.env.ptr, model.lp, nvars, indices .- Cint(1), types)
-    if any(c_type -> c_type != 'C', types)
+    if any(c_type -> c_type != Cchar('C'), types)
         model.has_int = true
     end
     if stat != 0
