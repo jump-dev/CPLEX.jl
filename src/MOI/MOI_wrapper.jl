@@ -1828,22 +1828,15 @@ function MOI.optimize!(model::Optimizer)
         CPLEX.c_api_getax(model.inner, model.cached_solution.linear_primal)
         CPLEX.c_api_getxqxax(model.inner, model.cached_solution.quadratic_primal)
     elseif status == MOI.INFEASIBILITY_CERTIFICATE
-        copy!(
-            model.cached_solution.variable_primal,
-            get_unbounded_ray(model.inner)
-        )
+        model.cached_solution.variable_primal = get_unbounded_ray(model.inner)
         model.cached_solution.has_primal_certificate = true
     end
     status = MOI.get(model, MOI.DualStatus())
     if status == MOI.FEASIBLE_POINT
         CPLEX.c_api_getdj(model.inner, model.cached_solution.variable_dual)
         CPLEX.c_api_getpi(model.inner, model.cached_solution.linear_dual)
-        # CPLEX.c_api_getqconstrdslack(model.inner, model.cached_solution.quadratic_dual)
     elseif status == MOI.INFEASIBILITY_CERTIFICATE
-        copy!(
-            model.cached_solution.linear_dual,
-            get_infeasibility_ray(model.inner)
-        )
+        model.cached_solution.linear_dual = get_infeasibility_ray(model.inner)
         model.cached_solution.has_dual_certificate = true
     end
     return
@@ -1937,15 +1930,6 @@ function MOI.get(model::Optimizer, attr::MOI.DualStatus)
         @assert MOI.get(model, MOI.TerminationStatus()) == MOI.INFEASIBLE
         return MOI.INFEASIBILITY_CERTIFICATE
     end
-    # term_stat = MOI.get(model, MOI.TerminationStatus())
-    # if term_stat == MOI.INFEASIBLE
-    #     try
-    #         # TODO: improve this check.
-    #         get_infeasibility_ray(model.inner)
-    #         return MOI.INFEASIBILITY_CERTIFICATE
-    #     catch
-    #     end
-    # end
     return MOI.NO_SOLUTION
 end
 
