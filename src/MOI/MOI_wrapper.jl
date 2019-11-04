@@ -90,7 +90,7 @@ mutable struct ConstraintInfo
     ConstraintInfo(row::Int, set::MOI.AbstractSet) = new(row, set, "")
 end
 
-struct CachedSolution
+mutable struct CachedSolution
     variable_primal::Vector{Float64}
     variable_dual::Vector{Float64}
 
@@ -99,6 +99,9 @@ struct CachedSolution
 
     quadratic_primal::Vector{Float64}
     quadratic_dual::Vector{Float64}
+
+    has_primal_certificate::Bool
+    has_dual_certificate::Bool
 end
 
 mutable struct Optimizer <: MOI.AbstractOptimizer
@@ -170,7 +173,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     as the first argument. By default, a new environment is created for every
     model.
     """
-    function Optimizer(env::Union{Nothing, Env} = nothing)
+    function Optimizer(env::Env = Env())
         model = new()
         model.env = env
         model.silent = false
@@ -195,13 +198,15 @@ function CachedSolution(model::Optimizer)
         fill(NaN, num_affine),
         fill(NaN, num_quad),
         fill(NaN, num_quad),
+        false,
+        false
     )
 end
 
 Base.show(io::IO, model::Optimizer) = show(io, model.inner)
 
 function MOI.empty!(model::Optimizer)
-    model.inner = Model(model.env === nothing ? Env() : model.env)
+    model.inner = Model(model.env)
     model.name = ""
     if model.silent
         MOI.set(model, MOI.RawParameter("CPX_PARAM_SCRIND"), 0)
@@ -314,7 +319,7 @@ function MOI.set(model::Optimizer, param::MOI.RawParameter, value)
 end
 
 function MOI.get(model::Optimizer, param::MOI.RawParameter)
-    return CPLEX.get_param(model.inner, param.name)
+    return CPLEX.get_param(model.inner.env, param.name)
 end
 
 function MOI.set(model::Optimizer, ::MOI.TimeLimitSec, limit::Real)
@@ -597,7 +602,8 @@ end
 
 function MOI.get(model::Optimizer, ::MOI.ObjectiveFunction{MOI.SingleVariable})
     obj = MOI.get(
-        model, MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}()
+        model,
+        MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}()
     )
     return convert(MOI.SingleVariable, obj)
 end
@@ -615,10 +621,10 @@ function MOI.set(
         column = _info(model, term.variable_index).column
         obj[column] += term.coefficient
     end
-    # This update is needed because we might have added some variables.
     CPLEX.c_api_chgobj(model.inner, Cint[1:num_vars;], obj)
     CPLEX.c_api_chgobjoffset(model.inner, f.constant)
     model.objective_type = SCALAR_AFFINE
+    return
 end
 
 function MOI.get(
@@ -647,13 +653,17 @@ function MOI.set(
     affine_indices, affine_coefficients, I, J, V = _indices_and_coefficients(
         model, f
     )
-    # We need to zero out any existing linear objective.
     obj = zeros(length(model.variable_info))
     for (i, c) in zip(affine_indices, affine_coefficients)
         obj[i] = c
     end
     CPLEX.c_api_chgobj(model.inner, Cint[1:length(obj);], obj)
     CPLEX.c_api_chgobjoffset(model.inner, f.constant)
+    for i = 1:length(I)
+        if I[i] == J[i]
+            V[i] *= 2
+        end
+    end
     CPLEX.add_qpterms!(model.inner, I, J, V)
     model.objective_type = SCALAR_QUADRATIC
     return
@@ -673,21 +683,25 @@ function MOI.get(
     end
     constant = CPLEX.c_api_getobjoffset(model.inner)
     q_terms = MOI.ScalarQuadraticTerm{Float64}[]
-    I, J, V = CPLEX.c_api_getquad(model.inner)
-    for (i, j, v) in zip(I, J, V)
-        iszero(v) && continue
-        # See note in `_indices_and_coefficients`.
-        new_v = i == j ? 2v : v
+    qmatbeg, qmatind, qmatval = CPLEX.c_api_getquad(model.inner)
+    row = 0
+    for (i, (col, val)) in enumerate(zip(qmatind, qmatval))
+        if row < length(qmatbeg) && i == (qmatbeg[row + 1] + 1)
+            row += 1
+        end
+        iszero(val) && continue
         push!(
             q_terms,
             MOI.ScalarQuadraticTerm(
-                new_v,
-                model.variable_info[CleverDicts.LinearIndex(i + 1)].index,
-                model.variable_info[CleverDicts.LinearIndex(j + 1)].index
+                row == col + 1 ? val : 0.5 * val,
+                model.variable_info[CleverDicts.LinearIndex(row)].index,
+                model.variable_info[CleverDicts.LinearIndex(col + 1)].index
             )
         )
     end
-    return MOI.ScalarQuadraticFunction(terms, q_terms, constant)
+    return MOI.Utilities.canonical(
+        MOI.ScalarQuadraticFunction(terms, q_terms, constant)
+    )
 end
 
 function MOI.modify(
@@ -916,12 +930,12 @@ function _set_bounds(
         info = _info(model, c)
         if lower !== nothing
             push!(columns, Cint(info.column))
-            push!(senses, Cchar('G'))
+            push!(senses, Cchar('L'))
             push!(values, lower)
         end
         if upper !== nothing
             push!(columns, Cint(info.column))
-            push!(senses, Cchar('L'))
+            push!(senses, Cchar('U'))
             push!(values, upper)
         end
     end
@@ -1002,7 +1016,7 @@ function _get_variable_lower_bound(model, info)
 end
 
 function _set_variable_upper_bound(model, info, value)
-    CPLEX.c_api_chgbds(model.inner, Cint[info.column], Cchar['U'], [Inf])
+    CPLEX.c_api_chgbds(model.inner, Cint[info.column], Cchar['U'], [value])
     return
 end
 
@@ -1375,8 +1389,7 @@ function MOI.add_constraints(
         model.affine_constraint_info[model.last_constraint_index] =
             ConstraintInfo(length(model.affine_constraint_info) + 1, si)
     end
-    # TODO(odow): does CPLEX need row start?
-    # pop!(row_starts)  # Gurobi doesn't need the final row start.
+    pop!(row_starts)
     CPLEX.c_api_addrows(
         model.inner, row_starts, columns, coefficients, senses, rhss
     )
@@ -1752,9 +1765,9 @@ function MOI.get(
     c::MOI.ConstraintIndex{MOI.VectorOfVariables, S}
 ) where {S <: SOS}
     cols, _, _ = CPLEX.c_api_getsos(model.inner, _info(model, c).row - 1)
-    return MOI.VectorOfVariables(
-        [model.variable_info[CleverDicts.LinearIndex(i)].index for i in cols]
-    )
+    return MOI.VectorOfVariables([
+        model.variable_info[CleverDicts.LinearIndex(i + 1)].index for i in cols
+    ])
 end
 
 ###
@@ -1819,18 +1832,19 @@ function MOI.optimize!(model::Optimizer)
             model.cached_solution.variable_primal,
             get_unbounded_ray(model.inner)
         )
+        model.cached_solution.has_primal_certificate = true
     end
     status = MOI.get(model, MOI.DualStatus())
     if status == MOI.FEASIBLE_POINT
         CPLEX.c_api_getdj(model.inner, model.cached_solution.variable_dual)
         CPLEX.c_api_getpi(model.inner, model.cached_solution.linear_dual)
-        # model.cached_solution.linear_dual .*= -1
-        CPLEX.c_api_getqconstrslack(model.inner, model.cached_solution.quadratic_dual)
+        # CPLEX.c_api_getqconstrdslack(model.inner, model.cached_solution.quadratic_dual)
     elseif status == MOI.INFEASIBILITY_CERTIFICATE
         copy!(
-            model.cached_solution.linear_primal,
+            model.cached_solution.linear_dual,
             get_infeasibility_ray(model.inner)
         )
+        model.cached_solution.has_dual_certificate = true
     end
     return
 end
@@ -1891,7 +1905,7 @@ end
 function MOI.get(model::Optimizer, attr::MOI.PrimalStatus)
     _throw_if_optimize_in_progress(model, attr)
     if attr.N != 1
-        MOI.check_result_index_bounds(model, attr)
+        return MOI.NO_SOLUTION
     end
     _, _, primal_stat, _ = c_api_solninfo(model.inner)
     if primal_stat == 1
@@ -1912,24 +1926,26 @@ end
 function MOI.get(model::Optimizer, attr::MOI.DualStatus)
     _throw_if_optimize_in_progress(model, attr)
     if attr.N != 1
-        MOI.check_result_index_bounds(model, attr)
-    end
-    if model.inner.has_int
+        return MOI.NO_SOLUTION
+    elseif model.inner.has_int
         return MOI.NO_SOLUTION
     end
-    _, _, _, dual_stat = c_api_solninfo(model.inner)
-    if dual_stat == 1
+    _, _, primal_stat, dual_stat = c_api_solninfo(model.inner)
+    if primal_stat == dual_stat == 1
         return MOI.FEASIBLE_POINT
+    elseif primal_stat == 0 && dual_stat == 1
+        @assert MOI.get(model, MOI.TerminationStatus()) == MOI.INFEASIBLE
+        return MOI.INFEASIBILITY_CERTIFICATE
     end
-    term_stat = MOI.get(model, MOI.TerminationStatus())
-    if term_stat == MOI.INFEASIBLE
-        try
-            # TODO: improve this check.
-            get_infeasibility_ray(model.inner)
-            return MOI.INFEASIBILITY_CERTIFICATE
-        catch
-        end
-    end
+    # term_stat = MOI.get(model, MOI.TerminationStatus())
+    # if term_stat == MOI.INFEASIBLE
+    #     try
+    #         # TODO: improve this check.
+    #         get_infeasibility_ray(model.inner)
+    #         return MOI.INFEASIBILITY_CERTIFICATE
+    #     catch
+    #     end
+    # end
     return MOI.NO_SOLUTION
 end
 
@@ -1966,7 +1982,7 @@ function MOI.get(
     _throw_if_optimize_in_progress(model, attr)
     MOI.check_result_index_bounds(model, attr)
     row = _info(model, c).row
-    return model.cached_solution.quadratic_primal
+    return model.cached_solution.quadratic_primal[row]
 end
 
 function _dual_multiplier(model::Optimizer)
@@ -2059,15 +2075,15 @@ function MOI.get(
     return _dual_multiplier(model) * model.cached_solution.linear_dual[row]
 end
 
-function MOI.get(
-    model::Optimizer, attr::MOI.ConstraintDual,
-    c::MOI.ConstraintIndex{MOI.ScalarQuadraticFunction{Float64}, <:Any}
-)
-    _throw_if_optimize_in_progress(model, attr)
-    MOI.check_result_index_bounds(model, attr)
-    pi = model.cached_solution.quadratic_dual[_info(model, c).row]
-    return _dual_multiplier(model) * pi
-end
+# function MOI.get(
+#     model::Optimizer, attr::MOI.ConstraintDual,
+#     c::MOI.ConstraintIndex{MOI.ScalarQuadraticFunction{Float64}, <:Any}
+# )
+#     _throw_if_optimize_in_progress(model, attr)
+#     MOI.check_result_index_bounds(model, attr)
+#     pi = model.cached_solution.quadratic_dual[_info(model, c).row]
+#     return _dual_multiplier(model) * pi
+# end
 
 function MOI.get(model::Optimizer, attr::MOI.ObjectiveValue)
     _throw_if_optimize_in_progress(model, attr)
@@ -2077,7 +2093,11 @@ end
 
 function MOI.get(model::Optimizer, attr::MOI.ObjectiveBound)
     _throw_if_optimize_in_progress(model, attr)
-    return CPLEX.get_best_bound(model.inner)
+    if model.inner.has_int
+        return CPLEX.get_best_bound(model.inner)
+    else
+        return CPLEX.c_api_getobjval(model.inner)
+    end
 end
 
 function MOI.get(model::Optimizer, attr::MOI.SolveTime)
@@ -2108,13 +2128,25 @@ end
 function MOI.get(model::Optimizer, attr::MOI.DualObjectiveValue)
     _throw_if_optimize_in_progress(model, attr)
     MOI.check_result_index_bounds(model, attr)
-    return CPLEX.get_best_bound(model.inner)
+    if model.inner.has_int
+        return CPLEX.get_best_bound(model.inner)
+    else
+        return CPLEX.c_api_getobjval(model.inner)
+    end
 end
 
 function MOI.get(model::Optimizer, attr::MOI.ResultCount)
     _throw_if_optimize_in_progress(model, attr)
-    _, _, primal_stat, _ = c_api_solninfo(model.inner)
-    return primal_stat == 1 ? 1 : 0
+    if model.cached_solution === nothing
+        return 0
+    elseif model.cached_solution.has_dual_certificate
+        return 1
+    elseif model.cached_solution.has_primal_certificate
+        return 1
+    else
+        _, _, primal_stat, _ = c_api_solninfo(model.inner)
+        return primal_stat == 1 ? 1 : 0
+    end
 end
 
 function MOI.get(model::Optimizer, ::MOI.Silent)
@@ -2123,7 +2155,7 @@ end
 
 function MOI.set(model::Optimizer, ::MOI.Silent, flag::Bool)
     model.silent = flag
-    MOI.get(model, MOI.RawParameter("CPX_PARAM_SCRIND"), flag ? 1 : 0)
+    MOI.set(model, MOI.RawParameter("CPX_PARAM_SCRIND"), flag ? 1 : 0)
     return
 end
 

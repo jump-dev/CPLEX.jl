@@ -10,74 +10,145 @@ const CONFIG = MOIT.TestConfig()
 
 const OPTIMIZER = CPLEX.Optimizer()
 MOI.set(OPTIMIZER, MOI.RawParameter("CPX_PARAM_SCRIND"), 0)
-const SOLVER = MOI.Bridges.full_bridge_optimizer(OPTIMIZER, Float64)
+const BRIDGED_OPTIMIZER = MOI.Bridges.full_bridge_optimizer(OPTIMIZER, Float64)
+
+const CERTIFICATE_OPTIMIZER = CPLEX.Optimizer()
+MOI.set(CERTIFICATE_OPTIMIZER, MOI.RawParameter("CPX_PARAM_REDUCE"), 0)
+MOI.set(CERTIFICATE_OPTIMIZER, MOI.RawParameter("CPX_PARAM_PRELINEAR"), 0)
+const BRIDGED_CERTIFICATE_OPTIMIZER =
+    MOI.Bridges.full_bridge_optimizer(CERTIFICATE_OPTIMIZER, Float64)
 
 @testset "Unit Tests" begin
-    MOIT.basic_constraint_tests(SOLVER, CONFIG)
-    MOIT.unittest(SOLVER, CONFIG)
-    MOIT.modificationtest(SOLVER, CONFIG)
+    MOIT.basic_constraint_tests(BRIDGED_OPTIMIZER, CONFIG; exclude = [
+        (MOI.VectorOfVariables, MOI.SecondOrderCone),
+        (MOI.VectorOfVariables, MOI.RotatedSecondOrderCone),
+        (MOI.VectorOfVariables, MOI.GeometricMeanCone),
+        (MOI.VectorAffineFunction{Float64}, MOI.SecondOrderCone),
+        (MOI.VectorAffineFunction{Float64}, MOI.RotatedSecondOrderCone),
+        (MOI.VectorAffineFunction{Float64}, MOI.GeometricMeanCone),
+    ])
+    # TODO(odow): bugs deleting SOC variables. See also the
+    # `delete_soc_variables` test.
+    MOIT.basic_constraint_tests(
+        BRIDGED_OPTIMIZER,
+        CONFIG;
+        include = [
+            (MOI.VectorOfVariables, MOI.SecondOrderCone),
+            (MOI.VectorOfVariables, MOI.RotatedSecondOrderCone),
+            (MOI.VectorOfVariables, MOI.GeometricMeanCone),
+            (MOI.VectorAffineFunction{Float64}, MOI.SecondOrderCone),
+            (MOI.VectorAffineFunction{Float64}, MOI.RotatedSecondOrderCone),
+            (MOI.VectorAffineFunction{Float64}, MOI.GeometricMeanCone),
+        ],
+        delete = false
+    )
+
+    MOIT.unittest(BRIDGED_OPTIMIZER, CONFIG, [
+        # TODO(odow): implement.
+        "number_threads",
+
+        # TODO(odow): implement.
+        "solve_time",
+
+        # TODO(odow): bug! We can't delete a vector of variables  if one is in
+        # a second order cone.
+        "delete_soc_variables",
+
+        # CPLEX returns INFEASIBLE_OR_UNBOUNDED without extra parameters.
+        # See below for the test.
+        "solve_unbounded_model",
+    ])
+    MOIT.solve_unbounded_model(CERTIFICATE_OPTIMIZER, CONFIG)
+
+    MOIT.modificationtest(BRIDGED_OPTIMIZER, CONFIG)
 end
 
 @testset "Linear tests" begin
-    @testset "Default Solver"  begin
-        MOIT.contlineartest(SOLVER, CONFIG)
-    end
-end
+    MOIT.contlineartest(BRIDGED_OPTIMIZER, CONFIG, [
+        # These tests require extra parameters to be set.
+        "linear8a", "linear8b", "linear8c",
 
-@testset "Linear Conic" begin
-    MOIT.lintest(SOLVER, CONFIG)
+        # TODO(odow): This test requests the infeasibility certificate of a
+        # variable bound.
+        "linear12"
+    ])
+
+    MOIT.linear8atest(CERTIFICATE_OPTIMIZER, CONFIG)
+    MOIT.linear8btest(CERTIFICATE_OPTIMIZER, CONFIG)
+    MOIT.linear8ctest(CERTIFICATE_OPTIMIZER, CONFIG)
+
+    MOIT.linear12test(OPTIMIZER, MOIT.TestConfig(infeas_certificates=false))
 end
 
 @testset "Integer Linear tests" begin
-    MOIT.intlineartest(SOLVER, CONFIG, [
-        # Indicator sets not supported.
+    MOIT.intlineartest(BRIDGED_OPTIMIZER, CONFIG, [
+        # TODO(odow): Indicator sets not supported.
         "indicator1", "indicator2", "indicator3", "indicator4"
     ])
 end
 
 @testset "Quadratic tests" begin
+    # TODO(odow): duals for quadratic problems.
+    quad_config = MOIT.TestConfig(duals = false, atol = 1e-3, rtol = 1e-3)
+
     MOIT.contquadratictest(
-        SOLVER,
-        MOIT.TestConfig(atol=1e-3, rtol=1e-3, [
-            "ncqcp"  # CPLEX doesn't support non-convex problems
-        ])
+        BRIDGED_CERTIFICATE_OPTIMIZER,
+        quad_config, [
+            # CPLEX doesn't support non-convex problems
+            "ncqcp"
+        ]
     )
 end
 
 @testset "Conic tests" begin
-    MOIT.lintest(SOLVER, CONFIG)
-    MOIT.soctest(SOLVER, MOIT.TestConfig(duals = false, atol=1e-3), ["soc3"])
+    MOIT.lintest(BRIDGED_OPTIMIZER, CONFIG, [
+        # These tests require extra parameters to be set.
+        "lin3", "lin4"
+    ])
+
+    MOIT.lin3test(BRIDGED_CERTIFICATE_OPTIMIZER, CONFIG)
+    MOIT.lin4test(BRIDGED_CERTIFICATE_OPTIMIZER, CONFIG)
+
+    # TODO(odow): duals for SOC constraints.
+    soc_config = MOIT.TestConfig(duals = false, atol=5e-3)
+
+    MOIT.soctest(BRIDGED_OPTIMIZER, soc_config, [
+        "soc3"
+    ])
+
     MOIT.soc3test(
-        SOLVER,
+        BRIDGED_OPTIMIZER,
         MOIT.TestConfig(duals = false, infeas_certificates = false, atol = 1e-3)
     )
-    MOIT.rsoctest(SOLVER, MOIT.TestConfig(duals = false, atol=5e-3))
-    MOIT.geomeantest(SOLVER, MOIT.TestConfig(duals = false, atol=1e-3))
+
+    MOIT.rsoctest(BRIDGED_OPTIMIZER, soc_config)
+
+    MOIT.geomeantest(BRIDGED_OPTIMIZER, soc_config)
 end
 
 @testset "ModelLike tests" begin
-    @test MOI.get(SOLVER, MOI.SolverName()) == "CPLEX"
+    @test MOI.get(BRIDGED_OPTIMIZER, MOI.SolverName()) == "CPLEX"
     @testset "default_objective_test" begin
-         MOIT.default_objective_test(SOLVER)
+         MOIT.default_objective_test(BRIDGED_OPTIMIZER)
      end
      @testset "default_status_test" begin
-         MOIT.default_status_test(SOLVER)
+         MOIT.default_status_test(BRIDGED_OPTIMIZER)
      end
     @testset "nametest" begin
-        MOIT.nametest(SOLVER)
+        MOIT.nametest(BRIDGED_OPTIMIZER)
     end
     @testset "validtest" begin
-        MOIT.validtest(SOLVER)
+        MOIT.validtest(BRIDGED_OPTIMIZER)
     end
     @testset "emptytest" begin
-        MOIT.emptytest(SOLVER)
+        MOIT.emptytest(BRIDGED_OPTIMIZER)
     end
     @testset "orderedindicestest" begin
-        MOIT.orderedindicestest(SOLVER)
+        MOIT.orderedindicestest(BRIDGED_OPTIMIZER)
     end
     @testset "copytest" begin
         MOIT.copytest(
-            SOLVER,
+            BRIDGED_OPTIMIZER,
             MOI.Bridges.full_bridge_optimizer(CPLEX.Optimizer(), Float64)
         )
     end
@@ -113,7 +184,7 @@ end
             model = CPLEX.Optimizer()
             env = model.inner.env
             MOI.empty!(model)
-            @test model.inner.env !== env
+            @test model.inner.env === env
             @test CPLEX.is_valid(model.inner.env)
         end
     end
@@ -126,8 +197,6 @@ end
     model = CPLEX.Optimizer()
     MOI.empty!(model)
     @test MOI.is_empty(model)
-    # MOI.set(model, MOI.RawParameter("CPX_PARAM_SCRIND"), 3)
-    MOI.set(model, MOI.RawParameter("CPXPARAM_ScreenOutput"), 1)
 
     # min -x
     # st   x + y <= 1.5   (x + y - 1.5 ∈ Nonpositives)
