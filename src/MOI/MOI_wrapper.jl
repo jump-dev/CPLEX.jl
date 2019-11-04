@@ -539,8 +539,11 @@ function MOI.set(
 )
     info = _info(model, v)
     info.name = name
-    # TODO(odow): set variable names
-    # set_strattrelement!(model.inner, "VarName", info.column, name)
+    if isascii(name)
+        CPLEX.c_api_chgname(
+            model.inner, Cchar('c'), Cint(info.column - 1), name
+        )
+    end
     model.name_to_variable = nothing
     return
 end
@@ -1468,9 +1471,10 @@ function MOI.set(
 )
     info = _info(model, c)
     info.name = name
-    if !isempty(name)
-        # TODO(odow): constraint names.
-        # set_strattrelement!(model.inner, "ConstrName", info.row, name)
+    if isascii(name)
+        CPLEX.c_api_chgname(
+            model.inner, Cchar('r'), Cint(info.row - 1), name
+        )
     end
     model.name_to_constraint_index = nothing
     return
@@ -1666,8 +1670,6 @@ function MOI.set(
 ) where {S}
     info = _info(model, c)
     info.name = name
-    # TODO(odow): quadratic constraint names
-    # set_strattrelement!(model.inner, "QCName", info.row, name)
     model.name_to_constraint_index = nothing
     return
 end
@@ -2653,8 +2655,6 @@ function MOI.set(
     if !isempty(info.name) && model.name_to_constraint_index !== nothing
         delete!(model.name_to_constraint_index, info.name)
     end
-    # TODO
-    # set_strattrelement!(model.inner, "QCName", info.row, name)
     info.name = name
     if model.name_to_constraint_index === nothing || isempty(name)
         return

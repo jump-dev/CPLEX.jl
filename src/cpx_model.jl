@@ -317,3 +317,16 @@ function c_api_getconflict(model::Model)
 
     return ConflictRefinerData(confstat_p[], confnumrows_p[], rowind, rowbdstat, confnumcols_p[], colind, colbdstat)
 end
+
+function c_api_chgname(model::Model, key::Cchar, ij::Cint, name::String)
+    stat = @cpx_ccall(
+        chgname,
+        Cint,
+        (Ptr{Cvoid}, Ptr{Cvoid}, Cint, Cint, Ptr{Cchar}),
+        model.env.ptr, model.lp, key, ij, name
+    )
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+    return
+end
