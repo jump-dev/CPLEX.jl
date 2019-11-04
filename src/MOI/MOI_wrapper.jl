@@ -152,6 +152,11 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     name_to_variable::Union{Nothing, Dict{String, Union{Nothing, MOI.VariableIndex}}}
     name_to_constraint_index::Union{Nothing, Dict{String, Union{Nothing, MOI.ConstraintIndex}}}
 
+    # This flag stores whether we have added mip start. If not, the first call
+    # to VariablePrimalStart will call CPXaddmipstarts, and if so, we call
+    # CPXchgmipstarts.
+    has_mip_start::Bool
+
     # TODO: add functionality to the lower-level API to support querying single
     # elements of the solution.
     cached_solution::Union{Nothing, CachedSolution}
@@ -219,6 +224,7 @@ function MOI.empty!(model::Optimizer)
     empty!(model.sos_constraint_info)
     model.name_to_variable = nothing
     model.name_to_constraint_index = nothing
+    model.has_mip_start = false
     empty!(model.callback_variable_primal)
     model.cached_solution = nothing
     model.callback_state = CB_NONE
@@ -1818,6 +1824,17 @@ function MOI.optimize!(model::Optimizer)
     model.cached_solution = nothing
     if model.inner.has_int
         _make_problem_type_integer(model)
+        varindices = Cint[]
+        values = Float64[]
+        for (key, info) in model.variable_info
+            if info.start !== nothing
+                push!(varindices, Cint(info.column))
+                push!(values, info.start)
+            end
+        end
+        CPLEX.set_warm_start!(
+            model.inner, varindices, values, CPX_MIPSTART_AUTO
+        )
     else
         _make_problem_type_continuous(model)
     end
@@ -2163,13 +2180,13 @@ end
 MOI.get(model::Optimizer, ::MOI.RawSolver) = model.inner
 
 function MOI.set(
-    model::Optimizer, ::MOI.VariablePrimalStart, x::MOI.VariableIndex,
+    model::Optimizer,
+    ::MOI.VariablePrimalStart,
+    x::MOI.VariableIndex,
     value::Union{Nothing, Float64}
 )
     info = _info(model, x)
     info.start = value
-    grb_value = value !== nothing ? value : NaN
-    # TODO: warm-starts
     return
 end
 

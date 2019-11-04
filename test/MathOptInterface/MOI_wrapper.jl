@@ -152,6 +152,49 @@ end
             MOI.Bridges.full_bridge_optimizer(CPLEX.Optimizer(), Float64)
         )
     end
+    @testset "scalar_function_constant_not_zero" begin
+        MOIT.scalar_function_constant_not_zero(OPTIMIZER)
+    end
+
+    @testset "start_values_test" begin
+        model = CPLEX.Optimizer()
+        x = MOI.add_variables(model, 2)
+        @test MOI.supports(model, MOI.VariablePrimalStart(), MOI.VariableIndex)
+        @test MOI.get(model, MOI.VariablePrimalStart(), x[1]) === nothing
+        @test MOI.get(model, MOI.VariablePrimalStart(), x[2]) === nothing
+        MOI.set(model, MOI.VariablePrimalStart(), x[1], 1.0)
+        MOI.set(model, MOI.VariablePrimalStart(), x[2], nothing)
+        @test MOI.get(model, MOI.VariablePrimalStart(), x[1]) == 1.0
+        @test MOI.get(model, MOI.VariablePrimalStart(), x[2]) === nothing
+        MOI.optimize!(model)
+        @test MOI.get(model, MOI.ObjectiveValue()) == 0.0
+    end
+
+    @testset "supports_constrainttest" begin
+        # supports_constrainttest needs VectorOfVariables-in-Zeros,
+        # MOIT.supports_constrainttest(CPLEX.Optimizer(), Float64, Float32)
+        # but supports_constrainttest is broken via bridges:
+        MOI.empty!(BRIDGED_OPTIMIZER)
+        MOI.add_variable(BRIDGED_OPTIMIZER)
+        @test  MOI.supports_constraint(BRIDGED_OPTIMIZER, MOI.SingleVariable, MOI.EqualTo{Float64})
+        @test  MOI.supports_constraint(BRIDGED_OPTIMIZER, MOI.ScalarAffineFunction{Float64}, MOI.EqualTo{Float64})
+        # This test is broken for some reason:
+        @test_broken !MOI.supports_constraint(BRIDGED_OPTIMIZER, MOI.ScalarAffineFunction{Int}, MOI.EqualTo{Float64})
+        @test !MOI.supports_constraint(BRIDGED_OPTIMIZER, MOI.ScalarAffineFunction{Int}, MOI.EqualTo{Int})
+        @test !MOI.supports_constraint(BRIDGED_OPTIMIZER, MOI.SingleVariable, MOI.EqualTo{Int})
+        @test  MOI.supports_constraint(BRIDGED_OPTIMIZER, MOI.VectorOfVariables, MOI.Zeros)
+        @test !MOI.supports_constraint(BRIDGED_OPTIMIZER, MOI.VectorOfVariables, MOI.EqualTo{Float64})
+        @test !MOI.supports_constraint(BRIDGED_OPTIMIZER, MOI.SingleVariable, MOI.Zeros)
+        @test !MOI.supports_constraint(BRIDGED_OPTIMIZER, MOI.VectorOfVariables, MOIT.UnknownVectorSet)
+    end
+
+    @testset "set_lower_bound_twice" begin
+        MOIT.set_lower_bound_twice(OPTIMIZER, Float64)
+    end
+
+    @testset "set_upper_bound_twice" begin
+        MOIT.set_upper_bound_twice(OPTIMIZER, Float64)
+    end
 end
 
 @testset "Env" begin
