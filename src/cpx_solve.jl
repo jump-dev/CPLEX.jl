@@ -373,3 +373,14 @@ function c_api_getstat(model::Model)
                       model.env.ptr, model.lp)
 end
 get_status_code(model::Model) = c_api_getstat(model)
+
+function c_api_getstatstring(model::Model, statind::Cint)
+  buffer_str = Vector{Cchar}(undef, 1024)
+  @cpx_ccall(
+    getstatstring,
+    Ptr{Cvoid},
+    (Ptr{Cvoid}, Cint, Ptr{Cchar}),
+    model.env.ptr, statind, buffer_str
+  )
+  return unsafe_string(pointer(buffer_str))
+end

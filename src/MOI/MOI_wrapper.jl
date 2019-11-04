@@ -1852,7 +1852,8 @@ end
 
 function MOI.get(model::Optimizer, attr::MOI.RawStatusString)
     _throw_if_optimize_in_progress(model, attr)
-    return "Unknown"  # TODO
+    statind = c_api_getstat(model.inner)
+    return c_api_getstatstring(model.inner, statind)
 end
 
 function MOI.get(model::Optimizer, attr::MOI.TerminationStatus)
