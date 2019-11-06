@@ -13,12 +13,26 @@
         if context_id == CPLEX.CPX_CALLBACKCONTEXT_CANDIDATE
             primal_sol = Vector{Float64}(undef, 2)
             objective = Ref{Float64}(0.0)
-            CPLEX.cbgetcandidatepoint(cb_context, primal_sol, 1, 2, objective)
+            CPLEX.cbgetcandidatepoint(
+                cb_context,
+                primal_sol,
+                Cint(0),
+                Cint(1),
+                objective
+            )
             @assert isapprox(
                 0.5 * primal_sol[1] + primal_sol[2], objective[], atol=1e-6)
             if sum(primal_sol) > 3.0 + 1e-6
                 CPLEX.cbrejectcandidate(
-                    cb_context, 1, 2, 3.0, 'L', [1], [1, 2], [1.0, 1.0])
+                    cb_context,
+                    Cint(1),
+                    Cint(2),
+                    Cdouble[3.0],
+                    Cchar['L'],
+                    Cint[0],
+                    Cint[0, 1],
+                    Cdouble[1.0, 1.0]
+                )
             end
         else
             error("Callback shold not be called from context_id $(context_id).")

@@ -105,12 +105,8 @@ mutable struct CachedSolution
 end
 
 mutable struct Optimizer <: MOI.AbstractOptimizer
-    # The low-level Gurobi model.
+    # The low-level CPLEX model.
     inner::Model
-
-    # The CPLEX environment. If `nothing`, a new environment will be created on
-    # `MOI.empty!`.
-    env::Union{Nothing, Env}
 
     # The model name. TODO(odow): pass through to .inner.
     name::String
@@ -180,7 +176,8 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     """
     function Optimizer(env::Env = Env())
         model = new()
-        model.env = env
+        model.inner = Model(env)
+        MOI.set(model, MOI.RawParameter("CPXPARAM_ScreenOutput"), 1)
         model.silent = false
         model.variable_info = CleverDicts.CleverDict{MOI.VariableIndex, VariableInfo}()
         model.affine_constraint_info = Dict{Int, ConstraintInfo}()
@@ -211,10 +208,10 @@ end
 Base.show(io::IO, model::Optimizer) = show(io, model.inner)
 
 function MOI.empty!(model::Optimizer)
-    model.inner = Model(model.env)
+    model.inner = Model(model.inner.env)
     model.name = ""
     if model.silent
-        MOI.set(model, MOI.RawParameter("CPX_PARAM_SCRIND"), 0)
+        MOI.set(model, MOI.RawParameter("CPXPARAM_ScreenOutput"), 0)
     end
     model.objective_type = SCALAR_AFFINE
     model.is_feasibility = true
@@ -1817,8 +1814,7 @@ end
 function MOI.optimize!(model::Optimizer)
     # Initialize callbacks if necessary.
     if check_moi_callback_validity(model)
-        # TODO(odow): callbacks
-        # MOI.set(model, CallbackFunction(), default_moi_callback(model))
+        MOI.set(model, CallbackFunction(), default_moi_callback(model))
         model.has_generic_callback = false
     end
     model.cached_solution = nothing
@@ -2684,3 +2680,5 @@ function MOI.set(
     end
     return
 end
+
+include("MOI_callbacks.jl")
