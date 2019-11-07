@@ -315,6 +315,7 @@ MOI.supports(::Optimizer, ::MOI.ConstraintName, ::Type{<:MOI.ConstraintIndex}) =
 
 MOI.supports(::Optimizer, ::MOI.Name) = true
 MOI.supports(::Optimizer, ::MOI.Silent) = true
+MOI.supports(::Optimizer, ::MOI.NumberOfThreads) = true
 MOI.supports(::Optimizer, ::MOI.TimeLimitSec) = true
 MOI.supports(::Optimizer, ::MOI.ObjectiveSense) = true
 MOI.supports(::Optimizer, ::MOI.RawParameter) = true
@@ -2166,7 +2167,7 @@ function MOI.set(model::Optimizer, ::MOI.Silent, flag::Bool)
 end
 
 function MOI.get(model::Optimizer, ::MOI.NumberOfThreads)
-    return MOI.get(model, MOI.RawParameter("CPX_PARAM_THREADS"))
+    return Int(MOI.get(model, MOI.RawParameter("CPX_PARAM_THREADS")))
 end
 
 function MOI.set(model::Optimizer, ::MOI.NumberOfThreads, x::Int)
