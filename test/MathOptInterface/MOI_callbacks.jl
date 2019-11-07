@@ -6,8 +6,8 @@ const MOI = CPLEX.MOI
 
 function callback_simple_model()
     model = CPLEX.Optimizer()
-    MOI.set(model, MOI.RawParameter("CPXPARAM_ScreenOutput"), 0)
-    MOI.set(model, MOI.RawParameter("CPX_PARAM_THREADS"), 1)
+    MOI.set(model, MOI.Silent(), true)
+    MOI.set(model, MOI.NumberOfThreads(), 1)
     MOI.set(model, MOI.RawParameter("CPX_PARAM_PREIND"), 0)
     MOI.set(model, MOI.RawParameter("CPX_PARAM_HEURFREQ"), -1)
 
@@ -26,8 +26,8 @@ end
 
 function callback_knapsack_model()
     model = CPLEX.Optimizer()
-    MOI.set(model, MOI.RawParameter("CPXPARAM_ScreenOutput"), 0)
-    MOI.set(model, MOI.RawParameter("CPX_PARAM_THREADS"), 1)
+    MOI.set(model, MOI.Silent(), true)
+    MOI.set(model, MOI.NumberOfThreads(), 1)
     MOI.set(model, MOI.RawParameter("CPX_PARAM_PREIND"), 0)
     MOI.set(model, MOI.RawParameter("CPX_PARAM_HEURFREQ"), -1)
 

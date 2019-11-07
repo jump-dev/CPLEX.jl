@@ -102,6 +102,8 @@ mutable struct CachedSolution
 
     has_primal_certificate::Bool
     has_dual_certificate::Bool
+
+    solve_time::Float64
 end
 
 mutable struct Optimizer <: MOI.AbstractOptimizer
@@ -201,7 +203,8 @@ function CachedSolution(model::Optimizer)
         fill(NaN, num_quad),
         fill(NaN, num_quad),
         false,
-        false
+        false,
+        NaN
     )
 end
 
@@ -1834,9 +1837,12 @@ function MOI.optimize!(model::Optimizer)
     else
         _make_problem_type_continuous(model)
     end
+    start_time = time()
     CPLEX.optimize!(model.inner)
+    solve_time = time() - start_time
 
     model.cached_solution = CachedSolution(model)
+    model.cached_solution.solve_time = solve_time
     status = MOI.get(model, MOI.PrimalStatus())
     if status == MOI.FEASIBLE_POINT
         CPLEX.c_api_getx(model.inner, model.cached_solution.variable_primal)
@@ -2102,7 +2108,7 @@ end
 
 function MOI.get(model::Optimizer, attr::MOI.SolveTime)
     _throw_if_optimize_in_progress(model, attr)
-    return 0  # TODO
+    return model.cached_solution.solve_time
 end
 
 function MOI.get(model::Optimizer, attr::MOI.SimplexIterations)
@@ -2155,8 +2161,16 @@ end
 
 function MOI.set(model::Optimizer, ::MOI.Silent, flag::Bool)
     model.silent = flag
-    MOI.set(model, MOI.RawParameter("CPX_PARAM_SCRIND"), flag ? 1 : 0)
+    MOI.set(model, MOI.RawParameter("CPX_PARAM_SCRIND"), flag ? 0 : 1)
     return
+end
+
+function MOI.get(model::Optimizer, ::MOI.NumberOfThreads)
+    return MOI.get(model, MOI.RawParameter("CPX_PARAM_THREADS"))
+end
+
+function MOI.set(model::Optimizer, ::MOI.NumberOfThreads, x::Int)
+    return MOI.set(model, MOI.RawParameter("CPX_PARAM_THREADS"), x)
 end
 
 function MOI.get(model::Optimizer, ::MOI.Name)

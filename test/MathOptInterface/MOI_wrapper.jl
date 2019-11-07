@@ -45,12 +45,6 @@ const BRIDGED_CERTIFICATE_OPTIMIZER =
     )
 
     MOIT.unittest(BRIDGED_OPTIMIZER, CONFIG, [
-        # TODO(odow): implement.
-        "number_threads",
-
-        # TODO(odow): implement.
-        "solve_time",
-
         # TODO(odow): bug! We can't delete a vector of variables  if one is in
         # a second order cone.
         "delete_soc_variables",
