@@ -2107,12 +2107,12 @@ end
 
 function MOI.get(model::Optimizer, attr::MOI.SimplexIterations)
     _throw_if_optimize_in_progress(model, attr)
-    return 0  # TODO
+    return CPLEX.c_api_getitcnt(model.inner)
 end
 
 function MOI.get(model::Optimizer, attr::MOI.BarrierIterations)
     _throw_if_optimize_in_progress(model, attr)
-    return 0  # TODO
+    return CPLEX.c_api_getbaritcnt(model.inner)
 end
 
 function MOI.get(model::Optimizer, attr::MOI.NodeCount)
