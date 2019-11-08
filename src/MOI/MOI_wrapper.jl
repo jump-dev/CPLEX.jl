@@ -150,14 +150,10 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     name_to_variable::Union{Nothing, Dict{String, Union{Nothing, MOI.VariableIndex}}}
     name_to_constraint_index::Union{Nothing, Dict{String, Union{Nothing, MOI.ConstraintIndex}}}
 
-    # This flag stores whether we have added mip start. If not, the first call
-    # to VariablePrimalStart will call CPXaddmipstarts, and if so, we call
-    # CPXchgmipstarts.
-    has_mip_start::Bool
-
     # TODO: add functionality to the lower-level API to support querying single
     # elements of the solution.
     cached_solution::Union{Nothing, CachedSolution}
+    conflict::Union{Nothing, ConflictRefinerData}
 
     # Callback fields.
     callback_variable_primal::Vector{Float64}
@@ -224,9 +220,9 @@ function MOI.empty!(model::Optimizer)
     empty!(model.sos_constraint_info)
     model.name_to_variable = nothing
     model.name_to_constraint_index = nothing
-    model.has_mip_start = false
     empty!(model.callback_variable_primal)
     model.cached_solution = nothing
+    model.conflict = nothing
     model.callback_state = CB_NONE
     model.has_generic_callback = false
     model.lazy_callback = nothing
@@ -2694,6 +2690,189 @@ function MOI.set(
         model.name_to_constraint_index[c] = name
     end
     return
+end
+
+"""
+    compute_conflict(model::Optimizer)
+
+Compute a minimal subset of the constraints and variables that keep the model
+infeasible.
+
+See also `CPLEX.ConflictStatus` and `CPLEX.ConstraintConflictStatus`.
+
+Note that if `model` is modified after a call to `compute_conflict`, the
+conflict is not purged, and any calls to the above attributes will return
+values for the original conflict without a warning.
+"""
+function compute_conflict(model::Optimizer)
+    # In case there is no conflict, c_api_getconflict throws an error, while the
+    # conflict data structure can handle more gracefully this case (via a status
+    # check).
+
+    # TODO: decide what to do about the POSSIBLE statuses for the constraints
+    # (CPX_CONFLICT_POSSIBLE_MEMBER, CPX_CONFLICT_POSSIBLE_UB,
+    # CPX_CONFLICT_POSSIBLE_LB).
+    try
+        model.conflict = c_api_getconflict(model.inner)
+    catch exc
+        if isa(exc, CplexError) && exc.code == CPXERR_NO_CONFLICT
+            model.conflict = ConflictRefinerData(
+                CPX_STAT_CONFLICT_FEASIBLE, 0, Cint[], Cint[], 0, Cint[], Cint[]
+            )
+        else
+            rethrow(exc)
+        end
+    end
+    return
+end
+
+function _ensure_conflict_computed(model::Optimizer)
+    if model.conflict === nothing
+        error(
+            "Cannot access conflict status. Call " *
+            "`CPLEX.compute_conflict(model)` first. In case the model is " *
+            "modified, the computed conflict will not be purged."
+        )
+    end
+end
+
+"""
+    ConflictStatus()
+
+Return an `MOI.TerminationStatusCode` indicating the status of the last
+computed conflict. If a minimal conflict is found, it will return
+`MOI.OPTIMAL`. If the problem is feasible, it will return `MOI.INFEASIBLE`. If
+`compute_conflict` has not been called yet, it will return
+`MOI.OPTIMIZE_NOT_CALLED`.
+"""
+struct ConflictStatus <: MOI.AbstractModelAttribute  end
+
+MOI.is_set_by_optimize(::ConflictStatus) = true
+
+function MOI.get(model::Optimizer, ::ConflictStatus)
+    if model.conflict === nothing
+        return MOI.OPTIMIZE_NOT_CALLED
+    elseif model.conflict.stat == CPX_STAT_CONFLICT_MINIMAL
+        return MOI.OPTIMAL
+    elseif model.conflict.stat == CPX_STAT_CONFLICT_FEASIBLE
+        return MOI.INFEASIBLE
+    elseif model.conflict.stat == CPX_STAT_CONFLICT_ABORT_CONTRADICTION
+        return MOI.OTHER_LIMIT
+    elseif model.conflict.stat == CPX_STAT_CONFLICT_ABORT_DETTIME_LIM
+        return MOI.TIME_LIMIT
+    elseif model.conflict.stat == CPX_STAT_CONFLICT_ABORT_IT_LIM
+        return MOI.ITERATION_LIMIT
+    elseif model.conflict.stat == CPX_STAT_CONFLICT_ABORT_MEM_LIM
+        return MOI.MEMORY_LIMIT
+    elseif model.conflict.stat == CPX_STAT_CONFLICT_ABORT_NODE_LIM
+        return MOI.NODE_LIMIT
+    elseif model.conflict.stat == CPX_STAT_CONFLICT_ABORT_OBJ_LIM
+        return MOI.OBJECTIVE_LIMIT
+    elseif model.conflict.stat == CPX_STAT_CONFLICT_ABORT_TIME_LIM
+        return MOI.TIME_LIMIT
+    elseif model.conflict.stat == CPX_STAT_CONFLICT_ABORT_USER
+        return MOI.OTHER_LIMIT
+    else
+        return MOI.OTHER_LIMIT
+    end
+end
+
+function MOI.supports(::Optimizer, ::ConflictStatus)
+    return true
+end
+
+"""
+    ConstraintConflictStatus()
+
+A Boolean constraint attribute indicating whether the constraint participates
+in the last computed conflict.
+"""
+struct ConstraintConflictStatus <: MOI.AbstractConstraintAttribute end
+
+MOI.is_set_by_optimize(::ConstraintConflictStatus) = true
+
+function _get_conflict_status(
+    model::Optimizer,
+    index::MOI.ConstraintIndex{MOI.SingleVariable, <:Any}
+)
+    _ensure_conflict_computed(model)
+    column = _info(model, index).column
+    for (col, stat) in zip(model.conflict.colind, model.conflict.colstat)
+        if column - 1 == col
+            return stat
+        end
+    end
+    return nothing
+end
+
+function MOI.get(
+    model::Optimizer,
+    ::ConstraintConflictStatus,
+    index::MOI.ConstraintIndex{MOI.SingleVariable, <:MOI.LessThan}
+)
+    status = _get_conflict_status(model, index)
+    if status === nothing
+        return false
+    end
+    return status == CPLEX.CPX_CONFLICT_MEMBER ||
+        status == CPLEX.CPX_CONFLICT_UB
+end
+
+function MOI.get(
+    model::Optimizer,
+    ::ConstraintConflictStatus,
+    index::MOI.ConstraintIndex{MOI.SingleVariable, <:MOI.GreaterThan})
+    status = _get_conflict_status(model, index)
+    if status === nothing
+        return false
+    end
+    return status == CPLEX.CPX_CONFLICT_MEMBER ||
+        status == CPLEX.CPX_CONFLICT_LB
+end
+
+function MOI.get(
+    model::Optimizer,
+    ::ConstraintConflictStatus,
+    index::MOI.ConstraintIndex{MOI.SingleVariable, <:Union{MOI.EqualTo, MOI.Interval}}
+)
+    status = _get_conflict_status(model, index)
+    if status === nothing
+        return false
+    end
+    return status == CPLEX.CPX_CONFLICT_MEMBER ||
+        status == CPLEX.CPX_CONFLICT_LB ||
+        status == CPLEX.CPX_CONFLICT_UB
+end
+
+function MOI.get(
+    model::Optimizer,
+    ::ConstraintConflictStatus,
+    index::MOI.ConstraintIndex{
+        <:MOI.ScalarAffineFunction,
+        <:Union{MOI.LessThan, MOI.GreaterThan, MOI.EqualTo}
+    }
+)
+    _ensure_conflict_computed(model)
+    return (_info(model, index).row - 1) in model.conflict.rowind
+end
+
+function MOI.supports(
+    ::Optimizer,
+    ::ConstraintConflictStatus,
+    ::Type{MOI.ConstraintIndex{<:MOI.SingleVariable, <:SCALAR_SETS}}
+)
+    return true
+end
+
+function MOI.supports(
+    ::Optimizer,
+    ::ConstraintConflictStatus,
+    ::Type{MOI.ConstraintIndex{
+        <:MOI.ScalarAffineFunction,
+        <:Union{MOI.LessThan, MOI.GreaterThan, MOI.EqualTo}
+    }}
+)
+    return true
 end
 
 include("MOI_callbacks.jl")
