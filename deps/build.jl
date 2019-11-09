@@ -16,10 +16,6 @@ function library_name(v)
     return "$(cpx_prefix)cplex$(v).$(Libdl.dlext)"
 end
 
-@static if Sys.isapple()
-    Libdl.dlopen("libstdc++", Libdl.RTLD_GLOBAL)
-end
-
 function try_local_installation()
     # Find the path to the CPLEX executable.
     cplex_path = try
