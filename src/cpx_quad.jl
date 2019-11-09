@@ -135,8 +135,8 @@ function add_qconstr!(model::Model, lind::IVec, lval::FVec, qr::IVec, qc::IVec, 
                           Ptr{Float64}, # qval
                           Ptr{UInt8}    # name
                           ),
-                          model.env.ptr, model.lp, lnnz, qnnz, rhs, rel, 
-                          lind .- Cint(1), lval, qr .- Cint(1), qc .- Cint(1), 
+                          model.env.ptr, model.lp, lnnz, qnnz, rhs, rel,
+                          lind .- Cint(1), lval, qr .- Cint(1), qc .- Cint(1),
                           qv, C_NULL)
         if stat != 0
             throw(CplexError(model.env, stat))
@@ -164,15 +164,15 @@ function c_api_getqconstr(model::Model, row::Int)
     linsurplus_p = Ref{Cint}()
     quadsurplus_p = Ref{Cint}()
     stat = @cpx_ccall(
-        getqconstr, 
+        getqconstr,
         Cint, (
-            Ptr{Cvoid}, Ptr{Cvoid}, 
+            Ptr{Cvoid}, Ptr{Cvoid},
             Ptr{Cint}, Ptr{Cint}, Ptr{Float64}, Ptr{Cchar},
             Ptr{Cint}, Ptr{Float64}, Cint, Ptr{Cint},
             Ptr{Cint}, Ptr{Cint}, Ptr{Float64}, Cint, Ptr{Cint},
             Cint),
-        model.env.ptr, model.lp, 
-        C_NULL, C_NULL, rhs_p, sense_p, 
+        model.env.ptr, model.lp,
+        C_NULL, C_NULL, rhs_p, sense_p,
         C_NULL, C_NULL, 0, linsurplus_p,
         C_NULL, C_NULL, C_NULL, 0, quadsurplus_p,
         Cint(row-1))
@@ -189,15 +189,15 @@ function c_api_getqconstr(model::Model, row::Int)
     linnzcnt_p = Ref{Cint}()
     quadnzcnt_p = Ref{Cint}()
     stat = @cpx_ccall(
-        getqconstr, 
+        getqconstr,
         Cint, (
-            Ptr{Cvoid}, Ptr{Cvoid}, 
+            Ptr{Cvoid}, Ptr{Cvoid},
             Ptr{Cint}, Ptr{Cint}, Ptr{Float64}, Ptr{Cchar},
             Ptr{Cint}, Ptr{Float64}, Cint, Ptr{Cint},
             Ptr{Cint}, Ptr{Cint}, Ptr{Float64}, Cint, Ptr{Cint},
             Cint),
-        model.env.ptr, model.lp, 
-        linnzcnt_p, quadnzcnt_p, rhs_p, sense_p, 
+        model.env.ptr, model.lp,
+        linnzcnt_p, quadnzcnt_p, rhs_p, sense_p,
         linind, linval, linspace, linsurplus_p,
         quadrow, quadcol, quadval, quadspace, quadsurplus_p,
         Cint(row-1))
@@ -205,7 +205,7 @@ function c_api_getqconstr(model::Model, row::Int)
         throw(CplexError(model.env, stat))
     end
     if quadsurplus_p[] < 0 || linsurplus_p[] < 0
-        error("Unable to query quadratic constraint, there were more " * 
+        error("Unable to query quadratic constraint, there were more " *
               "non-zero elements than expected.")
     end
     return linind, linval, quadrow, quadcol, quadval, sense_p[], rhs_p[]
@@ -248,4 +248,18 @@ function c_api_getquad(model::Model)
               "non-zero elements than expected.")
     end
     return qmatbeg, qmatind, qmatval
+end
+
+# int CPXdelqconstrs( CPXCENVptr env, CPXLPptr lp, int begin, int end )
+function c_api_delqconstrs(model::Model,  first::Cint, last::Cint)
+    stat = @cpx_ccall(
+        delqconstrs,
+        Cint,
+        (Ptr{Cvoid}, Ptr{Cvoid}, Cint, Cint),
+        model.env.ptr, model.lp, first, last
+    )
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+    return
 end

@@ -20,7 +20,12 @@
             relaxed_solution = Vector{Float64}(undef, 2)
             relaxed_objective = Ref{Float64}(0.0)
             CPLEX.cbgetrelaxationpoint(
-                cb_context, relaxed_solution, 1, 2, relaxed_objective)
+                cb_context,
+                relaxed_solution,
+                Cint(0),
+                Cint(1),
+                relaxed_objective
+            )
             objective_value = relaxed_objective[]
             for j in 1:2
                 frac = relaxed_solution[j] - floor(relaxed_solution[j])
@@ -31,8 +36,13 @@
             end
             was_heuristic_called = true
             return CPLEX.cbpostheursoln(
-                cb_context, 2, [1, 2], relaxed_solution, objective_value,
-                CPLEX.CPXCALLBACKSOLUTION_PROPAGATE)
+                cb_context,
+                Cint(2),
+                Cint[0, 1],
+                relaxed_solution,
+                objective_value,
+                CPLEX.CPXCALLBACKSOLUTION_PROPAGATE
+            )
         else
             error("Heuristic should not be called from $(context_id).")
         end

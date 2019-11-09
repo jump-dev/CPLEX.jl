@@ -208,6 +208,33 @@ function c_api_chgobj(model::Model, indices::IVec, values::FVec)
     end
 end
 
+function c_api_chgobjoffset(model::Model, offset::Float64)
+    stat = @cpx_ccall(
+        chgobjoffset,
+        Cint,
+        (Ptr{Cvoid}, Ptr{Cvoid}, Cdouble),
+        model.env.ptr, model.lp, offset
+    )
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+    return
+end
+
+function c_api_getobjoffset(model::Model)
+    objoffset_p = Ref{Float64}()
+    stat = @cpx_ccall(
+        getobjoffset,
+        Cint,
+        (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cdouble}),
+        model.env.ptr, model.lp, objoffset_p
+    )
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+    return objoffset_p[]
+end
+
 set_warm_start!(model::Model, x::Vector{Float64}, effortlevel::Integer = CPX_MIPSTART_AUTO) = set_warm_start!(model, Cint[1:length(x);], x, effortlevel)
 
 function set_warm_start!(model::Model, indx::IVec, val::FVec, effortlevel::Integer)
@@ -256,22 +283,22 @@ mutable struct ConflictRefinerData
 end
 
 function c_api_getconflict(model::Model)
-    # This function always calls refineconflict first, which starts the conflict refiner. 
-    # In other words, any call to this function is expensive. 
+    # This function always calls refineconflict first, which starts the conflict refiner.
+    # In other words, any call to this function is expensive.
 
-    # First, compute the conflict. 
+    # First, compute the conflict.
     confnumrows_p = Ref{Cint}()
     confnumcols_p = Ref{Cint}()
     stat = @cpx_ccall(
-        refineconflict, 
-        Cint, 
+        refineconflict,
+        Cint,
         (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}, Ptr{Cint}),
         model.env.ptr, model.lp, confnumrows_p, confnumcols_p)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
 
-    # Then, retrieve it. 
+    # Then, retrieve it.
     confstat_p = Ref{Cint}()
     rowind = Vector{Cint}(undef, confnumrows_p[])
     rowbdstat = Vector{Cint}(undef, confnumrows_p[])
@@ -280,8 +307,8 @@ function c_api_getconflict(model::Model)
     colbdstat = Vector{Cint}(undef, confnumcols_p[])
     confnumcols_p  = Ref{Cint}()
     stat = @cpx_ccall(
-        getconflict, 
-        Cint, 
+        getconflict,
+        Cint,
         (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}),
         model.env.ptr, model.lp, confstat_p, rowind, rowbdstat, confnumrows_p, colind, colbdstat, confnumcols_p)
     if stat != 0
@@ -289,4 +316,17 @@ function c_api_getconflict(model::Model)
     end
 
     return ConflictRefinerData(confstat_p[], confnumrows_p[], rowind, rowbdstat, confnumcols_p[], colind, colbdstat)
+end
+
+function c_api_chgname(model::Model, key::Cchar, ij::Cint, name::String)
+    stat = @cpx_ccall(
+        chgname,
+        Cint,
+        (Ptr{Cvoid}, Ptr{Cvoid}, Cint, Cint, Ptr{Cchar}),
+        model.env.ptr, model.lp, key, ij, name
+    )
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+    return
 end

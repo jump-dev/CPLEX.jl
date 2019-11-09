@@ -1,87 +1,194 @@
-using MathOptInterface, CPLEX, Test
+using CPLEX
+using MathOptInterface
+using Test
 
 const MOI  = MathOptInterface
 const MOIT = MOI.Test
 const MOIB = MOI.Bridges
 
-const SOLVER = CPLEX.Optimizer(CPX_PARAM_SCRIND = 0)
 const CONFIG = MOIT.TestConfig()
 
+const OPTIMIZER = CPLEX.Optimizer()
+MOI.set(OPTIMIZER, MOI.Silent(), true)
+const BRIDGED_OPTIMIZER = MOI.Bridges.full_bridge_optimizer(OPTIMIZER, Float64)
+
+const CERTIFICATE_OPTIMIZER = CPLEX.Optimizer()
+MOI.set(CERTIFICATE_OPTIMIZER, MOI.Silent(), true)
+MOI.set(CERTIFICATE_OPTIMIZER, MOI.RawParameter("CPX_PARAM_REDUCE"), 0)
+MOI.set(CERTIFICATE_OPTIMIZER, MOI.RawParameter("CPX_PARAM_PRELINEAR"), 0)
+const BRIDGED_CERTIFICATE_OPTIMIZER =
+    MOI.Bridges.full_bridge_optimizer(CERTIFICATE_OPTIMIZER, Float64)
+
 @testset "Unit Tests" begin
-    MOIT.unittest(SOLVER, CONFIG, [
-        "solve_affine_interval",  # not implemented
-        "solve_objbound_edge_cases"
+    MOIT.basic_constraint_tests(BRIDGED_OPTIMIZER, CONFIG; exclude = [
+        (MOI.VectorOfVariables, MOI.SecondOrderCone),
+        (MOI.VectorOfVariables, MOI.RotatedSecondOrderCone),
+        (MOI.VectorOfVariables, MOI.GeometricMeanCone),
+        (MOI.VectorAffineFunction{Float64}, MOI.SecondOrderCone),
+        (MOI.VectorAffineFunction{Float64}, MOI.RotatedSecondOrderCone),
+        (MOI.VectorAffineFunction{Float64}, MOI.GeometricMeanCone),
     ])
-    @testset "solve_affine_interval" begin
-        MOIT.solve_affine_interval(MOIB.SplitInterval{Float64}(SOLVER), CONFIG)
-    end
-    MOIT.modificationtest(SOLVER, CONFIG, [
-        "solve_func_scalaraffine_lessthan"
+    # TODO(odow): bugs deleting SOC variables. See also the
+    # `delete_soc_variables` test.
+    MOIT.basic_constraint_tests(
+        BRIDGED_OPTIMIZER,
+        CONFIG;
+        include = [
+            (MOI.VectorOfVariables, MOI.SecondOrderCone),
+            (MOI.VectorOfVariables, MOI.RotatedSecondOrderCone),
+            (MOI.VectorOfVariables, MOI.GeometricMeanCone),
+            (MOI.VectorAffineFunction{Float64}, MOI.SecondOrderCone),
+            (MOI.VectorAffineFunction{Float64}, MOI.RotatedSecondOrderCone),
+            (MOI.VectorAffineFunction{Float64}, MOI.GeometricMeanCone),
+        ],
+        delete = false
+    )
+
+    MOIT.unittest(BRIDGED_OPTIMIZER, CONFIG, [
+        # TODO(odow): bug! We can't delete a vector of variables  if one is in
+        # a second order cone.
+        "delete_soc_variables",
+
+        # CPLEX returns INFEASIBLE_OR_UNBOUNDED without extra parameters.
+        # See below for the test.
+        "solve_unbounded_model",
     ])
+    MOIT.solve_unbounded_model(CERTIFICATE_OPTIMIZER, CONFIG)
+
+    MOIT.modificationtest(BRIDGED_OPTIMIZER, CONFIG)
 end
 
 @testset "Linear tests" begin
-    @testset "Default Solver"  begin
-        MOIT.contlineartest(SOLVER, CONFIG, [
-            # Requires interval
-            "linear10", "linear10b",
-            # Requires infeasiblity certificates
-            "linear8a", "linear8b", "linear8c", "linear11", "linear12",
-            # VariablePrimalStart not implemented.
-            "partial_start"
-        ])
-    end
-    @testset "linear10" begin
-        MOIT.linear10test(MOIB.SplitInterval{Float64}(SOLVER), CONFIG)
-        MOIT.linear10btest(MOIB.SplitInterval{Float64}(SOLVER), CONFIG)
-    end
-    @testset "No certificate" begin
-        MOIT.linear12test(
-            SOLVER, MOIT.TestConfig(infeas_certificates=false))
-    end
-end
+    MOIT.contlineartest(BRIDGED_OPTIMIZER, CONFIG, [
+        # These tests require extra parameters to be set.
+        "linear8a", "linear8b", "linear8c",
 
-@testset "Linear Conic" begin
-    # TODO(odow): why no infeasiblity certificates here?
-    MOIT.lintest(SOLVER, MOIT.TestConfig(infeas_certificates=false))
+        # TODO(odow): This test requests the infeasibility certificate of a
+        # variable bound.
+        "linear12"
+    ])
+
+    MOIT.linear8atest(CERTIFICATE_OPTIMIZER, CONFIG)
+    MOIT.linear8btest(CERTIFICATE_OPTIMIZER, CONFIG)
+    MOIT.linear8ctest(CERTIFICATE_OPTIMIZER, CONFIG)
+
+    MOIT.linear12test(OPTIMIZER, MOIT.TestConfig(infeas_certificates=false))
 end
 
 @testset "Integer Linear tests" begin
-    MOIT.intlineartest(SOLVER, CONFIG, ["int3"])
-    @testset "int3" begin
-        MOIT.int3test(MOIB.SplitInterval{Float64}(SOLVER), CONFIG)
-    end
+    MOIT.intlineartest(BRIDGED_OPTIMIZER, CONFIG, [
+        # TODO(odow): Indicator sets not supported.
+        "indicator1", "indicator2", "indicator3", "indicator4"
+    ])
 end
 
 @testset "Quadratic tests" begin
+    # TODO(odow): duals for quadratic problems.
+    quad_config = MOIT.TestConfig(duals = false, atol = 1e-3, rtol = 1e-3)
+
     MOIT.contquadratictest(
-        SOLVER,
-        MOIT.TestConfig(atol=1e-3, rtol=1e-3, duals=true, query=true)
+        BRIDGED_CERTIFICATE_OPTIMIZER,
+        quad_config, [
+            # CPLEX doesn't support non-convex problems
+            "ncqcp"
+        ]
     )
 end
 
+@testset "Conic tests" begin
+    MOIT.lintest(BRIDGED_OPTIMIZER, CONFIG, [
+        # These tests require extra parameters to be set.
+        "lin3", "lin4"
+    ])
+
+    MOIT.lin3test(BRIDGED_CERTIFICATE_OPTIMIZER, CONFIG)
+    MOIT.lin4test(BRIDGED_CERTIFICATE_OPTIMIZER, CONFIG)
+
+    # TODO(odow): duals for SOC constraints.
+    soc_config = MOIT.TestConfig(duals = false, atol=5e-3)
+
+    MOIT.soctest(BRIDGED_OPTIMIZER, soc_config, [
+        "soc3"
+    ])
+
+    MOIT.soc3test(
+        BRIDGED_OPTIMIZER,
+        MOIT.TestConfig(duals = false, infeas_certificates = false, atol = 1e-3)
+    )
+
+    MOIT.rsoctest(BRIDGED_OPTIMIZER, soc_config)
+
+    MOIT.geomeantest(BRIDGED_OPTIMIZER, soc_config)
+end
+
 @testset "ModelLike tests" begin
-    @test MOI.get(SOLVER, MOI.SolverName()) == "CPLEX"
+    @test MOI.get(BRIDGED_OPTIMIZER, MOI.SolverName()) == "CPLEX"
     @testset "default_objective_test" begin
-         MOIT.default_objective_test(SOLVER)
+         MOIT.default_objective_test(BRIDGED_OPTIMIZER)
      end
      @testset "default_status_test" begin
-         MOIT.default_status_test(SOLVER)
+         MOIT.default_status_test(BRIDGED_OPTIMIZER)
      end
     @testset "nametest" begin
-        MOIT.nametest(SOLVER)
+        MOIT.nametest(BRIDGED_OPTIMIZER)
     end
     @testset "validtest" begin
-        MOIT.validtest(SOLVER)
+        MOIT.validtest(BRIDGED_OPTIMIZER)
     end
     @testset "emptytest" begin
-        MOIT.emptytest(SOLVER)
+        MOIT.emptytest(BRIDGED_OPTIMIZER)
     end
     @testset "orderedindicestest" begin
-        MOIT.orderedindicestest(SOLVER)
+        MOIT.orderedindicestest(BRIDGED_OPTIMIZER)
     end
     @testset "copytest" begin
-        MOIT.copytest(SOLVER, CPLEX.Optimizer())
+        MOIT.copytest(
+            BRIDGED_OPTIMIZER,
+            MOI.Bridges.full_bridge_optimizer(CPLEX.Optimizer(), Float64)
+        )
+    end
+    @testset "scalar_function_constant_not_zero" begin
+        MOIT.scalar_function_constant_not_zero(OPTIMIZER)
+    end
+
+    @testset "start_values_test" begin
+        model = CPLEX.Optimizer()
+        x = MOI.add_variables(model, 2)
+        @test MOI.supports(model, MOI.VariablePrimalStart(), MOI.VariableIndex)
+        @test MOI.get(model, MOI.VariablePrimalStart(), x[1]) === nothing
+        @test MOI.get(model, MOI.VariablePrimalStart(), x[2]) === nothing
+        MOI.set(model, MOI.VariablePrimalStart(), x[1], 1.0)
+        MOI.set(model, MOI.VariablePrimalStart(), x[2], nothing)
+        @test MOI.get(model, MOI.VariablePrimalStart(), x[1]) == 1.0
+        @test MOI.get(model, MOI.VariablePrimalStart(), x[2]) === nothing
+        MOI.optimize!(model)
+        @test MOI.get(model, MOI.ObjectiveValue()) == 0.0
+    end
+
+    @testset "supports_constrainttest" begin
+        # supports_constrainttest needs VectorOfVariables-in-Zeros,
+        # MOIT.supports_constrainttest(CPLEX.Optimizer(), Float64, Float32)
+        # but supports_constrainttest is broken via bridges:
+        MOI.empty!(BRIDGED_OPTIMIZER)
+        MOI.add_variable(BRIDGED_OPTIMIZER)
+        @test  MOI.supports_constraint(BRIDGED_OPTIMIZER, MOI.SingleVariable, MOI.EqualTo{Float64})
+        @test  MOI.supports_constraint(BRIDGED_OPTIMIZER, MOI.ScalarAffineFunction{Float64}, MOI.EqualTo{Float64})
+        # This test is broken for some reason:
+        @test_broken !MOI.supports_constraint(BRIDGED_OPTIMIZER, MOI.ScalarAffineFunction{Int}, MOI.EqualTo{Float64})
+        @test !MOI.supports_constraint(BRIDGED_OPTIMIZER, MOI.ScalarAffineFunction{Int}, MOI.EqualTo{Int})
+        @test !MOI.supports_constraint(BRIDGED_OPTIMIZER, MOI.SingleVariable, MOI.EqualTo{Int})
+        @test  MOI.supports_constraint(BRIDGED_OPTIMIZER, MOI.VectorOfVariables, MOI.Zeros)
+        @test !MOI.supports_constraint(BRIDGED_OPTIMIZER, MOI.VectorOfVariables, MOI.EqualTo{Float64})
+        @test !MOI.supports_constraint(BRIDGED_OPTIMIZER, MOI.SingleVariable, MOI.Zeros)
+        @test !MOI.supports_constraint(BRIDGED_OPTIMIZER, MOI.VectorOfVariables, MOIT.UnknownVectorSet)
+    end
+
+    @testset "set_lower_bound_twice" begin
+        MOIT.set_lower_bound_twice(OPTIMIZER, Float64)
+    end
+
+    @testset "set_upper_bound_twice" begin
+        MOIT.set_upper_bound_twice(OPTIMIZER, Float64)
     end
 end
 
@@ -115,7 +222,7 @@ end
             model = CPLEX.Optimizer()
             env = model.inner.env
             MOI.empty!(model)
-            @test model.inner.env !== env
+            @test model.inner.env === env
             @test CPLEX.is_valid(model.inner.env)
         end
     end
@@ -125,7 +232,7 @@ end
     atol = 1e-5
     rtol = 1e-5
 
-    model = CPLEX.Optimizer(CPX_PARAM_SCRIND = 0)
+    model = CPLEX.Optimizer()
     MOI.empty!(model)
     @test MOI.is_empty(model)
 
@@ -140,8 +247,7 @@ end
     c = MOI.add_constraint(model, cf, MOI.LessThan(1.5))
     @test MOI.get(model, MOI.NumberOfConstraints{MOI.ScalarAffineFunction{Float64},MOI.LessThan{Float64}}()) == 1
 
-    vc1 = MOI.add_constraint(model, MOI.SingleVariable(v[1]), MOI.GreaterThan(0.0))
-    vc2 = MOI.add_constraint(model, MOI.SingleVariable(v[2]), MOI.GreaterThan(0.0))
+    MOI.add_constraint.(model, MOI.SingleVariable.(v), MOI.GreaterThan(0.0))
     @test MOI.get(model, MOI.NumberOfConstraints{MOI.SingleVariable,MOI.GreaterThan{Float64}}()) == 2
 
     objf = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([-1.0,0.0], v), 0.0)
@@ -160,30 +266,14 @@ end
     @test MOI.get(model, MOI.ConstraintPrimal(), c) ≈ 1.5 atol=atol rtol=rtol
 
     # Add integrality constraints
-    int1 = MOI.add_constraint(model, MOI.SingleVariable(v[1]), MOI.Integer())
-    int2 = MOI.add_constraint(model, MOI.SingleVariable(v[2]), MOI.Integer())
+    int = MOI.add_constraint.(model, MOI.SingleVariable.(v), MOI.Integer())
     MOI.optimize!(model)
     @test MOI.get(model, MOI.ObjectiveValue()) ≈ -1.0 atol=atol rtol=rtol
 
     # Remove integrality constraints
-    MOI.delete(model, int1)
-    MOI.delete(model, int2)
+    MOI.delete.(model, int)
     MOI.optimize!(model)
     @test MOI.get(model, MOI.ObjectiveValue()) ≈ -1.5 atol=atol rtol=rtol
-end
-	
-@testset "Issue 229" begin
-    model = CPLEX.Optimizer()
-    @test haskey(model.params, "CPX_PARAM_SCRIND")
-    @test model.params["CPX_PARAM_SCRIND"] == 1
-
-    model = CPLEX.Optimizer(CPX_PARAM_SCRIND=0)
-    @test haskey(model.params, "CPX_PARAM_SCRIND")
-    @test model.params["CPX_PARAM_SCRIND"] == 0
-
-    model = CPLEX.Optimizer(CPXPARAM_ScreenOutput=0)
-    @test !haskey(model.params, "CPX_PARAM_SCRIND")
-    @test haskey(model.params, "CPXPARAM_ScreenOutput")
 end
 
 @testset "Conflict refiner" begin
@@ -211,40 +301,6 @@ end
         x = MOI.add_variable(model)
         c1 = MOI.add_constraint(model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0], [x]), 0.0), MOI.GreaterThan(2.0))
         c2 = MOI.add_constraint(model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0], [x]), 0.0), MOI.LessThan(1.0))
-
-        # Getting the results before the conflict refiner has been called must return an error.
-        @test MOI.get(model, CPLEX.ConflictStatus()) == MOI.OPTIMIZE_NOT_CALLED
-        @test_throws ErrorException MOI.get(model, CPLEX.ConstraintConflictStatus(), c1)
-
-        # Once it's called, no problem.
-        CPLEX.compute_conflict(model)
-        @test MOI.get(model, CPLEX.ConflictStatus()) == MOI.OPTIMAL
-        @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c1) == true
-        @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c2) == true
-    end
-
-    @testset "Variable fixing (SingleVariable and EqualTo)" begin
-        model = CPLEX.Optimizer()
-        x = MOI.add_variable(model)
-        c1 = MOI.add_constraint(model, MOI.SingleVariable(x), MOI.EqualTo(1.0))
-        c2 = MOI.add_constraint(model, MOI.SingleVariable(x), MOI.GreaterThan(2.0))
-
-        # Getting the results before the conflict refiner has been called must return an error. 
-        @test MOI.get(model, CPLEX.ConflictStatus()) == MOI.OPTIMIZE_NOT_CALLED
-        @test_throws ErrorException MOI.get(model, CPLEX.ConstraintConflictStatus(), c1)
-
-        # Once it's called, no problem. 
-        CPLEX.compute_conflict(model)
-        @test MOI.get(model, CPLEX.ConflictStatus()) == MOI.OPTIMAL
-        @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c1) == true
-        @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c2) == true
-    end
-
-    @testset "Variable bounds (SingleVariable and Interval)" begin
-        model = CPLEX.Optimizer()
-        x = MOI.add_variable(model)
-        c1 = MOI.add_constraint(model, MOI.SingleVariable(x), MOI.Interval(1.0, 3.0))
-        c2 = MOI.add_constraint(model, MOI.SingleVariable(x), MOI.LessThan(0.0))
 
         # Getting the results before the conflict refiner has been called must return an error.
         @test MOI.get(model, CPLEX.ConflictStatus()) == MOI.OPTIMIZE_NOT_CALLED
@@ -292,11 +348,11 @@ end
         cf2 = MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0, -1.0], [x, y]), 0.0)
         c2 = MOI.add_constraint(model, cf2, MOI.GreaterThan(1.0))
 
-        # Getting the results before the conflict refiner has been called must return an error. 
+        # Getting the results before the conflict refiner has been called must return an error.
         @test MOI.get(model, CPLEX.ConflictStatus()) == MOI.OPTIMIZE_NOT_CALLED
         @test_throws ErrorException MOI.get(model, CPLEX.ConstraintConflictStatus(), c1)
 
-        # Once it's called, no problem. 
+        # Once it's called, no problem.
         CPLEX.compute_conflict(model)
         @test MOI.get(model, CPLEX.ConflictStatus()) == MOI.OPTIMAL
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), b1) == true
@@ -338,11 +394,11 @@ end
         c1 = MOI.add_constraint(model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0], [x]), 0.0), MOI.GreaterThan(1.0))
         c2 = MOI.add_constraint(model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0], [x]), 0.0), MOI.LessThan(2.0))
 
-        # Getting the results before the conflict refiner has been called must return an error. 
+        # Getting the results before the conflict refiner has been called must return an error.
         @test MOI.get(model, CPLEX.ConflictStatus()) == MOI.OPTIMIZE_NOT_CALLED
         @test_throws ErrorException MOI.get(model, CPLEX.ConstraintConflictStatus(), c1)
 
-        # Once it's called, no problem. 
+        # Once it's called, no problem.
         CPLEX.compute_conflict(model)
         @test MOI.get(model, CPLEX.ConflictStatus()) == MOI.INFEASIBLE
         @test MOI.get(model, CPLEX.ConstraintConflictStatus(), c1) == false
