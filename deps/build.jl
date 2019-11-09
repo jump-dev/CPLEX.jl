@@ -44,9 +44,10 @@ function try_local_installation()
             push!(libnames, joinpath(cplex_path, name))
         end
         for env in [base_env, base_env * v]
-            !haskey(ENV, env) && continue
+            if !haskey(ENV, env)
+                continue
+            end
             for d in split(ENV[env], ';')
-                !occursin("cplex", d) && continue
                 push!(libnames, joinpath(d, name))
             end
         end
