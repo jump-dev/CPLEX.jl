@@ -68,10 +68,18 @@ function try_local_installation()
 end
 
 function try_travis_installation()
-    url = ENV["SECRET_CPLEX_URL"]
+    url = get(ENV, "SECRET_CPLEX_URL", nothing)
+    if url === nothing
+        # We must be running on a fork other than JuliaOpt/CPLEX.jl.
+        # As suggested by @fredrikekre https://github.com/JuliaRegistries/General/pull/5236#issuecomment-552646659
+        # silently skip the tests. This allows repos like the General registry
+        # to "think" that Travis is passing tests.
+        return
+    end
     local_filename = joinpath(@__DIR__, "libcplex.so")
     download(url, local_filename)
     write_depsfile(local_filename)
+    return
 end
 
 if get(ENV, "TRAVIS", "false") == "true"
