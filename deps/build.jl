@@ -76,6 +76,12 @@ end
 
 if get(ENV, "TRAVIS", "false") == "true"
     try_travis_installation()
+elseif get(ENV, "GITHUB_ACTIONS", "false") == "true"
+    # We're being run as part of a Github action. The most likely case is that
+    # this is the auto-merge action as part of the General registry.
+    # For now, we're going to silently skip the installation.
+    #
+    # TODO(odow): remove this once we distribute the community edition.
 else
     try_local_installation()
 end
