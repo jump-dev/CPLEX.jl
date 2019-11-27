@@ -64,7 +64,7 @@ Parameters match those of the C API in the [CPLEX documentation](https://www.ibm
 ## Annotating a model for Benders Decomposition
 
 To use the built in Benders Decomposition in CPLEX, do the following:
-1) Create a direct model in JuMP: `model = JuMP.direct_model(CPLEX.Optimizer())`
+1) Create a direct model in JuMP: `model = JuMP.direct_model(CPLEX.Optimizer())`. This allows the varialbes form your JuMP model to map to the CPLEX inner model.
 2) Access the inner model: `model_inner = JuMP.backend(model).inner`
 3) Create a new annotation (https://www.ibm.com/support/knowledgecenter/SSSA5P_12.9.0/ilog.odms.cplex.help/refcallablelibrary/cpxapi/newlongannotation.html): `newlongannotation(model_inner, "cpxBendersPartition", Int32(0))`
 4) Annotate your model using the wrapped function `setlongannotations` (https://www.ibm.com/support/knowledgecenter/SSSA5P_12.9.0/ilog.odms.cplex.help/refcallablelibrary/cpxapi/setlongannotations.html).
