@@ -60,3 +60,12 @@ set_optimizer_attribute(model, "CPX_PARAM_EPINT", 1e-8)
 ```
 
 Parameters match those of the C API in the [CPLEX documentation](https://www.ibm.com/support/knowledgecenter/SSSA5P_12.9.0/ilog.odms.cplex.help/CPLEX/Parameters/topics/introListAlpha.html).
+
+## Annotating a model for Benders Decomposition
+
+To use the built in Benders Decomposition in CPLEX, do the following:
+1) Create a direct model in JuMP: `model = JuMP.direct_model(CPLEX.Optimizer())`
+2) Access the inner model: `model_inner = JuMP.backend(model).inner`
+3) Create a new annotation (https://www.ibm.com/support/knowledgecenter/SSSA5P_12.9.0/ilog.odms.cplex.help/refcallablelibrary/cpxapi/newlongannotation.html): `newlongannotation(model_inner, "cpxBendersPartition", Int32(0))`
+4) Annotate your model using the wrapped function `setlongannotations` (https://www.ibm.com/support/knowledgecenter/SSSA5P_12.9.0/ilog.odms.cplex.help/refcallablelibrary/cpxapi/setlongannotations.html).
+5) Set the `CPXPARAM_Benders_Strategy` using `MOI.RawParameter` as described in the previous section. For annotated models use either strategy 0, 1, or 2 (see CPLEX documentation). If you don't want to provide CPLEX with annotations, it can do the decomposition automatically by using strategy 3. If you take the automatic route, then ignore steps 1-4.
