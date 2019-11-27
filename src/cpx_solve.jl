@@ -76,7 +76,91 @@ function setlongannotations(model::Model, idx::Cint, objtype::Cint, cnt::Cint, i
     return nothing
 end
 
-export setlongannotations, newlongannotation
+function getlongannotationindex(model::Model, name::String)
+    index_p = Ref{Cint}()
+    stat = @cpx_ccall(getlongannotationindex, Cint, (
+                Ptr{Cvoid},
+                Ptr{Cvoid},
+                Ptr{Cchar},
+                Ptr{Cint}),
+                model.env.ptr, model.lp, name, index_p)
+    stat == 0 || throw(CplexError(model.env, stat))
+    return index_p[]
+end
+
+function writeannotations(model::Model, filename::String)
+    stat = @cpx_ccall(writeannotations, Cint, (
+                Ptr{Cvoid},
+                Ptr{Cvoid},
+                Ptr{Cchar}),
+                model.env.ptr, model.lp, filename)
+    stat == 0 || throw(CplexError(model.env, stat))
+    return nothing
+end
+
+function writebendersannotation(model::Model, filename::String)
+    stat = @cpx_ccall(writebendersannotation, Cint, (
+                Ptr{Cvoid},
+                Ptr{Cvoid},
+                Ptr{Cchar}),
+                model.env.ptr, model.lp, filename)
+    stat == 0 || throw(CplexError(model.env, stat))
+    return nothing
+end
+
+function getcolindex(model::Model, name::String)
+    index_p = Ref{Cint}()
+    stat = @cpx_ccall(getcolindex, Cint, (
+                Ptr{Cvoid},
+                Ptr{Cvoid},
+                Ptr{Cchar},
+                Ptr{Cint}),
+                model.env.ptr, model.lp, name, index_p)
+    stat == 0 || throw(CplexError(model.env, stat))
+    return index_p[]
+end
+
+function getnumcols(model::Model)
+    numcols = @cpx_ccall(getnumcols, Cint, (
+                Ptr{Cvoid},
+                Ptr{Cvoid}),
+                model.env.ptr, model.lp)
+    return numcols
+end
+
+function getnumrows(model::Model)
+    numrows = @cpx_ccall(getnumrows, Cint, (
+                Ptr{Cvoid},
+                Ptr{Cvoid}),
+                model.env.ptr, model.lp)
+    return numrows
+end
+
+function getobj(model::Model,begin_range::Cint,end_range::Cint)
+    obj = Vector{Cdouble}(undef, 1)
+    stat = @cpx_ccall(getobj, Cint, (
+                Ptr{Cvoid},
+                Ptr{Cvoid},
+                Ptr{Cdouble},
+                Cint,
+                Cint),
+                model.env.ptr, model.lp, obj, begin_range, end_range)
+    if stat != 0
+        throw(CplexError(model.env, stat))
+    end
+    return obj
+end
+
+function getobjsen(model::Model)
+    objsen = @cpx_ccall(getobjsen, Cint, (
+                Ptr{Cvoid},
+                Ptr{Cvoid}),
+                model.env.ptr, model.lp)
+    return objsen
+end
+
+export setlongannotations, newlongannotation, writeannotations, writebendersannotation, getlongannotationindex
+export getnumcols, getnumrows, getobj, getobjsen, getcolindex
 
 function c_api_getobjval(model::Model)
   objval = Vector{Cdouble}(undef, 1)
