@@ -48,7 +48,6 @@ function set_branching_priority(model::Model, indices::Vector{Cint}, priority::V
     return nothing
 end
 
-
 function newlongannotation(model::Model, name::String, defval::Clong)
     stat = @cpx_ccall(newlongannotation, Cint, (
                       Ptr{Cvoid},
@@ -108,6 +107,16 @@ function writebendersannotation(model::Model, filename::String)
     return nothing
 end
 
+function readcopyannotations(model::Model, filename::String)
+    stat = @cpx_ccall(readcopyannotations, Cint, (
+                Ptr{Cvoid},
+                Ptr{Cvoid},
+                Ptr{Cchar}),
+                model.env.ptr, model.lp, filename)
+    stat == 0 || throw(CplexError(model.env, stat))
+    return nothing
+end
+
 function getcolindex(model::Model, name::String)
     index_p = Ref{Cint}()
     stat = @cpx_ccall(getcolindex, Cint, (
@@ -157,7 +166,8 @@ function getobjsen(model::Model)
     return objsen
 end
 
-export setlongannotations, newlongannotation, writeannotations, writebendersannotation, getlongannotationindex
+export setlongannotations, newlongannotation, getlongannotationindex
+export writeannotations, writebendersannotation, readcopyannotations
 export getnumcols, getnumrows, getobj, getobjsen, getcolindex
 
 function c_api_getobjval(model::Model)
