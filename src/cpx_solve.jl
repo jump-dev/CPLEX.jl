@@ -145,9 +145,7 @@ function getobj(model::Model,begin_range::Cint,end_range::Cint)
                 Cint,
                 Cint),
                 model.env.ptr, model.lp, obj, begin_range, end_range)
-    if stat != 0
-        throw(CplexError(model.env, stat))
-    end
+    stat == 0 || throw(CplexError(model.env, stat))
     return obj
 end
 
