@@ -145,30 +145,9 @@ function getnumrows(model::Model)
     return numrows
 end
 
-function getobj(model::Model,begin_range::Cint,end_range::Cint)
-    obj = Vector{Cdouble}(undef, 1)
-    stat = @cpx_ccall(getobj, Cint, (
-                Ptr{Cvoid},
-                Ptr{Cvoid},
-                Ptr{Cdouble},
-                Cint,
-                Cint),
-                model.env.ptr, model.lp, obj, begin_range, end_range)
-    stat == 0 || throw(CplexError(model.env, stat))
-    return obj
-end
-
-function getobjsen(model::Model)
-    objsen = @cpx_ccall(getobjsen, Cint, (
-                Ptr{Cvoid},
-                Ptr{Cvoid}),
-                model.env.ptr, model.lp)
-    return objsen
-end
-
 export setlongannotations, newlongannotation, getlongannotationindex
 export writeannotations, writebendersannotation, readcopyannotations
-export getnumcols, getnumrows, getobj, getobjsen, getcolindex
+export getnumcols, getnumrows, getcolindex
 
 function c_api_getobjval(model::Model)
   objval = Vector{Cdouble}(undef, 1)
