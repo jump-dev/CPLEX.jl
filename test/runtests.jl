@@ -17,7 +17,8 @@ will have a set-up identical to this.
 """
 function is_general_registry()
     return all([
-        sort(collect(keys(ENV))) == ["JULIA_DEPOT_PATH", "PATH", "PYTHON", "R_HOME"],
+        haskey(ENV, "PATH"),
+        haskey(ENV, "JULIA_DEPOT_PATH"),
         get(ENV, "PYTHON", "false") == "",
         get(ENV, "R_HOME", "false") == "*",
     ])
