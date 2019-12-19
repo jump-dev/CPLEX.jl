@@ -1,5 +1,4 @@
 using Libdl
-import Pkg
 
 const depsfile = joinpath(dirname(@__FILE__), "deps.jl")
 if isfile(depsfile)
@@ -75,12 +74,34 @@ function try_travis_installation()
     write_depsfile(local_filename)
 end
 
+"""
+    is_general_registry()
+
+Detect if we are being called from AutoMerge CI on the Julia General registry.
+
+The Julia General registry attempts to install and test packages. Since it does't have a
+CPLEX license, this build will fail, preventing auto-merge. Therefore, we need to detect
+when we are being called and silently bail.
+
+Complicating matters is the very particular way in which we get called, because we don't get
+a typical installation. In particular, a very restricted set of environment variables is
+passed. See here for details:
+https://github.com/JuliaRegistries/RegistryCI.jl/blob/0d19525c7120176e5e0f11637dcca7b229b5f0c9/src/AutoMerge/guidelines.jl#L178-L196
+
+This check is fragile, and subject to breakage. But it seems highly unlikely that a user
+will have a set-up identical to this.
+"""
+function is_general_registry()
+    return all([
+        sort(collect(keys(ENV))) == ["JULIA_DEPOT_PATH", "PATH", "PYTHON", "R_HOME"],
+        get(ENV, "PYTHON", "false") == "",
+        get(ENV, "R_HOME", "false") == "*",
+    ])
+end
+
 if get(ENV, "TRAVIS", "false") == "true"
     try_travis_installation()
-elseif haskey(Pkg.installed(), "RegistryCI")
-    # Skip installation if we detect that the package RegistryCI is installed. This is
-    # almost certainly the Julia General registry running the AutoMerge. Users should have
-    # no reason to install CPLEX and RegistryCI locally in the same project.
+elseif is_general_registry()
     # TODO(odow): remove this once we distribute the community edition.
 else
     try_local_installation()
