@@ -78,7 +78,7 @@ end
 if get(ENV, "TRAVIS", "false") == "true"
     try_travis_installation()
 elseif haskey(Pkg.installed(), "RegistryCI")
-    # Skip installation is we detect that the package RegistryCI is installed. This is
+    # Skip installation if we detect that the package RegistryCI is installed. This is
     # almost certainly the Julia General registry running the AutoMerge. Users should have
     # no reason to install CPLEX and RegistryCI locally in the same project.
     # TODO(odow): remove this once we distribute the community edition.
