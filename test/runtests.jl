@@ -1,8 +1,9 @@
-if get(ENV, "GITHUB_ACTIONS", "false") == "true"
-    # We're being run as part of a Github action. The most likely case is that
-    # this is the auto-merge action as part of the General registry.
-    # For now, we're going to silently skip the tests.
-    #
+import Pkg
+
+if haskey(Pkg.installed(), "RegistryCI")
+    # Skip tests if we detect that the package RegistryCI is installed. This is
+    # almost certainly the Julia General registry running the AutoMerge. Users should have
+    # no reason to install CPLEX and RegistryCI locally in the same project.
     # TODO(odow): remove this once we distribute the community edition.
     exit(0)
 end
