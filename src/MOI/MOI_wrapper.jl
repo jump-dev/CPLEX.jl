@@ -485,6 +485,43 @@ function MOI.is_valid(model::Optimizer, v::MOI.VariableIndex)
     return haskey(model.variable_info, v)
 end
 
+# expect sequence to be sorted
+function intervalize(xs)
+    starts, ends = empty(xs), empty(xs)
+    for x in xs
+      if empty(starts) || x != last(ends) + 1
+        push!(starts, x)
+        push!(ends, x)
+      else
+        ends[end] = x
+      end
+    end
+
+    return starts, ends
+end
+
+function MOI.delete(model::Optimizer, indices::Vector{<:MOI.VariableIndex})
+    info = _info.(model, v)
+    soc_idx = findfirst(e -> e.num_soc_constraints > 0, info)
+    soc_idx !== nothing && throw(MOI.DeleteNotAllowed(indices[soc_idx]))
+    sorted_del_cols = sort!(collect(i.column for i in info))
+    starts, ends = intervalize(sorted_del_cols)
+    for ri in reverse(1:length(starts))
+        CPLEX.c_api_delcols(model.inner, Cint(starts[ri]), Cint(ends[ri]))
+    end
+    delete!.(model.variable_info, indices)
+    for other_info in values(model.variable_info)
+        other_info.column -= searchsortedlast(
+          sorted_del_cols, other_info.column
+        )
+    end
+    model.name_to_variable = nothing
+    # We throw away name_to_constraint_index so we will rebuild SingleVariable
+    # constraint names without v.
+    model.name_to_constraint_index = nothing
+    return
+end
+
 function MOI.delete(model::Optimizer, v::MOI.VariableIndex)
     info = _info(model, v)
     if info.num_soc_constraints > 0
