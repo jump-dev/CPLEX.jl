@@ -489,7 +489,7 @@ end
 function intervalize(xs)
     starts, ends = empty(xs), empty(xs)
     for x in xs
-      if empty(starts) || x != last(ends) + 1
+      if isempty(starts) || x != last(ends) + 1
         push!(starts, x)
         push!(ends, x)
       else
