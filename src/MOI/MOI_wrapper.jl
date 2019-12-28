@@ -501,7 +501,7 @@ function intervalize(xs)
 end
 
 function MOI.delete(model::Optimizer, indices::Vector{<:MOI.VariableIndex})
-    info = _info.(model, v)
+    info = [_info(model, var_idx) for var_idx in indices]
     soc_idx = findfirst(e -> e.num_soc_constraints > 0, info)
     soc_idx !== nothing && throw(MOI.DeleteNotAllowed(indices[soc_idx]))
     sorted_del_cols = sort!(collect(i.column for i in info))
@@ -509,7 +509,9 @@ function MOI.delete(model::Optimizer, indices::Vector{<:MOI.VariableIndex})
     for ri in reverse(1:length(starts))
         CPLEX.c_api_delcols(model.inner, Cint(starts[ri]), Cint(ends[ri]))
     end
-    delete!.(model.variable_info, indices)
+    for var_idx in indices
+      delete!(model.variable_info, var_idx)
+    end
     for other_info in values(model.variable_info)
         other_info.column -= searchsortedlast(
           sorted_del_cols, other_info.column
