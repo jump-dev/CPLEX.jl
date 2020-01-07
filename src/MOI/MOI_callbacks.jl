@@ -7,7 +7,7 @@ Note: before accessing `MOI.CallbackVariablePrimal`, you must call either
 `callbackgetcandidatepoint(model::Optimizer, cb_data, cb_where)` or
 `callbackgetrelaxationpoint(model::Optimizer, cb_data, cb_where)`.
 """
-struct CallbackFunction <: MOI.AbstractOptimizerAttribute end
+struct CallbackFunction <: MOI.AbstractCallback end
 
 function MOI.set(model::Optimizer, ::CallbackFunction, f::Function)
     if MOI.get(model, MOI.NumberOfThreads()) != 1
@@ -33,6 +33,7 @@ function MOI.set(model::Optimizer, ::CallbackFunction, f::Function)
     end)
     return
 end
+MOI.supports(::Optimizer, ::CallbackFunction) = true
 
 """
     callbackgetcandidatepoint(model::Optimizer, cb_data, cb_where)
@@ -121,6 +122,7 @@ function MOI.set(model::Optimizer, ::MOI.LazyConstraintCallback, cb::Function)
     model.lazy_callback = cb
     return
 end
+MOI.supports(::Optimizer, ::MOI.LazyConstraintCallback) = true
 
 function MOI.submit(
     model::Optimizer,
@@ -149,6 +151,7 @@ function MOI.submit(
     )
     return
 end
+MOI.supports(::Optimizer, ::MOI.LazyConstraint{CallbackContext}) = true
 
 # ==============================================================================
 #    MOI.UserCutCallback
@@ -158,6 +161,7 @@ function MOI.set(model::Optimizer, ::MOI.UserCutCallback, cb::Function)
     model.user_cut_callback = cb
     return
 end
+MOI.supports(::Optimizer, ::MOI.UserCutCallback) = true
 
 function MOI.submit(
     model::Optimizer,
@@ -188,6 +192,7 @@ function MOI.submit(
     )
     return
 end
+MOI.supports(::Optimizer, ::MOI.UserCut{CallbackContext}) = true
 
 # ==============================================================================
 #    MOI.HeuristicCallback
@@ -197,6 +202,7 @@ function MOI.set(model::Optimizer, ::MOI.HeuristicCallback, cb::Function)
     model.heuristic_callback = cb
     return
 end
+MOI.supports(::Optimizer, ::MOI.HeuristicCallback) = true
 
 function MOI.submit(
     model::Optimizer,
@@ -215,3 +221,4 @@ function MOI.submit(
     )
     return MOI.HEURISTIC_SOLUTION_UNKNOWN
 end
+MOI.supports(::Optimizer, ::MOI.HeuristicSolution{CallbackContext}) = true
