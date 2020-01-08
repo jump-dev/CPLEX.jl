@@ -485,6 +485,52 @@ function MOI.is_valid(model::Optimizer, v::MOI.VariableIndex)
     return haskey(model.variable_info, v)
 end
 
+# Helper function used inside MOI.delete (vector version). Takes a list of
+# numbers (MOI.VariableIndex) sorted by increasing values, return two lists
+# representing the same set of numbers but in the form of intervals.
+# Ex.: intervalize([1, 3, 4, 5, 8, 10, 11]) -> ([1, 3, 8, 10], [1, 5, 8, 11])
+function intervalize(xs)
+    starts, ends = empty(xs), empty(xs)
+    for x in xs
+        if isempty(starts) || x != last(ends) + 1
+            push!(starts, x)
+            push!(ends, x)
+        else
+            ends[end] = x
+        end
+    end
+
+    return starts, ends
+end
+
+function MOI.delete(model::Optimizer, indices::Vector{<:MOI.VariableIndex})
+    info = [_info(model, var_idx) for var_idx in indices]
+    soc_idx = findfirst(e -> e.num_soc_constraints > 0, info)
+    soc_idx !== nothing && throw(MOI.DeleteNotAllowed(indices[soc_idx]))
+    sorted_del_cols = sort!(collect(i.column for i in info))
+    starts, ends = intervalize(sorted_del_cols)
+    for ri in reverse(1:length(starts))
+        CPLEX.c_api_delcols(model.inner, Cint(starts[ri]), Cint(ends[ri]))
+    end
+    for var_idx in indices
+        delete!(model.variable_info, var_idx)
+    end
+    # When the deleted variables are not contiguous, the main advantage of this
+    # method is that the loop below is O(n*log(m)) instead of the O(m*n) of the
+    # repeated application of single variable delete (n is the total number of
+    # variables in the model, m is the number of deleted variables).
+    for other_info in values(model.variable_info)
+        other_info.column -= searchsortedlast(
+            sorted_del_cols, other_info.column
+        )
+    end
+    model.name_to_variable = nothing
+    # We throw away name_to_constraint_index so we will rebuild SingleVariable
+    # constraint names without v.
+    model.name_to_constraint_index = nothing
+    return
+end
+
 function MOI.delete(model::Optimizer, v::MOI.VariableIndex)
     info = _info(model, v)
     if info.num_soc_constraints > 0
