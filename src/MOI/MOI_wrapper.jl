@@ -141,6 +141,9 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     quadratic_constraint_info::Dict{Int, ConstraintInfo}
     # VectorOfVariables-in-Set storage.
     sos_constraint_info::Dict{Int, ConstraintInfo}
+    # VectorAffineFunction-in-Set storage.
+    # the function info is also stored in the dict
+    indicator_constraint_info::Dict{Int, Tuple{ConstraintInfo, MOI.VectorAffineFunction{Float64}}}
     # Note: we do not have a singlevariable_constraint_info dictionary. Instead,
     # data associated with these constraints are stored in the VariableInfo
     # objects.
@@ -181,6 +184,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
         model.affine_constraint_info = Dict{Int, ConstraintInfo}()
         model.quadratic_constraint_info = Dict{Int, ConstraintInfo}()
         model.sos_constraint_info = Dict{Int, ConstraintInfo}()
+        model.indicator_constraint_info = Dict{Int, Tuple{ConstraintInfo, MOI.VectorAffineFunction{Float64}}}()
         model.callback_variable_primal = Float64[]
         MOI.empty!(model)  # MOI.empty!(model) re-sets the `.inner` field.
         return model
@@ -305,6 +309,8 @@ function MOI.supports_constraint(
     # Note: CPLEX does not support quadratic equality constraints.
     return true
 end
+import MathOptInterface
+const MOI = MathOptInterface
 
 MOI.supports(::Optimizer, ::MOI.VariableName, ::Type{MOI.VariableIndex}) = true
 MOI.supports(::Optimizer, ::MOI.ConstraintName, ::Type{<:MOI.ConstraintIndex}) = true
@@ -2922,3 +2928,4 @@ function MOI.supports(
 end
 
 include("MOI_callbacks.jl")
+include("indicator_constraint.jl")
