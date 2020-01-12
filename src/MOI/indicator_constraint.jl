@@ -96,19 +96,22 @@ function MOI.get(
     return nindices
 end
 
-function MOI.get(
-    model::Optimizer,
-    ::MOI.ConstraintName,
-    c::MOI.ConstraintIndex{<:MOI.VectorAffineFunction, S}
+function MOI.get(model::Optimizer,
+                 ::MOI.ConstraintName,
+                 c::MOI.ConstraintIndex{<:MOI.VectorAffineFunction, S}
 ) where {S <: MOI.IndicatorSet}
     MOI.throw_if_not_valid(model, c)
-    info = _info(model, c)
-    if S <: MOI.LessThan
-        return info.lessthan_name
-    elseif S <: Union{MOI.GreaterThan, MOI.Interval, MOI.EqualTo}
-        return info.greaterthan_interval_or_equalto_name
-    else
-        @assert S <: Union{MOI.ZeroOne, MOI.Integer, MOI.Semiinteger, MOI.Semicontinuous}
-        return info.type_constraint_name
-    end
+    info = model.indicator_constraint_info[c.value][1]
+    return info.name
+end
+
+function MOI.set(model::Optimizer,
+                 ::MOI.ConstraintName,
+                 c::MOI.ConstraintIndex{<:MOI.VectorAffineFunction, S},
+                 name::String,
+) where {S <: MOI.IndicatorSet}
+    MOI.throw_if_not_valid(model, c)
+    info = model.indicator_constraint_info[c.value][1]
+    info.name = name
+    return nothing
 end
