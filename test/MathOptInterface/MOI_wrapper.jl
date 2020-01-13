@@ -27,6 +27,8 @@ const BRIDGED_CERTIFICATE_OPTIMIZER =
         (MOI.VectorAffineFunction{Float64}, MOI.SecondOrderCone),
         (MOI.VectorAffineFunction{Float64}, MOI.RotatedSecondOrderCone),
         (MOI.VectorAffineFunction{Float64}, MOI.GeometricMeanCone),
+        (MOI.VectorAffineFunction{Float64}, MOI.IndicatorSet{MOI.ACTIVATE_ON_ONE, MOI.LessThan{Float64}}),
+        (MOI.VectorAffineFunction{Float64}, MOI.IndicatorSet{MOI.ACTIVATE_ON_ONE, MOI.GreaterThan{Float64}}),
     ])
     # TODO(odow): bugs deleting SOC variables. See also the
     # `delete_soc_variables` test.
@@ -40,6 +42,8 @@ const BRIDGED_CERTIFICATE_OPTIMIZER =
             (MOI.VectorAffineFunction{Float64}, MOI.SecondOrderCone),
             (MOI.VectorAffineFunction{Float64}, MOI.RotatedSecondOrderCone),
             (MOI.VectorAffineFunction{Float64}, MOI.GeometricMeanCone),
+            (MOI.VectorAffineFunction{Float64}, MOI.IndicatorSet{MOI.ACTIVATE_ON_ONE,MOI.LessThan{Float64}}),
+            (MOI.VectorAffineFunction{Float64}, MOI.IndicatorSet{MOI.ACTIVATE_ON_ONE,MOI.GreaterThan{Float64}}),
         ],
         delete = false
     )
@@ -78,7 +82,8 @@ end
 @testset "Integer Linear tests" begin
     MOIT.intlineartest(BRIDGED_OPTIMIZER, CONFIG, [
         # TODO(odow): Indicator sets not supported.
-        "indicator1", "indicator2", "indicator3", "indicator4"
+        # "indicator1",
+        "indicator2", "indicator3", "indicator4"
     ])
 end
 
