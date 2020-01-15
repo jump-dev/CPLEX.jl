@@ -8,7 +8,7 @@ end
 function MOI.is_valid(
     model::Optimizer,
     c::MOI.ConstraintIndex{MOI.VectorAffineFunction{Float64}, S}
-) where {A, S <: MOI.IndicatorSet}
+) where {S <: MOI.IndicatorSet}
     info_tuple = get(model.indicator_constraint_info, c.value, nothing)
     if info_tuple === nothing
         return false
