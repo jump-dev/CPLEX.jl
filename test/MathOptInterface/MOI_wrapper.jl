@@ -80,11 +80,10 @@ end
 end
 
 @testset "Integer Linear tests" begin
-    MOIT.intlineartest(BRIDGED_OPTIMIZER, CONFIG, [
-        # TODO(odow): Indicator sets not supported.
-        # "indicator1",
-        "indicator2", "indicator3", "indicator4"
-    ])
+    # interval somehow needed for indicator tests
+    interval_optimizer = MOIB.LazyBridgeOptimizer(OPTIMIZER)
+    MOIB.add_bridge(interval_optimizer, MOIB.Constraint.SplitIntervalBridge{Float64})
+    MOIT.intlineartest(BRIDGED_OPTIMIZER, CONFIG, String[])
 end
 
 @testset "Quadratic tests" begin
