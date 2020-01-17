@@ -289,6 +289,9 @@ function c_api_getconflict(model::Model)
     # First, compute the conflict.
     confnumrows_p = Ref{Cint}()
     confnumcols_p = Ref{Cint}()
+    println("Prior to refining")
+    @show confnumcols_p, confnumrows_p
+
     stat = @cpx_ccall(
         refineconflict,
         Cint,
@@ -297,14 +300,16 @@ function c_api_getconflict(model::Model)
     if stat != 0
         throw(CplexError(model.env, stat))
     end
-
+    println("After refining")
     @show confnumcols_p, confnumrows_p
 
     # Then, retrieve it.
     confstat_p = Ref{Cint}()
     rowind = Vector{Cint}(undef, confnumrows_p[])
+    println("After access 1")
     @show confnumrows_p
     rowbdstat = Vector{Cint}(undef, confnumrows_p[])
+    println("After access 2")
     @show confnumrows_p
     confnumrows_p = Ref{Cint}()
     colind = Vector{Cint}(undef, confnumcols_p[])
