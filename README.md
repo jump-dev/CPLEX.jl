@@ -19,7 +19,6 @@ officially supported by IBM. However, we thank IBM for providing us with a
 CPLEX license to test `CPLEX.jl` on Travis. If you are a commercial customer
 interested in official support for CPLEX in Julia, let them know!.*
 
-
 ## Installation
 
 First, you must obtain a copy of the CPLEX software and a license. Then, set the
@@ -53,11 +52,11 @@ new or renamed parameters) before CPLEX.jl can support new versions.
 ## Use with JuMP
 
 You can use CPLEX with JuMP via the `CPLEX.Optimizer()` solver.
+Set solver parameters using `set_parameter` from `JuMP`:
 
-Solver parameters can be set in the ``CPLEX.Optimizer()`` object using
-`MOI.RawParameter`. For example,
 ```julia
-MOI.set(model, MOI.RawParameter("CPX_PARAM_EPINT"), 1e-8)
+model = Model(with_optimizer(CPLEX.Optimizer))
+set_parameter(model, "CPX_PARAM_EPINT", 1e-8)
 ```
 
 Parameters match those of the C API in the [CPLEX documentation](https://www.ibm.com/support/knowledgecenter/SSSA5P_12.9.0/ilog.odms.cplex.help/CPLEX/Parameters/topics/introListAlpha.html).
