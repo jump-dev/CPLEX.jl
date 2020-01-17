@@ -298,10 +298,14 @@ function c_api_getconflict(model::Model)
         throw(CplexError(model.env, stat))
     end
 
+    @show confnumcols_p, confnumrows_p
+
     # Then, retrieve it.
     confstat_p = Ref{Cint}()
     rowind = Vector{Cint}(undef, confnumrows_p[])
+    @show confnumrows_p
     rowbdstat = Vector{Cint}(undef, confnumrows_p[])
+    @show confnumrows_p
     confnumrows_p = Ref{Cint}()
     colind = Vector{Cint}(undef, confnumcols_p[])
     colbdstat = Vector{Cint}(undef, confnumcols_p[])
