@@ -52,7 +52,7 @@ new or renamed parameters) before CPLEX.jl can support new versions.
 ## Use with JuMP
 
 You can use CPLEX with JuMP via the `CPLEX.Optimizer()` solver.
-Set solver parameters using `set_parameter`:
+Set solver parameters using `set_parameter` from `JuMP`:
 
 ```julia
 model = Model(with_optimizer(CPLEX.Optimizer))
