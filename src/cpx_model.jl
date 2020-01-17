@@ -287,8 +287,8 @@ function c_api_getconflict(model::Model)
     # In other words, any call to this function is expensive.
 
     # First, compute the conflict.
-    confnumrows_p = Ref{Cint}()
-    confnumcols_p = Ref{Cint}()
+    confnumrows_p = Ref{Cint}(0)
+    confnumcols_p = Ref{Cint}(0)
     println("Prior to refining")
     @show confnumcols_p, confnumrows_p
 
