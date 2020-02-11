@@ -84,6 +84,7 @@ end
     interval_optimizer = MOIB.LazyBridgeOptimizer(OPTIMIZER)
     MOIB.add_bridge(interval_optimizer, MOIB.Constraint.SplitIntervalBridge{Float64})
     MOIT.intlineartest(BRIDGED_OPTIMIZER, CONFIG)
+    MOIT.intlineartest(interval_optimizer, CONFIG)
 end
 
 @testset "Quadratic tests" begin
