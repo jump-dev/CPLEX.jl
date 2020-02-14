@@ -48,7 +48,7 @@ function MOI.add_constraint(
     first_index_terms  = [v.scalar_term for v in func.terms if v.output_index == 1]
     scalar_index_terms = [v.scalar_term for v in func.terms if v.output_index != 1]
     if length(first_index_terms) != 1
-        error("There should be exactly one term in output_index 1, found $(length(first_index_terms))")
+        throw(ArgumentError("There should be exactly one term in output_index 1, found $(length(first_index_terms))"))
     end
     # getting the indicator variable
     sense_code = _get_indicator_sense(s.set)
