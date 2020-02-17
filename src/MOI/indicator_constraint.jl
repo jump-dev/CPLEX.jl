@@ -1,6 +1,8 @@
 
 function MOI.supports_constraint(
-    ::Optimizer, ::Type{MOI.VectorAffineFunction{Float64}}, ::Type{<:MOI.IndicatorSet{A, S}}
+    ::Optimizer,
+    ::Type{MOI.VectorAffineFunction{Float64}},
+    ::Type{<:MOI.IndicatorSet{A, S}}
 ) where {
     A, S <: Union{MOI.LessThan{Float64}, MOI.GreaterThan{Float64}, MOI.EqualTo{Float64}}
 }
@@ -8,8 +10,8 @@ function MOI.supports_constraint(
 end
 
 function MOI.is_valid(
-    model::Optimizer,
-    c::MOI.ConstraintIndex{MOI.VectorAffineFunction{Float64}, S}
+        model::Optimizer,
+        c::MOI.ConstraintIndex{MOI.VectorAffineFunction{Float64}, S}
 ) where {
     S <: MOI.IndicatorSet
 }
@@ -20,18 +22,20 @@ function MOI.is_valid(
     return typeof(info_tuple[1].set) == S
 end
 
-function MOI.get(model::Optimizer,
-                 ::MOI.ConstraintSet,
-                 c::MOI.ConstraintIndex{<:MOI.VectorAffineFunction, <:MOI.IndicatorSet}
+function MOI.get(
+        model::Optimizer,
+        ::MOI.ConstraintSet,
+        c::MOI.ConstraintIndex{<:MOI.VectorAffineFunction, <:MOI.IndicatorSet}
 )
     MOI.throw_if_not_valid(model, c)
     info = model.indicator_constraint_info[c.value][1]
     return info.set
 end
 
-function MOI.get(model::Optimizer,
-                 ::MOI.ConstraintFunction,
-                 c::MOI.ConstraintIndex{<:MOI.VectorAffineFunction, <:MOI.IndicatorSet}
+function MOI.get(
+        model::Optimizer,
+        ::MOI.ConstraintFunction,
+        c::MOI.ConstraintIndex{<:MOI.VectorAffineFunction, <:MOI.IndicatorSet}
 )
     MOI.throw_if_not_valid(model, c)
     func = model.indicator_constraint_info[c.value][2]
@@ -78,8 +82,9 @@ _get_indicator_sense(::MOI.GreaterThan) = Cint('G')
 _get_indicator_sense(::MOI.LessThan) = Cint('L')
 _get_indicator_sense(::MOI.EqualTo) = Cint('E')
 
-function MOI.get(model::Optimizer,
-                 ::MOI.ListOfConstraintIndices{<:MOI.VectorAffineFunction, S},
+function MOI.get(
+        model::Optimizer,
+        ::MOI.ListOfConstraintIndices{<:MOI.VectorAffineFunction, S},
 ) where {
     S <: MOI.IndicatorSet
 }
@@ -93,7 +98,8 @@ function MOI.get(model::Optimizer,
 end
 
 function MOI.get(
-    model::Optimizer, ::MOI.NumberOfConstraints{MOI.VectorAffineFunction{Float64}, S}
+        model::Optimizer,
+        ::MOI.NumberOfConstraints{MOI.VectorAffineFunction{Float64}, S}
 ) where {
     S <: MOI.IndicatorSet
 }
@@ -107,19 +113,21 @@ function MOI.get(
     return nindices
 end
 
-function MOI.get(model::Optimizer,
-                 ::MOI.ConstraintName,
-                 c::MOI.ConstraintIndex{<:MOI.VectorAffineFunction, <:MOI.IndicatorSet}
+function MOI.get(
+        model::Optimizer,
+        ::MOI.ConstraintName,
+        c::MOI.ConstraintIndex{<:MOI.VectorAffineFunction, <:MOI.IndicatorSet}
 )
     MOI.throw_if_not_valid(model, c)
     info = model.indicator_constraint_info[c.value][1]
     return info.name
 end
 
-function MOI.set(model::Optimizer,
-                 ::MOI.ConstraintName,
-                 c::MOI.ConstraintIndex{<:MOI.VectorAffineFunction, S},
-                 name::String,
+function MOI.set(
+        model::Optimizer,
+        ::MOI.ConstraintName,
+        c::MOI.ConstraintIndex{<:MOI.VectorAffineFunction, S},
+        name::String,
 ) where {
     S <: MOI.IndicatorSet
 }
