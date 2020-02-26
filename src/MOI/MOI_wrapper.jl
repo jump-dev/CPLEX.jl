@@ -309,8 +309,6 @@ function MOI.supports_constraint(
     # Note: CPLEX does not support quadratic equality constraints.
     return true
 end
-import MathOptInterface
-const MOI = MathOptInterface
 
 MOI.supports(::Optimizer, ::MOI.VariableName, ::Type{MOI.VariableIndex}) = true
 MOI.supports(::Optimizer, ::MOI.ConstraintName, ::Type{<:MOI.ConstraintIndex}) = true

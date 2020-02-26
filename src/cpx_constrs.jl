@@ -484,8 +484,8 @@ add_indicator_constraint(model::Model, idx, coeff, sense, rhs, indicator) =
     add_indicator_constraint(model::Model, idx, coeff, sense, rhs, indicator, 0)
 add_indicator_constraint(model::Model, idx, coeff, sense, rhs, indicator, comp) =
     add_indicator_constraint(model, convert(Vector{Cint},idx), convert(Vector{Cdouble},coeff),
-                             convert(Cint,sense), convert(Cdouble,rhs), convert(Cint,indicator), convert(Cint,comp))
-function add_indicator_constraint(model::Model, idx::Vector{Cint}, coeff::Vector{Cdouble}, sense::Cint, rhs::Cdouble, indicator::Cint, comp::Cint)
+                             convert(Cchar,sense), convert(Cdouble,rhs), convert(Cint,indicator), convert(Cint,comp))
+function add_indicator_constraint(model::Model, idx::Vector{Cint}, coeff::Vector{Cdouble}, sense::Cchar, rhs::Cdouble, indicator::Cint, comp::Cint)
     (nzcnt = length(idx)) == length(coeff) || error("Incompatible lengths in constraint specification")
     stat = @cpx_ccall(addindconstr, Cint, (
                       Ptr{Cvoid},
@@ -494,7 +494,7 @@ function add_indicator_constraint(model::Model, idx::Vector{Cint}, coeff::Vector
                       Cint,
                       Cint,
                       Cdouble,
-                      Cint,
+                      Cchar,
                       Ptr{Cint},
                       Ptr{Cdouble},
                       Ptr{Cchar}),
