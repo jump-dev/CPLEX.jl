@@ -91,6 +91,7 @@ const paramName2Indx = Dict(
 "CPXPARAM_MIP_Strategy_Dive" => 2060,
 "CPXPARAM_MIP_Strategy_File" => 2016,
 "CPXPARAM_MIP_Strategy_FPHeur" => 2098,
+"CPXPARAM_MIP_Strategy_HeuristicEffort" => 2120,
 "CPXPARAM_MIP_Strategy_HeuristicFreq" => 2031,
 "CPXPARAM_MIP_Strategy_KappaStats" => 2137,
 "CPXPARAM_MIP_Strategy_LBHeur" => 2063,
