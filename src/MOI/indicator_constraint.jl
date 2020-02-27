@@ -78,9 +78,9 @@ function MOI.add_constraint(
     return MOI.ConstraintIndex{typeof(func), typeof(s)}(model.last_constraint_index)
 end
 
-_get_indicator_sense(::MOI.GreaterThan) = Cchar('G')
-_get_indicator_sense(::MOI.LessThan) = Cchar('L')
-_get_indicator_sense(::MOI.EqualTo) = Cchar('E')
+_get_indicator_sense(::MOI.GreaterThan) = Cint('G')
+_get_indicator_sense(::MOI.LessThan) = Cint('L')
+_get_indicator_sense(::MOI.EqualTo) = Cint('E')
 
 function MOI.get(
     model::Optimizer,
