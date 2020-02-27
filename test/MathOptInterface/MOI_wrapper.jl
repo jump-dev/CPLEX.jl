@@ -27,6 +27,9 @@ const BRIDGED_CERTIFICATE_OPTIMIZER =
         (MOI.VectorAffineFunction{Float64}, MOI.SecondOrderCone),
         (MOI.VectorAffineFunction{Float64}, MOI.RotatedSecondOrderCone),
         (MOI.VectorAffineFunction{Float64}, MOI.GeometricMeanCone),
+        (MOI.VectorQuadraticFunction{Float64}, MOI.SecondOrderCone),
+        (MOI.VectorQuadraticFunction{Float64}, MOI.RotatedSecondOrderCone),
+        (MOI.VectorQuadraticFunction{Float64}, MOI.GeometricMeanCone),
     ])
     # TODO(odow): bugs deleting SOC variables. See also the
     # `delete_soc_variables` test.
@@ -40,6 +43,9 @@ const BRIDGED_CERTIFICATE_OPTIMIZER =
             (MOI.VectorAffineFunction{Float64}, MOI.SecondOrderCone),
             (MOI.VectorAffineFunction{Float64}, MOI.RotatedSecondOrderCone),
             (MOI.VectorAffineFunction{Float64}, MOI.GeometricMeanCone),
+            (MOI.VectorQuadraticFunction{Float64}, MOI.SecondOrderCone),
+            (MOI.VectorQuadraticFunction{Float64}, MOI.RotatedSecondOrderCone),
+            (MOI.VectorQuadraticFunction{Float64}, MOI.GeometricMeanCone),
         ],
         delete = false
     )
