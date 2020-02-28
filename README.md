@@ -69,3 +69,78 @@ To use the built in Benders Decomposition in CPLEX, do the following:
 3) Create a new annotation (https://www.ibm.com/support/knowledgecenter/SSSA5P_12.9.0/ilog.odms.cplex.help/refcallablelibrary/cpxapi/newlongannotation.html): `newlongannotation(model_inner, "cpxBendersPartition", Int32(0))`
 4) Annotate your model using the wrapped function `setlongannotations` (https://www.ibm.com/support/knowledgecenter/SSSA5P_12.9.0/ilog.odms.cplex.help/refcallablelibrary/cpxapi/setlongannotations.html).
 5) Set the `CPXPARAM_Benders_Strategy` using `MOI.RawParameter` as described in the previous section. For annotated models use either strategy 0, 1, or 2 (see CPLEX documentation). If you don't want to provide CPLEX with annotations, it can do the decomposition automatically by using strategy 3. If you take the automatic route, then ignore steps 1-4.
+
+## Example
+
+using JuMP, MathOptInterface, CPLEX
+const MOI = MathOptInterface
+#=
+Simple Example Model for Benders Decomposition with CPLEX
+min  x + y + z
+s.t. x + y     = 1
+     x +     z = 1
+     0<= x,y,z <= 1
+=#
+
+#Create Model
+#Model must be declared as a direct model to allow for annotations
+m = direct_model(CPLEX.Optimizer())
+@variable(m, x, Bin)
+@variable(m, 0 <= y <= 1)
+@variable(m, 0 <= z <= 1)
+@constraint(m, x + y == 1)
+@constraint(m, x + z == 1)
+@objective(m, Min, x + y + z)
+
+#Access Inner Model for Annotations
+m_inner = backend(m).inner
+
+#Create Annotation Placeholder
+newlongannotation(m_inner, "cpxBendersPartition", Int32(0))
+
+#Annotate Model
+#=
+Ideally, this would be done using the setlongannotations function.
+However, issues have been presented when sending annotations with this function
+(see https://github.com/JuliaOpt/CPLEX.jl/issues/268#issuecomment-559231367)
+Rather, you can create an annotation file (.ann) and feed that to CPLEX
+=#
+
+#Create annotation file. "filename" is the path + filename of the .ann file (i.e. "/home/benders.ann")
+io = open(filename, "w") 
+#Write .ann file header (required by CPLEX)
+println(io, "<?xml version='1.0' encoding='utf-8'?>")
+println(io, "<CPLEXAnnotations>")
+println(io, "<CPLEXAnnotation name='cpxBendersPartition' type='long' default='0'>")
+println(io, "<object type='1'>")
+#Add annotations
+var_name = "x" #variable name
+var_column = 0 #x is the first variable (CPLEX uses index 0)
+subproblem = 0 #x belongs to the master problem
+println(io, string("<anno name='",var_name,"' index='",var_column,"' value='",subproblem,"'/>")) #print annotation to .ann file
+var_name = "y" #variable name
+var_column = 1 #y is the second variable (CPLEX uses index 0)
+subproblem = 1 #y belongs to the first subproblem
+println(io, string("<anno name='",var_name,"' index='",var_column,"' value='",subproblem,"'/>")) #print annotation to .ann file
+var_name = "z" #variable name
+var_column = 2 #z is the third variable (CPLEX uses index 0)
+subproblem = 2 #z belongs to the second subproblem problem
+println(io, string("<anno name='",var_name,"' index='",var_column,"' value='",subproblem,"'/>")) #print annotation to .ann file
+#Write .ann file footer (required by CPLEX)
+println(io, "</object>")
+println(io, "</CPLEXAnnotation>")
+println(io, "</CPLEXAnnotations>")
+#Close .ann file
+close(io)
+
+#Transfer annotations to cplex
+readcopyannotations(m_inner,filename)
+
+#Set Benders decomposition strategy
+#For annotated models use either strategy 0, 1, or 2 (see CPLEX documentation).
+#If you want CPLEX to annotate your model automatically (benders_strategy = 3), you could just skip lines 27-66.
+MOI.set(m, MOI.RawParameter("CPXPARAM_Benders_Strategy"), benders_strategy)
+#Turn off presolve for this toy example so that you can see CPLEX applying 2 Benders cuts
+MOI.set(m, MOI.RawParameter("CPXPARAM_Preprocessing_Presolve"), 0)
+#Optimize model
+optimize!(m)
