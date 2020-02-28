@@ -71,7 +71,7 @@ To use the built in Benders Decomposition in CPLEX, do the following:
 5) Set the `CPXPARAM_Benders_Strategy` using `MOI.RawParameter` as described in the previous section. For annotated models use either strategy 0, 1, or 2 (see CPLEX documentation). If you don't want to provide CPLEX with annotations, it can do the decomposition automatically by using strategy 3. If you take the automatic route, then ignore steps 1-4.
 
 ## Example
-
+```Julia
 using JuMP, MathOptInterface, CPLEX
 const MOI = MathOptInterface
 #=
@@ -144,3 +144,4 @@ MOI.set(m, MOI.RawParameter("CPXPARAM_Benders_Strategy"), benders_strategy)
 MOI.set(m, MOI.RawParameter("CPXPARAM_Preprocessing_Presolve"), 0)
 #Optimize model
 optimize!(m)
+```
