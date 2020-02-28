@@ -67,7 +67,7 @@ To use the built in Benders Decomposition in CPLEX, do the following:
 1) Create a direct model in JuMP: `model = JuMP.direct_model(CPLEX.Optimizer())`. This allows the varialbes form your JuMP model to map to the CPLEX inner model.
 2) Access the inner model: `model_inner = JuMP.backend(model).inner`
 3) Create a new annotation (https://www.ibm.com/support/knowledgecenter/SSSA5P_12.9.0/ilog.odms.cplex.help/refcallablelibrary/cpxapi/newlongannotation.html): `newlongannotation(model_inner, "cpxBendersPartition", Int32(0))`
-4) Annotate your model using the wrapped function `setlongannotations` (https://www.ibm.com/support/knowledgecenter/SSSA5P_12.9.0/ilog.odms.cplex.help/refcallablelibrary/cpxapi/setlongannotations.html).
+4) Annotate your model using the wrapped function `setlongannotations` (https://www.ibm.com/support/knowledgecenter/SSSA5P_12.9.0/ilog.odms.cplex.help/refcallablelibrary/cpxapi/setlongannotations.html). NOTE: See example below to avoid issues with setlongannotations.
 5) Set the `CPXPARAM_Benders_Strategy` using `MOI.RawParameter` as described in the previous section. For annotated models use either strategy 0, 1, or 2 (see CPLEX documentation). If you don't want to provide CPLEX with annotations, it can do the decomposition automatically by using strategy 3. If you take the automatic route, then ignore steps 1-4.
 
 ## Example
