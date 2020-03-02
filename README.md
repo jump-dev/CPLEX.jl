@@ -22,7 +22,7 @@ interested in official support for CPLEX in Julia, let them know!.*
 ## Installation
 
 First, you must obtain a copy of the CPLEX software and a license. Then, set the
-appropriate environment vairable and run `Pkg.add("CPLEX")`.
+appropriate environment variable and run `Pkg.add("CPLEX")`.
 
 ```julia
 # Linux
@@ -41,7 +41,7 @@ Pkg.add("CPLEX")
 ## Help! I got `LoadError: Unable to locate CPLEX installation`
 
 Which version of CPLEX are you trying to install? Currently, CPLEX.jl only
-supports 1280 and 1290 given recent changes to
+supports 1280, 1290, and 12100 given recent changes to
 [the API](https://www.ibm.com/support/knowledgecenter/en/SSSA5P_12.9.0/ilog.odms.studio.help/CPLEX/ReleaseNotes/topics/releasenotes1290/removed.html).
 
 If you want to support newer versions of CPLEX not listed above, [file an

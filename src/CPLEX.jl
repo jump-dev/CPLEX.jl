@@ -96,7 +96,7 @@ module CPLEX
         include("full_defines_12100.jl")
         include("cpx_params_12100.jl")
     else
-        error("Unsupported CPLEX version $v. Only 12.8, 12.9 and 12.10 are currently supported.")
+        error("Unsupported CPLEX version $v. Only 12.8, 12.9, and 12.10 are currently supported.")
     end
     include("cpx_model.jl")
     include("cpx_params.jl")
