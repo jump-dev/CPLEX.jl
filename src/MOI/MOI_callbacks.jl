@@ -88,11 +88,7 @@ function default_moi_callback(model::Optimizer)
             model.lazy_callback(cb_data)
         end
     elseif cb_where == CPX_CALLBACKCONTEXT_RELAXATION
-        callbackgetrelaxationpoint(model, cb_data, cb_where)
-            if model.lazy_callback !== nothing
-                model.callback_state = CB_LAZY
-                model.lazy_callback(cb_data)
-            end
+        callbackgetrelaxationpoint(model, cb_data, cb_where)        
             if model.user_cut_callback !== nothing
                 model.callback_state = CB_USER_CUT
                 model.user_cut_callback(cb_data)
