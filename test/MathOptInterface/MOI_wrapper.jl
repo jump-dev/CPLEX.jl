@@ -30,6 +30,8 @@ const BRIDGED_CERTIFICATE_OPTIMIZER =
         (MOI.VectorQuadraticFunction{Float64}, MOI.SecondOrderCone),
         (MOI.VectorQuadraticFunction{Float64}, MOI.RotatedSecondOrderCone),
         (MOI.VectorQuadraticFunction{Float64}, MOI.GeometricMeanCone),
+        (MOI.VectorAffineFunction{Float64}, MOI.IndicatorSet{MOI.ACTIVATE_ON_ONE, MOI.LessThan{Float64}}),
+        (MOI.VectorAffineFunction{Float64}, MOI.IndicatorSet{MOI.ACTIVATE_ON_ONE, MOI.GreaterThan{Float64}}),
     ])
     # TODO(odow): bugs deleting SOC variables. See also the
     # `delete_soc_variables` test.
@@ -46,6 +48,8 @@ const BRIDGED_CERTIFICATE_OPTIMIZER =
             (MOI.VectorQuadraticFunction{Float64}, MOI.SecondOrderCone),
             (MOI.VectorQuadraticFunction{Float64}, MOI.RotatedSecondOrderCone),
             (MOI.VectorQuadraticFunction{Float64}, MOI.GeometricMeanCone),
+            (MOI.VectorAffineFunction{Float64}, MOI.IndicatorSet{MOI.ACTIVATE_ON_ONE,MOI.LessThan{Float64}}),
+            (MOI.VectorAffineFunction{Float64}, MOI.IndicatorSet{MOI.ACTIVATE_ON_ONE,MOI.GreaterThan{Float64}}),
         ],
         delete = false
     )
@@ -82,10 +86,11 @@ end
 end
 
 @testset "Integer Linear tests" begin
-    MOIT.intlineartest(BRIDGED_OPTIMIZER, CONFIG, [
-        # TODO(odow): Indicator sets not supported.
-        "indicator1", "indicator2", "indicator3", "indicator4"
-    ])
+    # interval somehow needed for indicator tests
+    interval_optimizer = MOIB.LazyBridgeOptimizer(OPTIMIZER)
+    MOIB.add_bridge(interval_optimizer, MOIB.Constraint.SplitIntervalBridge{Float64})
+    MOIT.intlineartest(BRIDGED_OPTIMIZER, CONFIG)
+    MOIT.intlineartest(interval_optimizer, CONFIG)
 end
 
 @testset "Quadratic tests" begin
