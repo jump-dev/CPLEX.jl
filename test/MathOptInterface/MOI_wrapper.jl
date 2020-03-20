@@ -275,16 +275,29 @@ end
     @test MOI.get(model, MOI.ObjectiveValue()) ≈ -1.5 atol=atol rtol=rtol
     @test MOI.get(model, MOI.VariablePrimal(), v) ≈ [1.5, 0] atol=atol rtol=rtol
     @test MOI.get(model, MOI.ConstraintPrimal(), c) ≈ 1.5 atol=atol rtol=rtol
+    @test MOI.get(model, MOI.DualStatus()) == MOI.FEASIBLE_POINT
+    @test MOI.get(model, MOI.ConstraintDual(), c) ≈ -1.0 atol=atol rtol=rtol
 
     # Add integrality constraints
     int = MOI.add_constraint.(model, MOI.SingleVariable.(v), MOI.Integer())
     MOI.optimize!(model)
+    @test MOI.get(model, MOI.TerminationStatus()) == MOI.OPTIMAL
+    @test MOI.get(model, MOI.PrimalStatus()) == MOI.FEASIBLE_POINT
     @test MOI.get(model, MOI.ObjectiveValue()) ≈ -1.0 atol=atol rtol=rtol
+    @test MOI.get(model, MOI.VariablePrimal(), v) ≈ [1.0, 0] atol=atol rtol=rtol
+    @test MOI.get(model, MOI.ConstraintPrimal(), c) ≈ 1.0 atol=atol rtol=rtol
+    @test MOI.get(model, MOI.DualStatus()) == MOI.NO_SOLUTION
 
     # Remove integrality constraints
     MOI.delete.(model, int)
     MOI.optimize!(model)
+    @test MOI.get(model, MOI.TerminationStatus()) == MOI.OPTIMAL
+    @test MOI.get(model, MOI.PrimalStatus()) == MOI.FEASIBLE_POINT
     @test MOI.get(model, MOI.ObjectiveValue()) ≈ -1.5 atol=atol rtol=rtol
+    @test MOI.get(model, MOI.VariablePrimal(), v) ≈ [1.5, 0] atol=atol rtol=rtol
+    @test MOI.get(model, MOI.ConstraintPrimal(), c) ≈ 1.5 atol=atol rtol=rtol
+    @test MOI.get(model, MOI.DualStatus()) == MOI.FEASIBLE_POINT
+    @test MOI.get(model, MOI.ConstraintDual(), c) ≈ -1.0 atol=atol rtol=rtol
 end
 
 @testset "Conflict refiner" begin

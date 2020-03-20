@@ -1861,6 +1861,15 @@ function _make_problem_type_continuous(optimizer::Optimizer)
     return
 end
 
+function _has_discrete_variables(model::Optimizer)
+    for v in values(model.variable_info)
+        if v.type != CONTINUOUS
+            return true
+        end
+    end
+    return length(model.sos_constraint_info) > 0
+end
+
 function MOI.optimize!(model::Optimizer)
     # Initialize callbacks if necessary.
     if check_moi_callback_validity(model)
@@ -1868,7 +1877,7 @@ function MOI.optimize!(model::Optimizer)
         model.has_generic_callback = false
     end
     model.cached_solution = nothing
-    if model.inner.has_int
+    if _has_discrete_variables(model)
         _make_problem_type_integer(model)
         varindices = Cint[]
         values = Float64[]
