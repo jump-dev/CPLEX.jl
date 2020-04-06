@@ -2138,8 +2138,12 @@ function MOI.get(
 end
 
 function MOI.get(
-    model::Optimizer, attr::MOI.ConstraintDual,
-    c::MOI.ConstraintIndex{MOI.ScalarQuadraticFunction{Float64}, <:Any}
+    model::Optimizer,
+    attr::MOI.ConstraintDual,
+    c::MOI.ConstraintIndex{
+        MOI.ScalarQuadraticFunction{Float64},
+        <: Union{MOI.LessThan{Float64}, MOI.GreaterThan{Float64}}
+    }
 )
     _throw_if_optimize_in_progress(model, attr)
     MOI.check_result_index_bounds(model, attr)
@@ -2161,13 +2165,13 @@ function MOI.get(
     for (i, j, v) in zip(I, J, V)
         grad[i + 1] += v * x[j + 1]
         grad[j + 1] += v * x[i + 1]
-        if(abs(x[i + 1]) > TOL || abs(x[j + 1]) > TOL)
+        if abs(x[i + 1]) > TOL || abs(x[j + 1]) > TOL
             conetop = false
         end
     end
     for (i, v) in zip(affine_cols, affine_coefficients)
         grad[i + 1] += v
-        if(abs(x[i + 1]) > TOL)
+        if abs(x[i + 1]) > TOL
             conetop = false
         end
     end
@@ -2179,10 +2183,9 @@ function MOI.get(
 
     pi = 0.0
     # choose maximal abs(grad) to compute dual
-    absgradmax_index = argmax(abs.(grad))
-    absgradmax = abs(grad[absgradmax_index])
-    if(absgradmax > TOL)
-        pi = denseslack[absgradmax_index] / grad[absgradmax_index]
+    val, index = findmax(abs.(grad))
+    if val > TOL
+        pi = denseslack[index] / grad[index]
     end
 
     return _dual_multiplier(model) * pi
