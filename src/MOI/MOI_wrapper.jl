@@ -2148,6 +2148,8 @@ function MOI.get(
     _throw_if_optimize_in_progress(model, attr)
     MOI.check_result_index_bounds(model, attr)
 
+    # for more information on dual of QCP in CPLEX
+    # users can refer to https://www.ibm.com/support/knowledgecenter/SSSA5P_12.9.0/ilog.odms.cplex.help/CPLEX/UsrMan/topics/cont_optim/qcp/17_QCP_duals.html
     numvar = num_var(model.inner)
     row = _info(model, c).row
     slackind, slackval = CPLEX.c_api_getqconstrdslack(model.inner, Cint(row))
