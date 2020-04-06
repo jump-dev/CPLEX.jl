@@ -95,7 +95,7 @@ end
 
 @testset "Quadratic tests" begin
     # TODO(odow): duals for quadratic problems.
-    quad_config = MOIT.TestConfig(duals = false, atol = 1e-3, rtol = 1e-3)
+    quad_config = MOIT.TestConfig(duals = true, atol = 1e-3, rtol = 1e-3)
 
     MOIT.contquadratictest(
         BRIDGED_CERTIFICATE_OPTIMIZER,
