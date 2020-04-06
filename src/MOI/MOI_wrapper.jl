@@ -2137,15 +2137,56 @@ function MOI.get(
     return _dual_multiplier(model) * model.cached_solution.linear_dual[row]
 end
 
-# function MOI.get(
-#     model::Optimizer, attr::MOI.ConstraintDual,
-#     c::MOI.ConstraintIndex{MOI.ScalarQuadraticFunction{Float64}, <:Any}
-# )
-#     _throw_if_optimize_in_progress(model, attr)
-#     MOI.check_result_index_bounds(model, attr)
-#     pi = model.cached_solution.quadratic_dual[_info(model, c).row]
-#     return _dual_multiplier(model) * pi
-# end
+function MOI.get(
+    model::Optimizer, attr::MOI.ConstraintDual,
+    c::MOI.ConstraintIndex{MOI.ScalarQuadraticFunction{Float64}, <:Any}
+)
+    _throw_if_optimize_in_progress(model, attr)
+    MOI.check_result_index_bounds(model, attr)
+
+    numvar = num_var(model.inner)
+    row = _info(model, c).row
+    slackind, slackval = CPLEX.c_api_getqconstrdslack(model.inner, Cint(row))
+    affine_cols, affine_coefficients, I, J, V = CPLEX.c_api_getqconstr(model.inner, row)
+    x = model.cached_solution.variable_primal
+    denseslack = fill(0.0, numvar)
+    for (ind, val) in zip(slackind, slackval)
+        denseslack[ind + 1] = val
+    end
+
+    #compute The derivative of a quadratic constraint x^TQx + a^Tx + b <= 0 is Q^Tx + Qx + a
+    conetop = true
+    TOL = 1e-6
+    grad = fill(0.0, numvar)
+    for (i, j, v) in zip(I, J, V)
+        grad[i + 1] += v * x[j + 1]
+        grad[j + 1] += v * x[i + 1]
+        if(abs(x[i + 1]) > TOL || abs(x[j + 1]) > TOL)
+            conetop = false
+        end
+    end
+    for (i, v) in zip(affine_cols, affine_coefficients)
+        grad[i + 1] += v
+        if(abs(x[i + 1]) > TOL)
+            conetop = false
+        end
+    end
+
+    #TODO if at top of cone dual multiplier is ill-formed
+    if conetop
+        return 0.0
+    end
+
+    pi = 0.0
+    # choose maximal abs(grad) to compute dual
+    absgradmax_index = argmax(abs.(grad))
+    absgradmax = abs(grad[absgradmax_index])
+    if(absgradmax > TOL)
+        pi = denseslack[absgradmax_index] / grad[absgradmax_index]
+    end
+
+    return _dual_multiplier(model) * pi
+end
 
 function MOI.get(model::Optimizer, attr::MOI.ObjectiveValue)
     _throw_if_optimize_in_progress(model, attr)

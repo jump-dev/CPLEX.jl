@@ -188,6 +188,45 @@ function c_api_getqconstrslack(model::Model, dest::Vector{Float64})
     end
 end
 
+function c_api_getqconstrdslack(model::Model, row::Cint)
+    surplus_p = Ref{Cint}()
+    nz_p = Ref{Cint}()
+    # Similar to c_api_getqconstr, two-pass ccall
+    stat = @cpx_ccall(getqconstrdslack, Cint, (
+                      Ptr{Cvoid},
+                      Ptr{Cvoid},
+                      Cint,
+                      Ptr{Cint},
+                      Ptr{Cint},
+                      Ptr{Cdouble},
+                      Cint,
+                      Ptr{Cint}
+                      ),
+                      model.env.ptr, model.lp, row-1, nz_p, C_NULL, C_NULL, 0, surplus_p)
+    slackspace = -surplus_p[]
+    slackind = fill(Cint(0), slackspace)
+    slackval = fill(Cdouble(0.0), slackspace)
+    stat = @cpx_ccall(getqconstrdslack, Cint, (
+                      Ptr{Cvoid},
+                      Ptr{Cvoid},
+                      Cint,
+                      Ptr{Cint},
+                      Ptr{Cint},
+                      Ptr{Cdouble},
+                      Cint,
+                      Ptr{Cint}
+                      ),
+                      model.env.ptr, model.lp, row-1, nz_p, slackind, slackval, slackspace, surplus_p)
+    if stat != 0
+      throw(CplexError(model.env, stat))
+    end
+    if surplus_p[] < 0
+      error("Unable to query dual slack of quadratic constraint, there were more " *
+            "non-zero elements than expected.")
+    end
+    return slackind, slackval
+end
+
 function get_constr_duals(model::Model)
     ncons = num_constr(model)
     p = Vector{Cdouble}(undef, ncons)
