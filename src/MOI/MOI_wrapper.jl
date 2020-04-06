@@ -2180,7 +2180,7 @@ function MOI.get(
 
     #TODO if at top of cone dual multiplier is ill-formed
     if conetop
-        return 0.0
+        return NaN
     end
 
     pi = 0.0
