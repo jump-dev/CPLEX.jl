@@ -52,11 +52,11 @@ new or renamed parameters) before CPLEX.jl can support new versions.
 ## Use with JuMP
 
 You can use CPLEX with JuMP via the `CPLEX.Optimizer()` solver.
-Set solver parameters using `set_parameter` from `JuMP`:
+Set solver parameters using `set_optimizer_attribute` from `JuMP`:
 
 ```julia
-model = Model(with_optimizer(CPLEX.Optimizer))
-set_parameter(model, "CPX_PARAM_EPINT", 1e-8)
+model = Model(CPLEX.Optimizer)
+set_optimizer_attribute(model, "CPX_PARAM_EPINT", 1e-8)
 ```
 
 Parameters match those of the C API in the [CPLEX documentation](https://www.ibm.com/support/knowledgecenter/SSSA5P_12.9.0/ilog.odms.cplex.help/CPLEX/Parameters/topics/introListAlpha.html).
