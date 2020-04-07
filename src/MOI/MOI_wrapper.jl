@@ -2770,6 +2770,25 @@ end
 
 function MOI.get(
     model::Optimizer,
+    ::MOI.ConstraintDual,
+    c::MOI.ConstraintIndex{MOI.VectorOfVariables, MOI.SecondOrderCone}
+)
+    row = _info(model, c).row
+    f = MOI.get(model, MOI.ConstraintFunction(), c)
+    socvarindex = [_info(model, v).column for v in f.variables]
+
+    slackind, slackval = CPLEX.c_api_getqconstrdslack(model.inner, row)
+    numvar = num_var(model.inner)
+    denseslack = fill(0.0, numvar)
+    for (ind, val) in zip(slackind, slackval)
+        denseslack[ind + 1] = val
+    end
+
+    return _dual_multiplier(model) * denseslack[socvarindex]
+end
+
+function MOI.get(
+    model::Optimizer,
     ::MOI.ConstraintName,
     c::MOI.ConstraintIndex{MOI.VectorOfVariables, MOI.SecondOrderCone}
 )
