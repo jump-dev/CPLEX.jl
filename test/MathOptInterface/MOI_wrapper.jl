@@ -114,17 +114,9 @@ end
     MOIT.lin3test(BRIDGED_CERTIFICATE_OPTIMIZER, CONFIG)
     MOIT.lin4test(BRIDGED_CERTIFICATE_OPTIMIZER, CONFIG)
 
-    # TODO(odow): duals for SOC constraints.
-    soc_config = MOIT.TestConfig(duals = false, atol=5e-3)
+    soc_config = MOIT.TestConfig(duals = true, atol = 1e-3, infeas_certificates = false)
 
-    MOIT.soctest(BRIDGED_OPTIMIZER, soc_config, [
-        "soc3"
-    ])
-
-    MOIT.soc3test(
-        BRIDGED_OPTIMIZER,
-        MOIT.TestConfig(duals = false, infeas_certificates = false, atol = 1e-3)
-    )
+    MOIT.soctest(BRIDGED_CERTIFICATE_OPTIMIZER, soc_config)
 
     MOIT.rsoctest(BRIDGED_OPTIMIZER, soc_config)
 
