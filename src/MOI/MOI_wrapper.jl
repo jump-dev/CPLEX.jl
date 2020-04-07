@@ -2152,7 +2152,7 @@ function MOI.get(
     # users can refer to https://www.ibm.com/support/knowledgecenter/SSSA5P_12.9.0/ilog.odms.cplex.help/CPLEX/UsrMan/topics/cont_optim/qcp/17_QCP_duals.html
     numvar = num_var(model.inner)
     row = _info(model, c).row
-    slackind, slackval = CPLEX.c_api_getqconstrdslack(model.inner, Cint(row))
+    slackind, slackval = CPLEX.c_api_getqconstrdslack(model.inner, row)
     affine_cols, affine_coefficients, I, J, V = CPLEX.c_api_getqconstr(model.inner, row)
     x = model.cached_solution.variable_primal
     denseslack = fill(0.0, numvar)
