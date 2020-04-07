@@ -188,7 +188,7 @@ function c_api_getqconstrslack(model::Model, dest::Vector{Float64})
     end
 end
 
-function c_api_getqconstrdslack(model::Model, row::Cint)
+function c_api_getqconstrdslack(model::Model, row::Int)
     surplus_p = Ref{Cint}()
     nz_p = Ref{Cint}()
     # Similar to c_api_getqconstr, two-pass ccall
@@ -202,7 +202,7 @@ function c_api_getqconstrdslack(model::Model, row::Cint)
                       Cint,
                       Ptr{Cint}
                       ),
-                      model.env.ptr, model.lp, row-1, nz_p, C_NULL, C_NULL, 0, surplus_p)
+                      model.env.ptr, model.lp, Cint(row-1), nz_p, C_NULL, C_NULL, 0, surplus_p)
     slackspace = -surplus_p[]
     slackind = fill(Cint(0), slackspace)
     slackval = fill(Cdouble(0.0), slackspace)
@@ -216,7 +216,7 @@ function c_api_getqconstrdslack(model::Model, row::Cint)
                       Cint,
                       Ptr{Cint}
                       ),
-                      model.env.ptr, model.lp, row-1, nz_p, slackind, slackval, slackspace, surplus_p)
+                      model.env.ptr, model.lp, Cint(row-1), nz_p, slackind, slackval, slackspace, surplus_p)
     if stat != 0
       throw(CplexError(model.env, stat))
     end
