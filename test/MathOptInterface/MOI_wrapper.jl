@@ -118,7 +118,9 @@ end
 
     MOIT.soctest(BRIDGED_CERTIFICATE_OPTIMIZER, soc_config)
 
-    #TODO: rotatedsoc2 needs to disable dual test because CPLEX fails to give INFEASIBILITY_CERTIFICATE
+    # rotatedsoc2 needs to disable dual test because CPLEX fails to give INFEASIBILITY_CERTIFICATE
+    # TODO determine whether this is an expected behavior and CPLEX does not support certifying infeasibility of quadratic problems and file it upstream if it is not.
+    # See https://github.com/JuliaOpt/CPLEX.jl/pull/295#issuecomment-610456477
     MOIT.rsoctest(BRIDGED_OPTIMIZER, soc_config, [
 		"rotatedsoc2"
 	])
