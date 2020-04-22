@@ -524,6 +524,10 @@ function MOI.delete(model::Optimizer, indices::Vector{<:MOI.VariableIndex})
     # repeated application of single variable delete (n is the total number of
     # variables in the model, m is the number of deleted variables).
     for other_info in values(model.variable_info)
+        # The trick here is: `searchsortedlast` returns, in O(log n), the
+        # last index with a row smaller than `other_info.row`, over
+        # `sorted_del_cols` this is the same as the number of rows deleted
+        # before it, and how much its value need to be shifted.
         other_info.column -= searchsortedlast(
             sorted_del_cols, other_info.column
         )
