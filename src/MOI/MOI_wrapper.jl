@@ -2009,8 +2009,10 @@ function MOI.get(model::Optimizer, attr::MOI.DualStatus)
     if primal_stat == dual_stat == 1
         return MOI.FEASIBLE_POINT
     elseif primal_stat == 0 && dual_stat == 1
-        @assert MOI.get(model, MOI.TerminationStatus()) == MOI.INFEASIBLE
-        return MOI.INFEASIBILITY_CERTIFICATE
+        if MOI.get(model, MOI.TerminationStatus()) == MOI.INFEASIBLE
+            return MOI.INFEASIBILITY_CERTIFICATE
+        end
+        return MOI.UNKNOWN_RESULT_STATUS
     end
     return MOI.NO_SOLUTION
 end
