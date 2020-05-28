@@ -2792,24 +2792,24 @@ function MOI.get(model::Optimizer, ::MOI.ConflictStatus)
         return MOI.CONFLICT_FOUND
     elseif model.conflict.stat == CPX_STAT_CONFLICT_FEASIBLE
         return MOI.NO_CONFLICT_EXISTS
-    elseif model.conflict.stat == CPX_STAT_CONFLICT_ABORT_CONTRADICTION # TODO: these codes do not exist in MOI.
-        return MOI.OTHER_LIMIT
+    elseif model.conflict.stat == CPX_STAT_CONFLICT_ABORT_CONTRADICTION
+        return MOI.NO_CONFLICT_FOUND
     elseif model.conflict.stat == CPX_STAT_CONFLICT_ABORT_DETTIME_LIM
-        return MOI.TIME_LIMIT
+        return MOI.NO_CONFLICT_FOUND
     elseif model.conflict.stat == CPX_STAT_CONFLICT_ABORT_IT_LIM
-        return MOI.ITERATION_LIMIT
+        return MOI.NO_CONFLICT_FOUND
     elseif model.conflict.stat == CPX_STAT_CONFLICT_ABORT_MEM_LIM
-        return MOI.MEMORY_LIMIT
+        return MOI.NO_CONFLICT_FOUND
     elseif model.conflict.stat == CPX_STAT_CONFLICT_ABORT_NODE_LIM
-        return MOI.NODE_LIMIT
+        return MOI.NO_CONFLICT_FOUND
     elseif model.conflict.stat == CPX_STAT_CONFLICT_ABORT_OBJ_LIM
-        return MOI.OBJECTIVE_LIMIT
+        return MOI.NO_CONFLICT_FOUND
     elseif model.conflict.stat == CPX_STAT_CONFLICT_ABORT_TIME_LIM
         return MOI.TIME_LIMIT
     elseif model.conflict.stat == CPX_STAT_CONFLICT_ABORT_USER
-        return MOI.OTHER_LIMIT
+        return MOI.NO_CONFLICT_FOUND
     else
-        return MOI.OTHER_LIMIT
+        return MOI.NO_CONFLICT_FOUND
     end
 end
 
