@@ -309,11 +309,13 @@ end
         c2 = MOI.add_constraint(model, MOI.SingleVariable(x), MOI.LessThan(1.0))
 
         # Getting the results before the conflict refiner has been called must return an error.
+        @test MOI.get(model, CPLEX.ConflictStatus()) === nothing
         @test MOI.get(model, MOI.ConflictStatus()) == MOI.COMPUTE_CONFLICT_NOT_CALLED
         @test_throws ErrorException MOI.get(model, MOI.ConstraintConflictStatus(), c1)
 
         # Once it's called, no problem.
         MOI.compute_conflict!(model)
+        @test MOI.get(model, CPLEX.ConflictStatus()) == CPLEX.CPX_STAT_CONFLICT_MINIMAL
         @test MOI.get(model, MOI.ConflictStatus()) == MOI.CONFLICT_FOUND
         @test MOI.get(model, MOI.ConstraintConflictStatus(), c1) == MOI.IN_CONFLICT
         @test MOI.get(model, MOI.ConstraintConflictStatus(), c2) == MOI.IN_CONFLICT
@@ -327,11 +329,13 @@ end
         c2 = MOI.add_constraint(model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0], [x]), 0.0), MOI.LessThan(1.0))
 
         # Getting the results before the conflict refiner has been called must return an error.
+        @test MOI.get(model, CPLEX.ConflictStatus()) === nothing
         @test MOI.get(model, MOI.ConflictStatus()) == MOI.COMPUTE_CONFLICT_NOT_CALLED
         @test_throws ErrorException MOI.get(model, MOI.ConstraintConflictStatus(), c1)
 
         # Once it's called, no problem.
         MOI.compute_conflict!(model)
+        @test MOI.get(model, CPLEX.ConflictStatus()) == CPLEX.CPX_STAT_CONFLICT_MINIMAL
         @test MOI.get(model, MOI.ConflictStatus()) == MOI.CONFLICT_FOUND
         @test MOI.get(model, MOI.ConstraintConflictStatus(), c1) == MOI.IN_CONFLICT
         @test MOI.get(model, MOI.ConstraintConflictStatus(), c2) == MOI.IN_CONFLICT
@@ -349,11 +353,13 @@ end
         c2 = MOI.add_constraint(model, cf2, MOI.GreaterThan(1.0))
 
         # Getting the results before the conflict refiner has been called must return an error.
+        @test MOI.get(model, CPLEX.ConflictStatus()) === nothing
         @test MOI.get(model, MOI.ConflictStatus()) == MOI.COMPUTE_CONFLICT_NOT_CALLED
         @test_throws ErrorException MOI.get(model, MOI.ConstraintConflictStatus(), c1)
 
         # Once it's called, no problem.
         MOI.compute_conflict!(model)
+        @test MOI.get(model, CPLEX.ConflictStatus()) == CPLEX.CPX_STAT_CONFLICT_MINIMAL
         @test MOI.get(model, MOI.ConflictStatus()) == MOI.CONFLICT_FOUND
         @test MOI.get(model, MOI.ConstraintConflictStatus(), b1) == MOI.IN_CONFLICT
         @test MOI.get(model, MOI.ConstraintConflictStatus(), b2) == MOI.IN_CONFLICT
@@ -373,11 +379,13 @@ end
         c2 = MOI.add_constraint(model, cf2, MOI.GreaterThan(1.0))
 
         # Getting the results before the conflict refiner has been called must return an error.
+        @test MOI.get(model, CPLEX.ConflictStatus()) === nothing
         @test MOI.get(model, MOI.ConflictStatus()) == MOI.COMPUTE_CONFLICT_NOT_CALLED
         @test_throws ErrorException MOI.get(model, MOI.ConstraintConflictStatus(), c1)
 
         # Once it's called, no problem.
         MOI.compute_conflict!(model)
+        @test MOI.get(model, CPLEX.ConflictStatus()) == CPLEX.CPX_STAT_CONFLICT_MINIMAL
         @test MOI.get(model, MOI.ConflictStatus()) == MOI.CONFLICT_FOUND
         @test MOI.get(model, MOI.ConstraintConflictStatus(), b1) == MOI.IN_CONFLICT
         @test MOI.get(model, MOI.ConstraintConflictStatus(), b2) == MOI.IN_CONFLICT
@@ -399,11 +407,13 @@ end
         c2 = MOI.add_constraint(model, cf2, MOI.GreaterThan(1.0))
 
         # Getting the results before the conflict refiner has been called must return an error.
+        @test MOI.get(model, CPLEX.ConflictStatus()) === nothing
         @test MOI.get(model, MOI.ConflictStatus()) == MOI.COMPUTE_CONFLICT_NOT_CALLED
         @test_throws ErrorException MOI.get(model, MOI.ConstraintConflictStatus(), c1)
 
         # Once it's called, no problem.
         MOI.compute_conflict!(model)
+        @test MOI.get(model, CPLEX.ConflictStatus()) == CPLEX.CPX_STAT_CONFLICT_MINIMAL
         @test MOI.get(model, MOI.ConflictStatus()) == MOI.CONFLICT_FOUND
         @test MOI.get(model, MOI.ConstraintConflictStatus(), b1) == MOI.IN_CONFLICT
         @test MOI.get(model, MOI.ConstraintConflictStatus(), b2) == MOI.IN_CONFLICT
@@ -419,11 +429,13 @@ end
         c2 = MOI.add_constraint(model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0], [x]), 0.0), MOI.LessThan(2.0))
 
         # Getting the results before the conflict refiner has been called must return an error.
+        @test MOI.get(model, CPLEX.ConflictStatus()) === nothing
         @test MOI.get(model, MOI.ConflictStatus()) == MOI.COMPUTE_CONFLICT_NOT_CALLED
         @test_throws ErrorException MOI.get(model, MOI.ConstraintConflictStatus(), c1)
 
         # Once it's called, no problem.
         MOI.compute_conflict!(model)
+        @test MOI.get(model, CPLEX.ConflictStatus()) == CPLEX.CPX_STAT_CONFLICT_FEASIBLE
         @test MOI.get(model, MOI.ConflictStatus()) == MOI.NO_CONFLICT_EXISTS
         @test MOI.get(model, MOI.ConstraintConflictStatus(), c1) == MOI.NOT_IN_CONFLICT
         @test MOI.get(model, MOI.ConstraintConflictStatus(), c2) == MOI.NOT_IN_CONFLICT

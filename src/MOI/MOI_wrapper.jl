@@ -2755,6 +2755,8 @@ function MOI.set(
     return
 end
 
+@deprecate compute_conflict MOI.compute_conflict!
+
 function MOI.compute_conflict!(model::Optimizer)
     # In case there is no conflict, c_api_getconflict throws an error, while the
     # conflict data structure can handle more gracefully this case (via a status
@@ -2783,14 +2785,36 @@ function _ensure_conflict_computed(model::Optimizer)
     end
 end
 
+"""
+    ConflictStatus()
+
+Return the raw status from CPLEX indicating the status of the last
+computed conflict. It returns an integer value defined in
+[CPLEX' documentation](https://www.ibm.com/support/knowledgecenter/SSSA5P_12.10.0/ilog.odms.cplex.help/refcallablelibrary/macros/homepagesolutionstatus.html)
+(with a name like `CPX_STAT_CONFLICT_*`) or `nothing` if the
+function `compute_conflict!` has not yet been called.
+"""
+struct ConflictStatus <: MOI.AbstractModelAttribute end
+
+MOI.supports(::Optimizer, ::ConflictStatus) = true
+
+function MOI.get(model::Optimizer, ::ConflictStatus)
+    if model.conflict === nothing
+        return nothing
+    else
+        return model.conflict.stat
+    end
+end
+
 MOI.supports(::Optimizer, ::MOI.ConflictStatus) = true
 
 function MOI.get(model::Optimizer, ::MOI.ConflictStatus)
-    if model.conflict === nothing
+    status = MOI.get(model, ConflictStatus())
+    if status === nothing
         return MOI.COMPUTE_CONFLICT_NOT_CALLED
-    elseif model.conflict.stat == CPX_STAT_CONFLICT_MINIMAL
+    elseif status == CPX_STAT_CONFLICT_MINIMAL
         return MOI.CONFLICT_FOUND
-    elseif model.conflict.stat == CPX_STAT_CONFLICT_FEASIBLE
+    elseif status == CPX_STAT_CONFLICT_FEASIBLE
         return MOI.NO_CONFLICT_EXISTS
     else
         return MOI.NO_CONFLICT_FOUND
