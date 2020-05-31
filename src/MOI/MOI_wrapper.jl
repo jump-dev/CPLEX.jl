@@ -1951,28 +1951,37 @@ function MOI.get(model::Optimizer, attr::MOI.TerminationStatus)
         return MOI.DUAL_INFEASIBLE
     elseif stat in (6, 23)                     # CPX_STAT_NUM_BEST, CPX_STAT_FEASIBLE
         return MOI.LOCALLY_SOLVED
-    elseif stat in (15, 17, 19, 24)            # CPX_STAT_OPTIMAL_RELAXED_SUM, CPX_STAT_OPTIMAL_RELAXED_INF, CPX_STAT_OPTIMAL_RELAXED_QUAD, CPX_STAT_FIRSTORDER
+    elseif stat in (15, 17, 19, 24, 109, 111, 113, 116)  # CPX_STAT_OPTIMAL_RELAXED_SUM, CPX_STAT_OPTIMAL_RELAXED_INF, CPX_STAT_OPTIMAL_RELAXED_QUAD, CPX_STAT_FIRSTORDER
         return MOI.ALMOST_OPTIMAL
-    elseif stat in (12, 21, 22, 36)            # CPX_STAT_*ABORT*_OBJ_LIM
+    elseif stat in (12, 21, 22)            # CPX_STAT_*ABORT*_OBJ_LIM
         return MOI.OBJECTIVE_LIMIT
-    elseif stat in (10, 34)                    # CPX_STAT_*ABORT_IT_LIM
+    elseif stat in (10)                    # CPX_STAT_*ABORT_IT_LIM
         return MOI.ITERATION_LIMIT
     elseif stat in (53, 105, 106) # CPX_STAT_CONFLICT_ABORT_NODE_LIM,  # CPXMIP_NODE_LIM*
         return MOI.NODE_LIMIT
-    elseif stat in (11, 25, 33, 39, 107, 108, 131, 132) # CPX_STAT_*ABORT*TIME_LIM
+    elseif stat in (11, 25, 107, 108, 131, 132) # CPX_STAT_*ABORT*TIME_LIM
         return MOI.TIME_LIMIT
-    elseif stat == (13, 38) # CPX_STAT_ABORT_USER
+    elseif stat in (112, 117)
+        return MOI.MEMORY_LIMIT
+    elseif stat == 104
+        return MOI.OTHER_LIMIT
+    elseif stat in (13, 114) # CPX_STAT_ABORT_USER
         return MOI.INTERRUPTED
-    elseif stat in (5, 20) # CPX_STAT_OPTIMAL_INFEAS, CPX_STAT_OPTIMAL_FACE_UNBOUNDED
+    elseif stat in (5, 20, 110) # CPX_STAT_OPTIMAL_INFEAS, CPX_STAT_OPTIMAL_FACE_UNBOUNDED
         return MOI.NUMERICAL_ERROR
     elseif stat in (14, 16, 18)
-        return MOI.OTHER_ERROR # TODO: REPLACE WITH FEASIBLE TO RELAXED TOLERANCE ERROR CODE
+        return MOI.OTHER_ERROR  # TODO: REPLACE WITH FEASIBLE TO RELAXED TOLERANCE ERROR CODE
+    elseif stat in 115, 120-130, 133 # TODO: Determine right code
+    elseif stat in (110)
+        return MOI.OTHER_ERROR  # TODO: CPXMIP_FAIL_INFEAS
+    elseif 30 <= stat <= 39
+        error("Results from conflict analysis should be accessed via ConflictStatus() not TerminationStatus().")
     elseif stat == 0
         return MOI.OTHER_ERROR
     else
         error("getstat() returned at value of $stat which MOI cannot intepret. Please open
                an issue here to add support for this error code
-               https://github.com/JuliaOpt/CPLEX.jl/issues")
+               https://github.com/JuliaOpt/CPLEX.jl/issues.")
     end
 end
 
