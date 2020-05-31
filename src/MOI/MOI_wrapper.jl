@@ -1941,39 +1941,38 @@ function MOI.get(model::Optimizer, attr::MOI.TerminationStatus)
         return MOI.OPTIMIZE_NOT_CALLED
     end
     stat = c_api_getstat(model.inner)
-    if stat == 1 # CPX_STAT_OPTIMAL
+    if stat in (1, 101, 102)                   # CPX_STAT_OPTIMAL, CPXMIP_OPTIMAL, CPXMIP_OPTIMAL_TOL
         return MOI.OPTIMAL
-    elseif stat == 3 # CPX_STAT_INFEASIBLE
+    elseif stat in (3, 103)                    # CPX_STAT_INFEASIBLE, CPXMIP_INFEASIBLE
         return MOI.INFEASIBLE
-    elseif stat == 4 # CPX_STAT_INForUNBD
+    elseif stat in (4, 119)                    # CPX_STAT_INForUNBD, CPXMIP_INForUNBD
         return MOI.INFEASIBLE_OR_UNBOUNDED
-    elseif stat == 2 # CPX_STAT_UNBOUNDED
+    elseif stat in (2, 118)                    # CPX_STAT_UNBOUNDED, CPXMIP_UNBOUNDED
         return MOI.DUAL_INFEASIBLE
-    elseif stat in (12, 21, 22, 36) # CPX_STAT_*ABORT*_OBJ_LIM
+    elseif stat in (6, 23)                     # CPX_STAT_NUM_BEST, CPX_STAT_FEASIBLE
+        return MOI.LOCALLY_SOLVED
+    elseif stat in (15, 17, 19, 24)            # CPX_STAT_OPTIMAL_RELAXED_SUM, CPX_STAT_OPTIMAL_RELAXED_INF, CPX_STAT_OPTIMAL_RELAXED_QUAD, CPX_STAT_FIRSTORDER
+        return MOI.ALMOST_OPTIMAL
+    elseif stat in (12, 21, 22, 36)            # CPX_STAT_*ABORT*_OBJ_LIM
         return MOI.OBJECTIVE_LIMIT
-    elseif stat in (10, 34) # CPX_STAT_*ABORT_IT_LIM
+    elseif stat in (10, 34)                    # CPX_STAT_*ABORT_IT_LIM
         return MOI.ITERATION_LIMIT
-    elseif stat == 53 # CPX_STAT_CONFLICT_ABORT_NODE_LIM
+    elseif stat in (53, 105, 106) # CPX_STAT_CONFLICT_ABORT_NODE_LIM,  # CPXMIP_NODE_LIM*
         return MOI.NODE_LIMIT
-    elseif stat in (11, 25, 33, 39) # CPX_STAT_*ABORT*TIME_LIM
+    elseif stat in (11, 25, 33, 39, 107, 108, 131, 132) # CPX_STAT_*ABORT*TIME_LIM
         return MOI.TIME_LIMIT
-    elseif stat == 5 # CPX_STAT_OPTIMAL_INFEAS
+    elseif stat == (13, 38) # CPX_STAT_ABORT_USER
+        return MOI.INTERRUPTED
+    elseif stat in (5, 20) # CPX_STAT_OPTIMAL_INFEAS, CPX_STAT_OPTIMAL_FACE_UNBOUNDED
         return MOI.NUMERICAL_ERROR
-    # MIP STATUS
-    elseif stat in (101, 102) # CPXMIP_OPTIMAL, CPXMIP_OPTIMAL_TOL
-        return MOI.OPTIMAL
-    elseif stat == 103 # CPXMIP_INFEASIBLE
-        return MOI.INFEASIBLE
-    elseif stat == 119 # CPXMIP_INForUNBD
-        return MOI.INFEASIBLE_OR_UNBOUNDED
-    elseif stat == 118 # CPXMIP_UNBOUNDED
-        return MOI.DUAL_INFEASIBLE
-    elseif stat in (105, 106) # CPXMIP_NODE_LIM*
-        return MOI.NODE_LIMIT
-    elseif stat in (107, 108, 131, 132) # CPXMIP_*TIME_LIM*
-        return MOI.TIME_LIMIT
-    else
+    elseif stat in (14, 16, 18)
+        return MOI.OTHER_ERROR # TODO: REPLACE WITH FEASIBLE TO RELAXED TOLERANCE ERROR CODE
+    elseif stat == 0
         return MOI.OTHER_ERROR
+    else
+        error("getstat() returned at value of $stat which MOI cannot intepret. Please open
+               an issue here to add support for this error code
+               https://github.com/JuliaOpt/CPLEX.jl/issues")
     end
 end
 
