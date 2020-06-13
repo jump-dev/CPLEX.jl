@@ -5,7 +5,7 @@ Studio](https://www.ibm.com/products/ilog-cplex-optimization-studio). It
 provides an interface to the low-level C API, as well as an implementation of
 the solver-independent
 [`MathProgBase`](https://github.com/JuliaOpt/MathProgBase.jl) and
-[`MathOptInterface`](https://github.com/JuliaOpt/MathOptInterface.jl) API's.
+[`MathOptInterface`](https://github.com/jump-dev/MathOptInterface.jl) API's.
 
 You cannot use `CPLEX.jl` without having purchased and installed a copy of CPLEX
 Optimization Studio from [IBM](http://www.ibm.com/). However, CPLEX is
@@ -14,7 +14,7 @@ available for free to [academics and students](http://ibm.biz/Bdzvqw).
 This package is available free of charge and in no way replaces or alters any
 functionality of IBM's CPLEX Optimization Studio product.
 
-*Note: This wrapper is maintained by the JuliaOpt community and is not
+*Note: This wrapper is maintained by the JuMP community and is not
 officially supported by IBM. However, we thank IBM for providing us with a
 CPLEX license to test `CPLEX.jl` on Travis. If you are a commercial customer
 interested in official support for CPLEX in Julia, let them know!.*
@@ -45,7 +45,7 @@ supports 12.8, 12.9, and 12.10 given recent changes to
 [the API](https://www.ibm.com/support/knowledgecenter/en/SSSA5P_12.9.0/ilog.odms.studio.help/CPLEX/ReleaseNotes/topics/releasenotes1290/removed.html).
 
 If you want to support newer versions of CPLEX not listed above, [file an
-issue](https://github.com/JuliaOpt/CPLEX.jl/issues/new) with the version
+issue](https://github.com/jump-dev/CPLEX.jl/issues/new) with the version
 number you'd like to support. Some steps need to be taken (like checking for
 new or renamed parameters) before CPLEX.jl can support new versions.
 
