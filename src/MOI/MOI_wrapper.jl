@@ -1941,39 +1941,53 @@ function MOI.get(model::Optimizer, attr::MOI.TerminationStatus)
         return MOI.OPTIMIZE_NOT_CALLED
     end
     stat = c_api_getstat(model.inner)
-    if stat == 1 # CPX_STAT_OPTIMAL
+    if stat in (1, 101, 102)                   # CPX_STAT_OPTIMAL, CPXMIP_OPTIMAL, CPXMIP_OPTIMAL_TOL
         return MOI.OPTIMAL
-    elseif stat == 3 # CPX_STAT_INFEASIBLE
+    elseif stat in (3, 103)                    # CPX_STAT_INFEASIBLE, CPXMIP_INFEASIBLE
         return MOI.INFEASIBLE
-    elseif stat == 4 # CPX_STAT_INForUNBD
+    elseif stat in (4, 119, 133)                    # CPX_STAT_INForUNBD, CPXMIP_INForUNBD
         return MOI.INFEASIBLE_OR_UNBOUNDED
-    elseif stat == 2 # CPX_STAT_UNBOUNDED
+    elseif stat in (2, 118)                    # CPX_STAT_UNBOUNDED, CPXMIP_UNBOUNDED
         return MOI.DUAL_INFEASIBLE
-    elseif stat in (12, 21, 22, 36) # CPX_STAT_*ABORT*_OBJ_LIM
+    elseif stat in (23)                        # CPX_STAT_NUM_BEST, CPX_STAT_FEASIBLE
+        return MOI.LOCALLY_SOLVED
+    elseif stat in (15, 17, 19, 24, 130)  # CPX_STAT_OPTIMAL_RELAXED_SUM, CPX_STAT_OPTIMAL_RELAXED_INF, CPX_STAT_OPTIMAL_RELAXED_QUAD, CPX_STAT_FIRSTORDER
+        return MOI.ALMOST_OPTIMAL
+    elseif stat in (12, 21, 22)                # CPX_STAT_*ABORT*_OBJ_LIM
         return MOI.OBJECTIVE_LIMIT
-    elseif stat in (10, 34) # CPX_STAT_*ABORT_IT_LIM
+    elseif stat in (10)                         # CPX_STAT_*ABORT_IT_LIM
         return MOI.ITERATION_LIMIT
-    elseif stat == 53 # CPX_STAT_CONFLICT_ABORT_NODE_LIM
+    elseif stat in (53, 105, 106)              # CPX_STAT_CONFLICT_ABORT_NODE_LIM,  # CPXMIP_NODE_LIM*
         return MOI.NODE_LIMIT
-    elseif stat in (11, 25, 33, 39) # CPX_STAT_*ABORT*TIME_LIM
+    elseif stat in (11, 25, 107, 108, 131, 132) # CPX_STAT_*ABORT*TIME_LIM
         return MOI.TIME_LIMIT
-    elseif stat == 5 # CPX_STAT_OPTIMAL_INFEAS
+    elseif stat in (111, 112, 116, 117)
+        return MOI.MEMORY_LIMIT
+    elseif stat in (104, 128)
+        return MOI.SOLUTION_LIMIT
+    elseif stat in (13, 113, 114)  # CPX_STAT_ABORT_USER
+        return MOI.INTERRUPTED
+    elseif stat in (5, 6, 20, 109, 110, 115) # CPX_STAT_OPTIMAL_INFEAS, CPX_STAT_OPTIMAL_FACE_UNBOUNDED
         return MOI.NUMERICAL_ERROR
-    # MIP STATUS
-    elseif stat in (101, 102) # CPXMIP_OPTIMAL, CPXMIP_OPTIMAL_TOL
-        return MOI.OPTIMAL
-    elseif stat == 103 # CPXMIP_INFEASIBLE
-        return MOI.INFEASIBLE
-    elseif stat == 119 # CPXMIP_INForUNBD
-        return MOI.INFEASIBLE_OR_UNBOUNDED
-    elseif stat == 118 # CPXMIP_UNBOUNDED
-        return MOI.DUAL_INFEASIBLE
-    elseif stat in (105, 106) # CPXMIP_NODE_LIM*
-        return MOI.NODE_LIMIT
-    elseif stat in (107, 108, 131, 132) # CPXMIP_*TIME_LIM*
-        return MOI.TIME_LIMIT
-    else
+    elseif stat in (14, 16, 18)
+        return MOI.OTHER_ERROR         # TODO: REPLACE WITH FEASIBLE TO RELAXED TOLERANCE ERROR CODE
+    elseif stat in (110)
+        return MOI.OTHER_ERROR         # TODO: CPXMIP_FAIL_INFEAS
+    elseif 30 <= stat <= 39
+        !model.silent && @warn("Results from conflict analysis should be accessed via ConflictStatus() not TerminationStatus().")
         return MOI.OTHER_ERROR
+    elseif stat in (40, 41)
+        !model.silent && @warn("Benders Decomposition not currently wrapped in CPLEX MOI. Query CPLEX directly to assess results.")
+        return MOI.OTHER_ERROR
+    elseif stat in (120, 121, 122, 123, 124, 125, 126, 127)
+        !model.silent && @warn("FeasOpt not currently wrapped in CPLEX MOI. Query CPLEX directly to assess results.")
+        return MOI.OTHER_ERROR
+    elseif stat == 0
+        return MOI.OTHER_ERROR
+    else
+        error("getstat() returned at value of $stat which MOI cannot intepret. Please open
+               an issue here to add support for this error code
+               https://github.com/JuliaOpt/CPLEX.jl/issues.")
     end
 end
 
@@ -2009,8 +2023,10 @@ function MOI.get(model::Optimizer, attr::MOI.DualStatus)
     if primal_stat == dual_stat == 1
         return MOI.FEASIBLE_POINT
     elseif primal_stat == 0 && dual_stat == 1
-        @assert MOI.get(model, MOI.TerminationStatus()) == MOI.INFEASIBLE
-        return MOI.INFEASIBILITY_CERTIFICATE
+        if MOI.get(model, MOI.TerminationStatus()) == MOI.INFEASIBLE
+            return MOI.INFEASIBILITY_CERTIFICATE
+        end
+        return MOI.UNKNOWN_RESULT_STATUS
     end
     return MOI.NO_SOLUTION
 end
