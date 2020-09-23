@@ -1,12 +1,12 @@
 using Libdl
 
-const depsfile = joinpath(dirname(@__FILE__), "deps.jl")
-if isfile(depsfile)
-    rm(depsfile)
+const _DEPS_FILE = joinpath(dirname(@__FILE__), "deps.jl")
+if isfile(_DEPS_FILE)
+    rm(_DEPS_FILE)
 end
 
 function write_depsfile(path)
-    open(depsfile, "w") do f
+    open(_DEPS_FILE, "w") do f
         println(f, "const libcplex = \"$(escape_string(path))\"")
     end
 end
@@ -32,7 +32,7 @@ function try_local_installation()
     # the path (directly the callable library or # the CPLEX executable) or from
     # an environment variable.
     cpxvers = [
-        "128", "1280", "129", "1290", "1210", "12100"
+        "1210", "12100"
     ]
     base_env = "CPLEX_STUDIO_BINARIES"
 
@@ -56,15 +56,43 @@ function try_local_installation()
     # Perform the actual search in the potential places.
     for l in libnames
         d = Libdl.dlopen_e(l)
-        d == C_NULL && continue
+        if d == C_NULL
+            continue
+        end
         write_depsfile(Libdl.dlpath(d))
         @info("Using CPLEX found in location `$(l)`")
         return
     end
-    error(
-        "Unable to locate CPLEX installation. Note this must be downloaded " *
-        "separately. See the CPLEX.jl README for further instructions."
-    )
+    error("""
+    Unable to locate CPLEX installation. Note this must be downloaded separately.
+
+    You should set the `CPLEX_STUDIO_BINARIES` environment variable to point to
+    the install location then try again. For example (updating the path to the
+    correct location if needed):
+
+    ```
+    # On Windows, this might be
+    ENV["CPLEX_STUDIO_BINARIES"] = "C:\\\\Program Files\\\\CPLEX_Studio1210\\\\cplex\\\\bin\\\\x86-64_win\\\\"
+    import Pkg
+    Pkg.add("CPLEX")
+    Pkg.build("CPLEX")
+
+    # On OSX, this might be
+    ENV["CPLEX_STUDIO_BINARIES"] = "/Applications/CPLEX_Studio1210/cplex/bin/x86-64_osx/"
+    import Pkg
+    Pkg.add("CPLEX")
+    Pkg.build("CPLEX")
+
+    # On Unix, this might be
+    ENV["CPLEX_STUDIO_BINARIES"] = "/opt/CPLEX_Studio1210/cplex/bin/x86-64_linux/"
+    import Pkg
+    Pkg.add("CPLEX")
+    Pkg.build("CPLEX")
+    ```
+
+    See the CPLEX.jl README at https://github.com/jump-dev/CPLEX.jl for further
+    instructions.
+    """)
 end
 
 function try_travis_installation()

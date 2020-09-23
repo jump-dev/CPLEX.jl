@@ -1,11 +1,40 @@
+mutable struct CallbackContext
+    model::Optimizer
+    ptr::Ptr{Cvoid}
+end
+Base.cconvert(::Type{Ptr{Cvoid}}, x::CallbackContext) = x
+Base.unsafe_convert(::Type{Ptr{Cvoid}}, x::CallbackContext) = x.ptr::Ptr{Cvoid}
+
+mutable struct _CallbackUserData
+    model::Optimizer
+    callback::Function
+end
+Base.cconvert(::Type{Ptr{Cvoid}}, x::_CallbackUserData) = x
+function Base.unsafe_convert(::Type{Ptr{Cvoid}}, x::_CallbackUserData)
+    return pointer_from_objref(x)::Ptr{Cvoid}
+end
+
+function cplex_callback_wrapper(
+    context::Ptr{Cvoid},
+    context_id::Clong,
+    p_user_data::Ptr{Cvoid},
+)
+    user_data = unsafe_pointer_to_objref(p_user_data)::_CallbackUserData
+    user_data.callback(CallbackContext(user_data.model, context), context_id)
+    return Cint(0)
+end
+
 """
     CallbackFunction()
 
 Set a generic CPLEX callback function.
 
-Note: before accessing `MOI.CallbackVariablePrimal`, you must call either
-`callbackgetcandidatepoint(model::Optimizer, cb_data, cb_where)` or
-`callbackgetrelaxationpoint(model::Optimizer, cb_data, cb_where)`.
+Callback must be a function with signature:
+
+    callback(cb_data::CallbackContext, context_id::Clong)
+
+Note: before accessing `MOI.CallbackVariablePrimal`, you must call
+`CPLEX.load_callback_variable_primal(cb_data, context_id)`.
 """
 struct CallbackFunction <: MOI.AbstractCallback end
 
@@ -18,7 +47,6 @@ function MOI.set(model::Optimizer, ::CallbackFunction, f::Function)
             "you are doing."
         )
     end
-    model.has_generic_callback = true
     context_mask =
         CPX_CALLBACKCONTEXT_THREAD_UP |
         CPX_CALLBACKCONTEXT_THREAD_DOWN |
@@ -26,42 +54,65 @@ function MOI.set(model::Optimizer, ::CallbackFunction, f::Function)
         CPX_CALLBACKCONTEXT_GLOBAL_PROGRESS |
         CPX_CALLBACKCONTEXT_CANDIDATE |
         CPX_CALLBACKCONTEXT_RELAXATION
-    CPLEX.cbsetfunc(model.inner, context_mask, (cb_data, cb_where) -> begin
-        model.callback_state = CB_GENERIC
-        f(cb_data, cb_where)
-        model.callback_state = CB_NONE
-    end)
+    cpx_callback = @cfunction(
+        cplex_callback_wrapper, Cint, (Ptr{Cvoid}, Clong, Ptr{Cvoid})
+    )
+    user_data = _CallbackUserData(
+        model,
+        (context, context_id) -> begin
+            model.callback_state = CB_GENERIC
+            f(context::CallbackContext, context_id::Clong)
+            model.callback_state = CB_NONE
+        end
+    )
+    ret = CPXcallbacksetfunc(
+        model.env,
+        model.lp,
+        context_mask,
+        cpx_callback,
+        user_data,
+    )
+    _check_ret(model, ret)
+    model.generic_callback = user_data
+    model.has_generic_callback = true
     return
 end
 MOI.supports(::Optimizer, ::CallbackFunction) = true
 
 """
-    callbackgetcandidatepoint(model::Optimizer, cb_data, cb_where)
+    load_callback_variable_primal(cb_data, context_id)
 
-Load the solution at a CPX_CALLBACKCONTEXT_CANDIDATE node so that it can be
-accessed using `MOI.CallbackVariablePrimal`.
-"""
-function callbackgetcandidatepoint(model::Optimizer, cb_data, cb_where)
-    N = length(model.variable_info)
-    resize!(model.callback_variable_primal, N)
-    CPLEX.cbgetcandidatepoint(
-        cb_data, model.callback_variable_primal, Cint(0), Cint(N - 1), Ref{Float64}()
-    )
-    return
-end
-
-"""
-    callbackgetrelaxationpoint(model::Optimizer, cb_data, cb_where)
-
-Load the solution at a CB_MIPNODE node so that it can be accessed using
+Load the solution during a callback so that it can be accessed using
 `MOI.CallbackVariablePrimal`.
 """
-function callbackgetrelaxationpoint(model::Optimizer, cb_data, cb_where)
+function load_callback_variable_primal(
+    cb_data::CallbackContext, context_id::Clong
+)
+    model = cb_data.model::Optimizer
     N = length(model.variable_info)
     resize!(model.callback_variable_primal, N)
-    CPLEX.cbgetrelaxationpoint(
-        cb_data, model.callback_variable_primal, Cint(0), Cint(N - 1), Ref{Float64}()
-    )
+    if context_id == CPX_CALLBACKCONTEXT_CANDIDATE
+        ret = CPXcallbackgetcandidatepoint(
+            cb_data,
+            model.callback_variable_primal,
+            Cint(0),
+            Cint(N - 1),
+            C_NULL,
+        )
+    elseif context_id == CPX_CALLBACKCONTEXT_RELAXATION
+        ret = CPXcallbackgetrelaxationpoint(
+            cb_data,
+            model.callback_variable_primal,
+            Cint(0),
+            Cint(N - 1),
+            C_NULL,
+        )
+    else
+        error(
+            "`load_callback_variable_primal` can only be called at " *
+            "CPX_CALLBACKCONTEXT_CANDIDATE or CPX_CALLBACKCONTEXT_RELAXATION."
+        )
+    end
     return
 end
 
@@ -77,18 +128,21 @@ function default_moi_callback(model::Optimizer)
         # what they are doing if they use a solver-dependent callback.
         MOI.set(model, MOI.NumberOfThreads(), 1)
     end
-    return (cb_data, cb_where) -> begin
-    if cb_where == CPX_CALLBACKCONTEXT_CANDIDATE
-        if cbcandidateispoint(cb_data) == 0
-            return  # No candidate point available
-        end
-        callbackgetcandidatepoint(model, cb_data, cb_where)
-        if model.lazy_callback !== nothing
-            model.callback_state = CB_LAZY
-            model.lazy_callback(cb_data)
-        end
-    elseif cb_where == CPX_CALLBACKCONTEXT_RELAXATION
-        callbackgetrelaxationpoint(model, cb_data, cb_where)        
+    return (cb_data, cb_context) -> begin
+        if cb_context == CPX_CALLBACKCONTEXT_CANDIDATE
+            ispoint_p = Ref{Cint}()
+            ret = CPXcallbackcandidateispoint(cb_data, ispoint_p)
+            _check_ret(cb_data.model, ret)
+            if ispoint_p[] == 0
+                return  # No candidate point available
+            end
+            load_callback_variable_primal(cb_data, cb_context)
+            if model.lazy_callback !== nothing
+                model.callback_state = CB_LAZY
+                model.lazy_callback(cb_data)
+            end
+        elseif cb_context == CPX_CALLBACKCONTEXT_RELAXATION
+            load_callback_variable_primal(cb_data, cb_context)
             if model.user_cut_callback !== nothing
                 model.callback_state = CB_USER_CUT
                 model.user_cut_callback(cb_data)
@@ -135,15 +189,15 @@ function MOI.submit(
     end
     indices, coefficients = _indices_and_coefficients(model, f)
     sense, rhs = _sense_and_rhs(s)
-    CPLEX.cbrejectcandidate(
+    ret = CPXcallbackrejectcandidate(
         cb.callback_data,
         Cint(1),
         Cint(length(coefficients)),
-        Float64[rhs],
-        Cchar[sense],
-        Cint[0],
-        indices .- Cint(1),
-        coefficients
+        Ref(rhs),
+        Ref{Cchar}(sense),
+        Ref{Cint}(0),
+        indices,
+        coefficients,
     )
     return
 end
@@ -163,7 +217,9 @@ function MOI.submit(
     model::Optimizer,
     cb::MOI.UserCut{CallbackContext},
     f::MOI.ScalarAffineFunction{Float64},
-    s::Union{MOI.LessThan{Float64}, MOI.GreaterThan{Float64}, MOI.EqualTo{Float64}}
+    s::Union{
+        MOI.LessThan{Float64}, MOI.GreaterThan{Float64}, MOI.EqualTo{Float64}
+    },
 )
     if model.callback_state == CB_LAZY
         throw(MOI.InvalidCallbackUsage(MOI.LazyConstraintCallback(), cb))
@@ -172,20 +228,21 @@ function MOI.submit(
     elseif !iszero(f.constant)
         throw(MOI.ScalarFunctionConstantNotZero{Float64, typeof(f), typeof(s)}(f.constant))
     end
-    indices, coefficients = _indices_and_coefficients(model, f)
+    rmatind, rmatval = _indices_and_coefficients(model, f)
     sense, rhs = _sense_and_rhs(s)
-    CPLEX.cbaddusercuts(
+    ret = CPXcallbackaddusercuts(
         cb.callback_data,
         Cint(1),
-        Cint(length(coefficients)),
-        [rhs],
-        [sense],
-        Cint[0],
-        indices .- Cint(1),
-        coefficients,
-        [CPX_USECUT_FILTER],
-        Cint[0]
+        Cint(length(rmatval)),
+        Ref(rhs),
+        Ref(sense),
+        Ref{Cint}(0),
+        rmatind,
+        rmatval,
+        Ref{Cint}(CPX_USECUT_FILTER),
+        Ref{Cint}(0),
     )
+    _check_ret(model, ret)
     return
 end
 MOI.supports(::Optimizer, ::MOI.UserCut{CallbackContext}) = true
@@ -204,17 +261,22 @@ function MOI.submit(
     model::Optimizer,
     cb::MOI.HeuristicSolution{CallbackContext},
     variables::Vector{MOI.VariableIndex},
-    values::MOI.Vector{Float64}
+    values::MOI.Vector{Float64},
 )
     if model.callback_state == CB_LAZY
         throw(MOI.InvalidCallbackUsage(MOI.LazyConstraintCallback(), cb))
     elseif model.callback_state == CB_USER_CUT
         throw(MOI.InvalidCallbackUsage(MOI.UserCutCallback(), cb))
     end
-    ind = Cint[_info(model, var).column - 1 for var in variables]
-    CPLEX.cbpostheursoln(
-        cb.callback_data, Cint(1), ind, values, NaN, CPXCALLBACKSOLUTION_SOLVE
+    ret = CPXcallbackpostheursoln(
+        cb.callback_data,
+        Cint(1),
+        Cint[_info(model, var).column - 1 for var in variables],
+        values,
+        NaN,
+        CPXCALLBACKSOLUTION_SOLVE,
     )
+    _check_ret(model, ret)
     return MOI.HEURISTIC_SOLUTION_UNKNOWN
 end
 MOI.supports(::Optimizer, ::MOI.HeuristicSolution{CallbackContext}) = true

@@ -5,4 +5,4 @@
 *.log
 *.cov
 Manifest.toml
-
+scripts/*.h
