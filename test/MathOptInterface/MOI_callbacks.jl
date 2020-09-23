@@ -307,7 +307,6 @@ function test_CallbackFunction_LazyConstraint()
     function callback_function(
         cb_data::CPLEX.CallbackContext, cb_context::Clong
     )
-        @show cb_context
         push!(cb_calls, cb_context)
         if cb_context != CPX_CALLBACKCONTEXT_CANDIDATE
             return
@@ -345,7 +344,6 @@ function test_CallbackFunction_UserCut()
     user_cut_submitted = false
     cb_calls = Clong[]
     MOI.set(model, CPLEX.CallbackFunction(), (cb_data, cb_context) -> begin
-        @show cb_context
         push!(cb_calls, cb_context)
         if cb_context != CPX_CALLBACKCONTEXT_RELAXATION
             return
@@ -378,7 +376,6 @@ function test_CallbackFunction_HeuristicSolution()
     callback_called = false
     cb_calls = Clong[]
     MOI.set(model, CPLEX.CallbackFunction(), (cb_data, cb_context) -> begin
-        @show cb_context
         push!(cb_calls, cb_context)
         if cb_context != CPX_CALLBACKCONTEXT_RELAXATION
             return
@@ -398,18 +395,13 @@ function test_CallbackFunction_HeuristicSolution()
 end
 
 function runtests()
-    @testset "Runall" begin
     for name in names(@__MODULE__; all = true)
         if !startswith("$(name)", "test_")
             continue
-        elseif startswith("$(name)", "test_CallbackFunction")
-            continue
         end
-        @info name
         @testset "$(name)" begin
             getfield(@__MODULE__, name)()
         end
-    end
     end
 end
 

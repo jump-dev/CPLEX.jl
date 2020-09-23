@@ -2384,11 +2384,11 @@ function _unchecked_optimize(model::Optimizer)
         values = Float64[]
         for (key, info) in model.variable_info
             if info.start !== nothing
-                push!(varindices, Cint(info.column))
+                push!(varindices, Cint(info.column - 1))
                 push!(values, info.start)
             end
         end
-        CPXaddmipstarts(
+        ret = CPXaddmipstarts(
             model.env,
             model.lp,
             1,
@@ -2399,6 +2399,7 @@ function _unchecked_optimize(model::Optimizer)
             Ref{Cint}(CPX_MIPSTART_AUTO),
             C_NULL,
         )
+        _check_ret(model, ret)
     else
         # CPLEX is annoying. If you add a discrete constraint, then delete it,
         # CPLEX _DOES NOT_ change the prob type back to the continuous version.

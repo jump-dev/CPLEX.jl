@@ -73,19 +73,28 @@ Here is an example using CPLEX's solver-specific callbacks.
 using JuMP, CPLEX, Test
 
 model = direct_model(CPLEX.Optimizer())
+set_silent(model)
+
+# This is very, very important!!! Only use callbacks in single-threaded mode.
+MOI.set(model, MOI.NumberOfThreads(), 1)
+
 @variable(model, 0 <= x <= 2.5, Int)
 @variable(model, 0 <= y <= 2.5, Int)
 @objective(model, Max, y)
 cb_calls = Cint[]
-function my_callback_function(cb_data, context_id::Cint)
+function my_callback_function(cb_data::CPLEX.CallbackContext, context_id::Clong)
     # You can reference variables outside the function as normal
     push!(cb_calls, context_id)
     # You can select where the callback is run
-    if cb_context != CPLEX.CPX_CALLBACKCONTEXT_CANDIDATE
+    if context_id != CPLEX.CPX_CALLBACKCONTEXT_CANDIDATE
         return
     end
+    # You can query CALLBACKINFO items
+    valueP = Ref{Cdouble}()
+    ret = CPXcallbackgetinfodbl(cb_data, CPXCALLBACKINFO_BEST_BND, valueP)
+    @info "Best bound is currently: $(valueP[])"
     # Before querying `callback_value`, you must call:
-    CPLEX.load_callback_variable_primal(cb_data, cb_where)
+    CPLEX.load_callback_variable_primal(cb_data, context_id)
     x_val = callback_value(cb_data, x)
     y_val = callback_value(cb_data, y)
     # You can submit solver-independent MathOptInterface attributes such as
