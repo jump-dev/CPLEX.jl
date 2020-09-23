@@ -2441,59 +2441,104 @@ function MOI.get(model::Optimizer, attr::MOI.RawStatusString)
     return unsafe_string(p)
 end
 
+# These status symbols are taken from libcpx_common at CPLEX 12.10.
+const _TERMINATION_STATUSES = Dict(
+    CPX_STAT_ABORT_DETTIME_LIM => MOI.TIME_LIMIT,
+    CPX_STAT_ABORT_DUAL_OBJ_LIM => MOI.OBJECTIVE_LIMIT,
+    CPX_STAT_ABORT_IT_LIM => MOI.ITERATION_LIMIT,
+    CPX_STAT_ABORT_OBJ_LIM => MOI.OBJECTIVE_LIMIT,
+    CPX_STAT_ABORT_PRIM_OBJ_LIM => MOI.OBJECTIVE_LIMIT,
+    CPX_STAT_ABORT_TIME_LIM => MOI.TIME_LIMIT,
+    CPX_STAT_ABORT_USER => MOI.INTERRUPTED,
+    CPX_STAT_BENDERS_NUM_BEST => MOI.NUMERICAL_ERROR,
+    # These should never arise for TerminationStatus
+    # CPX_STAT_CONFLICT_ABORT_CONTRADICTION
+    # CPX_STAT_CONFLICT_ABORT_DETTIME_LIM
+    # CPX_STAT_CONFLICT_ABORT_IT_LIM
+    # CPX_STAT_CONFLICT_ABORT_MEM_LIM
+    # CPX_STAT_CONFLICT_ABORT_NODE_LIM
+    # CPX_STAT_CONFLICT_ABORT_OBJ_LIM
+    # CPX_STAT_CONFLICT_ABORT_TIME_LIM
+    # CPX_STAT_CONFLICT_ABORT_USER
+    # CPX_STAT_CONFLICT_FEASIBLE
+    # CPX_STAT_CONFLICT_MINIMAL
+    CPX_STAT_FEASIBLE => MOI.LOCALLY_SOLVED,
+    CPX_STAT_FEASIBLE_RELAXED_INF => MOI.LOCALLY_SOLVED,
+    CPX_STAT_FEASIBLE_RELAXED_QUAD => MOI.LOCALLY_SOLVED,
+    CPX_STAT_FEASIBLE_RELAXED_SUM => MOI.LOCALLY_SOLVED,
+    CPX_STAT_FIRSTORDER => MOI.LOCALLY_SOLVED,
+    CPX_STAT_INFEASIBLE => MOI.INFEASIBLE,
+    CPX_STAT_INForUNBD => MOI.INFEASIBLE_OR_UNBOUNDED,
+    CPX_STAT_MULTIOBJ_INFEASIBLE => MOI.INFEASIBLE,
+    CPX_STAT_MULTIOBJ_INForUNBD => MOI.INFEASIBLE_OR_UNBOUNDED,
+    CPX_STAT_MULTIOBJ_NON_OPTIMAL => MOI.LOCALLY_SOLVED,
+    CPX_STAT_MULTIOBJ_OPTIMAL => MOI.OPTIMAL,
+    CPX_STAT_MULTIOBJ_STOPPED => MOI.INTERRUPTED,
+    CPX_STAT_MULTIOBJ_UNBOUNDED => MOI.DUAL_INFEASIBLE,
+    CPX_STAT_NUM_BEST => MOI.NUMERICAL_ERROR,
+    CPX_STAT_OPTIMAL => MOI.OPTIMAL,
+    CPX_STAT_OPTIMAL_FACE_UNBOUNDED => MOI.DUAL_INFEASIBLE,
+    CPX_STAT_OPTIMAL_INFEAS => MOI.ALMOST_INFEASIBLE,
+    CPX_STAT_OPTIMAL_RELAXED_INF => MOI.LOCALLY_SOLVED,
+    CPX_STAT_OPTIMAL_RELAXED_QUAD => MOI.LOCALLY_SOLVED,
+    CPX_STAT_OPTIMAL_RELAXED_SUM => MOI.LOCALLY_SOLVED,
+    CPX_STAT_UNBOUNDED => MOI.DUAL_INFEASIBLE,
+
+    CPXMIP_ABORT_FEAS => MOI.LOCALLY_SOLVED,
+    CPXMIP_ABORT_INFEAS => MOI.OTHER_ERROR,
+    CPXMIP_ABORT_RELAXATION_UNBOUNDED => MOI.INFEASIBLE_OR_UNBOUNDED,
+    CPXMIP_ABORT_RELAXED => MOI.LOCALLY_SOLVED,
+    CPXMIP_DETTIME_LIM_FEAS => MOI.TIME_LIMIT,
+    CPXMIP_DETTIME_LIM_INFEAS => MOI.TIME_LIMIT,
+    CPXMIP_FAIL_FEAS => MOI.LOCALLY_SOLVED,
+    CPXMIP_FAIL_FEAS_NO_TREE => MOI.LOCALLY_SOLVED,
+    CPXMIP_FAIL_INFEAS => MOI.OTHER_ERROR,
+    CPXMIP_FAIL_INFEAS_NO_TREE => MOI.MEMORY_LIMIT,
+    CPXMIP_FEASIBLE => MOI.LOCALLY_SOLVED,
+    CPXMIP_FEASIBLE_RELAXED_INF => MOI.LOCALLY_SOLVED,
+    CPXMIP_FEASIBLE_RELAXED_QUAD => MOI.LOCALLY_SOLVED,
+    CPXMIP_FEASIBLE_RELAXED_SUM => MOI.LOCALLY_SOLVED,
+    CPXMIP_INFEASIBLE => MOI.INFEASIBLE,
+    CPXMIP_INForUNBD => MOI.INFEASIBLE_OR_UNBOUNDED,
+    CPXMIP_MEM_LIM_FEAS => MOI.MEMORY_LIMIT,
+    CPXMIP_MEM_LIM_INFEAS => MOI.MEMORY_LIMIT,
+    CPXMIP_NODE_LIM_FEAS => MOI.NODE_LIMIT,
+    CPXMIP_NODE_LIM_INFEAS => MOI.NODE_LIMIT,
+    CPXMIP_OPTIMAL => MOI.OPTIMAL,
+    CPXMIP_OPTIMAL_INFEAS => MOI.INFEASIBLE,
+    CPXMIP_OPTIMAL_POPULATED => MOI.OPTIMAL,
+    CPXMIP_OPTIMAL_POPULATED_TOL => MOI.OPTIMAL,
+    CPXMIP_OPTIMAL_RELAXED_INF => MOI.LOCALLY_SOLVED,
+    CPXMIP_OPTIMAL_RELAXED_QUAD => MOI.LOCALLY_SOLVED,
+    CPXMIP_OPTIMAL_RELAXED_SUM => MOI.LOCALLY_SOLVED,
+    CPXMIP_OPTIMAL_TOL => MOI.OPTIMAL,
+    CPXMIP_POPULATESOL_LIM => MOI.SOLUTION_LIMIT,
+    CPXMIP_SOL_LIM => MOI.SOLUTION_LIMIT,
+    CPXMIP_TIME_LIM_FEAS => MOI.TIME_LIMIT,
+    CPXMIP_TIME_LIM_INFEAS => MOI.TIME_LIMIT,
+    CPXMIP_UNBOUNDED => MOI.DUAL_INFEASIBLE,
+)
+
 function MOI.get(model::Optimizer, attr::MOI.TerminationStatus)
     _throw_if_optimize_in_progress(model, attr)
     stat = CPXgetstat(model.env, model.lp)
     if stat == 0
         return MOI.OPTIMIZE_NOT_CALLED
-    elseif stat in (1, 101, 102)                   # CPX_STAT_OPTIMAL, CPXMIP_OPTIMAL, CPXMIP_OPTIMAL_TOL
-        return MOI.OPTIMAL
-    elseif stat in (3, 103)                    # CPX_STAT_INFEASIBLE, CPXMIP_INFEASIBLE
-        return MOI.INFEASIBLE
-    elseif stat in (4, 119, 133)                    # CPX_STAT_INForUNBD, CPXMIP_INForUNBD
-        return MOI.INFEASIBLE_OR_UNBOUNDED
-    elseif stat in (2, 118)                    # CPX_STAT_UNBOUNDED, CPXMIP_UNBOUNDED
-        return MOI.DUAL_INFEASIBLE
-    elseif stat in (23)                        # CPX_STAT_NUM_BEST, CPX_STAT_FEASIBLE
-        return MOI.LOCALLY_SOLVED
-    elseif stat in (15, 17, 19, 24, 130)  # CPX_STAT_OPTIMAL_RELAXED_SUM, CPX_STAT_OPTIMAL_RELAXED_INF, CPX_STAT_OPTIMAL_RELAXED_QUAD, CPX_STAT_FIRSTORDER
-        return MOI.ALMOST_OPTIMAL
-    elseif stat in (12, 21, 22)                # CPX_STAT_*ABORT*_OBJ_LIM
-        return MOI.OBJECTIVE_LIMIT
-    elseif stat in (10)                         # CPX_STAT_*ABORT_IT_LIM
-        return MOI.ITERATION_LIMIT
-    elseif stat in (53, 105, 106)              # CPX_STAT_CONFLICT_ABORT_NODE_LIM,  # CPXMIP_NODE_LIM*
-        return MOI.NODE_LIMIT
-    elseif stat in (11, 25, 107, 108, 131, 132) # CPX_STAT_*ABORT*TIME_LIM
-        return MOI.TIME_LIMIT
-    elseif stat in (111, 112, 116, 117)
-        return MOI.MEMORY_LIMIT
-    elseif stat in (104, 128)
-        return MOI.SOLUTION_LIMIT
-    elseif stat in (13, 113, 114)  # CPX_STAT_ABORT_USER
-        return MOI.INTERRUPTED
-    elseif stat in (5, 6, 20, 109, 110, 115) # CPX_STAT_OPTIMAL_INFEAS, CPX_STAT_OPTIMAL_FACE_UNBOUNDED
-        return MOI.NUMERICAL_ERROR
-    elseif stat in (14, 16, 18)
-        return MOI.OTHER_ERROR         # TODO: REPLACE WITH FEASIBLE TO RELAXED TOLERANCE ERROR CODE
-    elseif stat in (110)
-        return MOI.OTHER_ERROR         # TODO: CPXMIP_FAIL_INFEAS
-    elseif 30 <= stat <= 39
-        !model.silent && @warn("Results from conflict analysis should be accessed via ConflictStatus() not TerminationStatus().")
-        return MOI.OTHER_ERROR
-    elseif stat in (40, 41)
-        !model.silent && @warn("Benders Decomposition not currently wrapped in CPLEX MOI. Query CPLEX directly to assess results.")
-        return MOI.OTHER_ERROR
-    elseif stat in (120, 121, 122, 123, 124, 125, 126, 127)
-        !model.silent && @warn("FeasOpt not currently wrapped in CPLEX MOI. Query CPLEX directly to assess results.")
-        return MOI.OTHER_ERROR
-    else
-        error("""
-            getstat() returned at value of $stat which MOI cannot intepret.
-            Please open an issue here to add support for this error code
-            https://github.com/JuliaOpt/CPLEX.jl/issues.
-        """)
     end
+    term_stat = get(_TERMINATION_STATUSES, stat, nothing)
+    if term_stat === nothing
+        @warn("""
+        Termination status $(stat) is not wrapped by CPLEX.jl. CPLEX explains
+        this status as follows:
+
+        $(MOI.get(model, MOI.RawStatusString()))
+
+        Please open an issue at https://github.com/JuliaOpt/CPLEX.jl/issues and
+        provide the complete text of this error message.
+        """)
+        return MOI.OTHER_ERROR
+    end
+    return term_stat
 end
 
 function MOI.get(model::Optimizer, attr::MOI.PrimalStatus)
