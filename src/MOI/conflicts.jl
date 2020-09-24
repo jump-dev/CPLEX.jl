@@ -1,6 +1,4 @@
-@deprecate compute_conflict MOI.compute_conflict!
-
-mutable struct ConflictRefinerData
+mutable struct _ConflictRefinerData
     confstat::Cint
     rowind::Vector{Cint}
     rowbdstat::Vector{Cint}
@@ -37,12 +35,12 @@ function MOI.compute_conflict!(model::Optimizer)
         confnumcols_p,
     )
     if ret == CPXERR_NO_CONFLICT
-        model.conflict = ConflictRefinerData(
+        model.conflict = _ConflictRefinerData(
             CPX_STAT_CONFLICT_FEASIBLE, Cint[], Cint[], 0, Cint[], Cint[], 0
         )
     else
         _check_ret(model, ret)
-        model.conflict = ConflictRefinerData(
+        model.conflict = _ConflictRefinerData(
             confstat_p[],
             rowind,
             rowbdstat,
@@ -180,7 +178,7 @@ end
 function MOI.supports(
     ::Optimizer,
     ::MOI.ConstraintConflictStatus,
-    ::Type{MOI.ConstraintIndex{<:MOI.SingleVariable, <:SCALAR_SETS}},
+    ::Type{MOI.ConstraintIndex{<:MOI.SingleVariable, <:_SCALAR_SETS}},
 )
     return true
 end

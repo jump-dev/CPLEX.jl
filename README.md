@@ -1,3 +1,14 @@
+**CPLEX.jl underwent a major rewrite between versions 0.6.6 and 0.7.0. Users of
+JuMP should see no breaking changes, but if you used the lower-level C API
+(e.g., for callbacks), you will need to update your code accordingly.**
+
+**To revert to the old API, use:**
+```julia
+import Pkg
+Pkg.add(Pkg.PackageSpec(name = "CPLEX", version = v"0.6"))
+```
+**Then restart Julia for the change to take effect.**
+
 # CPLEX.jl
 
 CPLEX.jl is a wrapper for the [IBM® ILOG® CPLEX® Optimization
@@ -86,7 +97,7 @@ function my_callback_function(cb_data::CPLEX.CallbackContext, context_id::Clong)
     # You can reference variables outside the function as normal
     push!(cb_calls, context_id)
     # You can select where the callback is run
-    if context_id != CPLEX.CPX_CALLBACKCONTEXT_CANDIDATE
+    if context_id != CPX_CALLBACKCONTEXT_CANDIDATE
         return
     end
     # You can query CALLBACKINFO items

@@ -61,7 +61,7 @@ function MOI.add_constraint(
 
     # keeping track of the constraints
     model.last_constraint_index += 1
-    info = ConstraintInfo(length(model.indicator_constraint_info) + 1, s)
+    info = _ConstraintInfo(length(model.indicator_constraint_info) + 1, s)
     model.indicator_constraint_info[model.last_constraint_index] = (info, func)
 
     linear_idx = Vector{Cint}(undef, length(scalar_index_terms))
