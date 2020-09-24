@@ -25,6 +25,17 @@ function cplex_callback_wrapper(
 end
 
 """
+    column(cb_data::CallbackContext, x::MOI.VariableIndex)
+
+Return the 1-indexed column associated with `x` in a callback.
+
+The C API requires 0-indexed columns.
+"""
+function column(cb_data::CallbackContext, x::MOI.VariableIndex)
+    return _info(cb_data.model, x).column
+end
+
+"""
     CallbackFunction()
 
 Set a generic CPLEX callback function.
@@ -33,7 +44,7 @@ Callback must be a function with signature:
 
     callback(cb_data::CallbackContext, context_id::Clong)
 
-Note: before accessing `MOI.CallbackVariablePrimal`, you must call
+Before accessing `MOI.CallbackVariablePrimal`, you must call
 `CPLEX.load_callback_variable_primal(cb_data, context_id)`.
 """
 struct CallbackFunction <: MOI.AbstractCallback end

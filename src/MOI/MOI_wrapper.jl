@@ -465,7 +465,7 @@ function _indices_and_coefficients(
     f::MOI.ScalarAffineFunction{Float64},
 )
     for (i, term) in enumerate(f.terms)
-        indices[i] = Cint(_info(model, term.variable_index).column - 1)
+        indices[i] = Cint(column(model, term.variable_index) - 1)
         coefficients[i] = term.coefficient
     end
     return indices, coefficients
@@ -492,8 +492,8 @@ function _indices_and_coefficients(
     f::MOI.ScalarQuadraticFunction
 )
     for (i, term) in enumerate(f.quadratic_terms)
-        I[i] = Cint(_info(model, term.variable_index_1).column - 1)
-        J[i] = Cint(_info(model, term.variable_index_2).column - 1)
+        I[i] = Cint(column(model, term.variable_index_1) - 1)
+        J[i] = Cint(column(model, term.variable_index_2) - 1)
         V[i] =  term.coefficient
         # CPLEX returns a list of terms. MOI requires 0.5 x' Q x. So, to get
         # from
@@ -510,7 +510,7 @@ function _indices_and_coefficients(
         end
     end
     for (i, term) in enumerate(f.affine_terms)
-        indices[i] = Cint(_info(model, term.variable_index).column - 1)
+        indices[i] = Cint(column(model, term.variable_index) - 1)
         coefficients[i] = term.coefficient
     end
     return
@@ -545,6 +545,17 @@ function _info(model::Optimizer, key::MOI.VariableIndex)
         return model.variable_info[key]
     end
     throw(MOI.InvalidIndex(key))
+end
+
+"""
+    column(model::Optimizer, x::MOI.VariableIndex)
+
+Return the 1-indexed column associated with `x`.
+
+The C API requires 0-indexed columns.
+"""
+function column(model::Optimizer, x::MOI.VariableIndex)
+    return _info(model, x).column
 end
 
 function MOI.add_variable(model::Optimizer)
@@ -797,8 +808,8 @@ function MOI.set(
     end
     obj = zeros(Float64, num_vars)
     for term in f.terms
-        column = _info(model, term.variable_index).column
-        obj[column] += term.coefficient
+        col = column(model, term.variable_index)
+        obj[col] += term.coefficient
     end
     ind = convert(Vector{Cint}, 0:(num_vars - 1))
     ret = CPXchgobj(model.env, model.lp, num_vars, ind, obj)
@@ -946,6 +957,19 @@ function _info(
         return _info(model, var_index)
     end
     return throw(MOI.InvalidIndex(c))
+end
+
+"""
+    column(model::Optimizer, c::MOI.ConstraintIndex{MOI.SingleVariable, <:Any})
+
+Return the 1-indexed column associated with `c`.
+
+The C API requires 0-indexed columns.
+"""
+function column(
+    model::Optimizer, c::MOI.ConstraintIndex{MOI.SingleVariable, <:Any}
+)
+    return _info(model, c).column
 end
 
 function MOI.is_valid(
@@ -2171,7 +2195,7 @@ end
 function MOI.add_constraint(
     model::Optimizer, f::MOI.VectorOfVariables, s::SOS
 )
-    columns = Cint[_info(model, v).column - 1 for v in f.variables]
+    columns = Cint[column(model, v) - 1 for v in f.variables]
     ret = CPXaddsos(
         model.env,
         model.lp,
@@ -2589,12 +2613,12 @@ function MOI.get(
 )
     _throw_if_optimize_in_progress(model, attr)
     MOI.check_result_index_bounds(model, attr)
-    column = _info(model, x).column
+    col = Cint(column(model, x) - 1)
     if model.has_primal_certificate
-        return model.certificate[column]
+        return model.certificate[col + 1]
     end
     x = Ref{Cdouble}()
-    ret = CPXgetx(model.env, model.lp, x, Cint(column - 1), Cint(column - 1))
+    ret = CPXgetx(model.env, model.lp, x, col, col)
     _check_ret(model, ret)
     return x[]
 end
@@ -2647,9 +2671,9 @@ function MOI.get(
 )
     _throw_if_optimize_in_progress(model, attr)
     MOI.check_result_index_bounds(model, attr)
-    column = Cint(_info(model, c).column - 1)
+    col = Cint(column(model, c) - 1)
     p = Ref{Cdouble}()
-    ret = CPXgetdj(model.env, model.lp, p, column, column)
+    ret = CPXgetdj(model.env, model.lp, p, col, col)
     _check_ret(model, ret)
     sense = MOI.get(model, MOI.ObjectiveSense())
     # The following is a heuristic for determining whether the reduced cost
@@ -2677,9 +2701,9 @@ function MOI.get(
 )
     _throw_if_optimize_in_progress(model, attr)
     MOI.check_result_index_bounds(model, attr)
-    column = Cint(_info(model, c).column - 1)
+    col = Cint(column(model, c) - 1)
     p = Ref{Cdouble}()
-    ret = CPXgetdj(model.env, model.lp, p, column, column)
+    ret = CPXgetdj(model.env, model.lp, p, col, col)
     _check_ret(model, ret)
     sense = MOI.get(model, MOI.ObjectiveSense())
     # The following is a heuristic for determining whether the reduced cost
@@ -2707,9 +2731,9 @@ function MOI.get(
 )
     _throw_if_optimize_in_progress(model, attr)
     MOI.check_result_index_bounds(model, attr)
-    column = Cint(_info(model, c).column - 1)
+    col = Cint(column(model, c) - 1)
     p = Ref{Cdouble}()
-    ret = CPXgetdj(model.env, model.lp, p, column, column)
+    ret = CPXgetdj(model.env, model.lp, p, col, col)
     _check_ret(model, ret)
     return _dual_multiplier(model) * p[]
 end
@@ -2721,9 +2745,9 @@ function MOI.get(
 )
     _throw_if_optimize_in_progress(model, attr)
     MOI.check_result_index_bounds(model, attr)
-    column = Cint(_info(model, c).column - 1)
+    col = Cint(column(model, c) - 1)
     p = Ref{Cdouble}()
-    ret = CPXgetdj(model.env, model.lp, p, column, column)
+    ret = CPXgetdj(model.env, model.lp, p, col, col)
     _check_ret(model, ret)
     return _dual_multiplier(model) * p[]
 end
@@ -2735,12 +2759,12 @@ function MOI.get(
 )
     _throw_if_optimize_in_progress(model, attr)
     MOI.check_result_index_bounds(model, attr)
-    row = _info(model, c).row
+    row = Cint(_info(model, c).row - 1)
     if model.has_dual_certificate
-        return model.certificate[row]
+        return model.certificate[row + 1]
     end
     p = Ref{Cdouble}()
-    ret = CPXgetpi(model.env, model.lp, p, Cint(row - 1), Cint(row - 1))
+    ret = CPXgetpi(model.env, model.lp, p, row, row)
     _check_ret(model, ret)
     return _dual_multiplier(model) * p[]
 end
@@ -3042,7 +3066,7 @@ function MOI.modify(
         model.env,
         model.lp,
         Cint(_info(model, c).row - 1),
-        Cint(_info(model, chg.variable).column - 1),
+        Cint(column(model, chg.variable) - 1),
         chg.new_coefficient,
     )
     _check_ret(model, ret)
@@ -3054,9 +3078,9 @@ function MOI.modify(
     c::MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}},
     chg::MOI.ScalarCoefficientChange{Float64}
 )
-    column = Cint(_info(model, chg.variable).column - 1)
+    col = Cint(column(model, chg.variable) - 1)
     ret = CPXchgobj(
-        model.env, model.lp, 1, Ref(column), Ref(chg.new_coefficient)
+        model.env, model.lp, 1, Ref(col), Ref(chg.new_coefficient)
     )
     _check_ret(model, ret)
     return
@@ -3084,7 +3108,7 @@ function _replace_with_matching_sparsity!(
     replacement::MOI.ScalarAffineFunction, row::Int
 )
     for term in replacement.terms
-        col = Cint(_info(model, term.variable_index).column - 1)
+        col = Cint(column(model, term.variable_index) - 1)
         ret = CPXchgcoef(
             model.env, model.lp, Cint(row - 1), col, MOI.coefficient(term)
         )
@@ -3119,7 +3143,7 @@ function _replace_with_different_sparsity!(
 )
     # First, zero out the old constraint function terms.
     for term in previous.terms
-        col = Cint(_info(model, term.variable_index).column - 1)
+        col = Cint(column(model, term.variable_index) - 1)
         ret = CPXchgcoef(
             model.env, model.lp, Cint(row - 1), col, 0.0
         )
@@ -3128,7 +3152,7 @@ function _replace_with_different_sparsity!(
 
     # Next, set the new constraint function terms.
     for term in previous.terms
-        col = Cint(_info(model, term.variable_index).column - 1)
+        col = Cint(column(model, term.variable_index) - 1)
         ret = CPXchgcoef(
             model.env, model.lp, Cint(row - 1), col, MOI.coefficient(term)
         )
@@ -3284,7 +3308,7 @@ function MOI.add_constraint(
 
     # Now add the quadratic constraint.
 
-    I = Cint[_info(model, v).column - 1 for v in f.variables]
+    I = Cint[column(model, v) - 1 for v in f.variables]
     V = fill(-1.0, length(f.variables))
     V[1] = 1.0
     ret = CPXaddqconstr(
