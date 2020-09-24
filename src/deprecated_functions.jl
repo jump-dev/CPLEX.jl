@@ -15,6 +15,18 @@ is now
     end
     is_point = is_point_P[]
 
+For users of `CPLEX.Optimizer`, `model.inner` has been replaced by the fields
+`model.env` and `model.lp`, which correspond to the environment and problem
+pointers at the C API level.
+
+For example:
+
+    stat = CPLEX.get_status(model.inner)
+
+is now:
+
+    stat = CPXgetstat(model.env, model.lp)
+
 The new API is more verbose, but the names and function arguments are now
 identical to the C API, documentation for which is available at:
 https://www.ibm.com/support/knowledgecenter/SSSA5P_12.10.0/ilog.odms.cplex.help/refcallablelibrary/groups/homepagecallable.html

@@ -13,7 +13,7 @@ For example:
 
     is_point = CPLEX.cbcandidateispoint(cb_data)
 
-is now
+is now:
 
     is_point_P = Ref{Cint}()
     CPXcallbackcandidateispoint(cb_data, is_point_P)
@@ -21,6 +21,18 @@ is now
         # Do something because the call failed
     end
     is_point = is_point_P[]
+
+For users of `CPLEX.Optimizer`, `model.inner` has been replaced by the fields
+`model.env` and `model.lp`, which correspond to the environment and problem
+pointers at the C API level.
+
+For example:
+
+    stat = CPLEX.get_status(model.inner)
+
+is now:
+
+    stat = CPXgetstat(model.env, model.lp)
 
 The new API is more verbose, but the names and function arguments are now
 identical to the C API, documentation for which is available at:

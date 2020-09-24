@@ -44,4 +44,12 @@ end
 
 include("deprecated_functions.jl")
 
+# Special overload to deprecate the `model.inner` field access.
+function Base.getproperty(opt::Optimizer, key::Symbol)
+    if key == :inner
+        error(_DEPRECATED_ERROR_MESSAGE)
+    end
+    return getfield(opt, key)
+end
+
 end
