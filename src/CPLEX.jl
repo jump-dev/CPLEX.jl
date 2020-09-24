@@ -1,6 +1,6 @@
 module CPLEX
 
-const _DEPS_FILE = joinpath(@__DIR__, "..", "deps", "deps.jl")
+const _DEPS_FILE = joinpath(dirname(@__DIR__), "deps", "deps.jl")
 if isfile(_DEPS_FILE)
     include(_DEPS_FILE)
 else
@@ -41,5 +41,7 @@ for sym in names(@__MODULE__, all=true)
         @eval export $sym
     end
 end
+
+include("deprecated_functions.jl")
 
 end
