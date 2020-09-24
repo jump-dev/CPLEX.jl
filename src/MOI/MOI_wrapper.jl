@@ -92,8 +92,13 @@ end
 
 mutable struct Env
     ptr::Ptr{Cvoid}
+    # These fields keep track of how many models the `Env` is used for to help
+    # with finalizing. If you finalize an Env first, then the model, Gurobi will
+    # throw an error.
+    finalize_called::Bool
+    attached_models::Int
 
-    function Env(; finalize::Bool = true)
+    function Env()
         status_p = Ref{Cint}()
         ptr = CPXopenCPLEX(status_p)
         if status_p[] != 0
@@ -101,10 +106,13 @@ mutable struct Env
                 "CPLEX Error $(status_p[]): Unable to create CPLEX environment."
             )
         end
-        env = new(ptr)
-        if finalize
-            finalizer(env) do e
+        env = new(ptr, false, 0)
+        finalizer(env) do e
+            e.finalize_called = true
+            if e.attached_models == 0
+                # Only finalize the model if there are no models using it.
                 CPXcloseCPLEX(Ref(e.ptr))
+                e.ptr = C_NULL
             end
         end
         return env
@@ -194,21 +202,27 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     terminate_signal::Ref{Cint}
 
     """
-        Optimizer(env = nothing)
+        Optimizer(env::Union{Nothing, Env} = nothing)
 
     Create a new Optimizer object.
 
     You can share CPLEX `Env`s between models by passing an instance of `Env`
-    as the first argument. By default, a new environment is created for every
-    model.
+    as the first argument.
+
+    Set optimizer attributes using `MOI.RawParameter` or
+    `JuMP.set_optimizer_atttribute`.
+
+    ## Example
+
+        using JuMP, CPLEX
+        const env = CPLEX.Env()
+        model = JuMP.Model(() -> CPLEX.Optimizer(env))
+        set_optimizer_attribute(model, "CPXPARAM_ScreenOutput", 0)
     """
-    function Optimizer(env::Union{Env, Nothing} = nothing)
+    function Optimizer(env::Union{Nothing, Env} = nothing)
         model = new()
         model.lp = C_NULL
-        # If `env === nothing`, create a new environment. Since we created this
-        # one, skip the finalizer in `Env` and finalize with the finalizer
-        # below.
-        model.env = env === nothing ? Env(finalize = false) : env
+        model.env = env === nothing ? Env() : env
         MOI.set(model, MOI.RawParameter("CPXPARAM_ScreenOutput"), 1)
         model.silent = false
         model.variable_info = CleverDicts.CleverDict{MOI.VariableIndex, VariableInfo}()
@@ -222,9 +236,15 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
         finalizer(model) do m
             ret = CPXfreeprob(m.env, Ref(m.lp))
             _check_ret(m, ret)
+            m.env.attached_models -= 1
             if env === nothing
-                # We created this environment, so we need to free it.
+                # We created this env. Finalize it now
+                finalize(m.env)
+            elseif m.env.finalize_called && m.env.attached_models == 0
+                # We delayed finalizing `m.env` earlier because there were still
+                # models attached. Finalize it now.
                 CPXcloseCPLEX(Ref(m.env.ptr))
+                m.env.ptr = C_NULL
             end
         end
         model.terminate_signal = Ref{Cint}(0)
@@ -243,17 +263,18 @@ _check_ret(model::Optimizer, ret::Cint) = _check_ret(model.env, ret)
 Base.show(io::IO, model::Optimizer) = show(io, model.lp)
 
 function MOI.empty!(model::Optimizer)
+    if model.lp != C_NULL
+        ret = CPXfreeprob(model.env, Ref(model.lp))
+        _check_ret(model.env, ret)
+        model.env.attached_models -= 1
+    end
     # Try open a new problem
     stat = Ref{Cint}()
     tmp = CPXcreateprob(model.env, stat, "")
     if tmp == C_NULL
         _check_ret(model.env, stat[])
     end
-    # If it succeeds, and the current lp is not C_NULL, free the old one.
-    if model.lp != C_NULL
-        ret = CPXfreeprob(model.env, Ref(model.lp))
-        _check_ret(model.env, ret)
-    end
+    model.env.attached_models += 1
     model.lp = tmp
     if model.silent
         MOI.set(model, MOI.RawParameter("CPXPARAM_ScreenOutput"), 0)
