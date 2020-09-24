@@ -237,6 +237,15 @@ end
             @test env.ptr != C_NULL
         end
     end
+    @testset "Manually finalize env and model" begin
+        env = CPLEX.Env()
+        model = CPLEX.Optimizer(env)
+        finalize(env)
+        @test env.finalize_called
+        finalize(model)
+        @test env.ptr == C_NULL
+    end
+
 end
 
 @testset "Continuous -> Integer -> Continuous" begin

@@ -2408,18 +2408,6 @@ function _optimize!(model)
 end
 
 function MOI.optimize!(model::Optimizer)
-    try
-        _unchecked_optimize(model)
-    catch ex
-        if ex isa InterruptException
-            terminate(model)
-        else
-            rethrow(ex)
-        end
-    end
-end
-
-function _unchecked_optimize(model::Optimizer)
     if check_moi_callback_validity(model)
         MOI.set(model, CallbackFunction(), default_moi_callback(model))
         model.has_generic_callback = false
@@ -2454,7 +2442,15 @@ function _unchecked_optimize(model::Optimizer)
         _make_problem_type_continuous(model)
     end
     start_time = time()
-    _optimize!(model)
+    try
+        _optimize!(model)
+    catch ex
+        if ex isa InterruptException
+            terminate(model)
+        else
+            rethrow(ex)
+        end
+    end
     model.solve_time = time() - start_time
     model.has_primal_certificate = false
     model.has_dual_certificate = false
