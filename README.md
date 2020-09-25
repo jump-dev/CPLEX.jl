@@ -34,9 +34,9 @@ interested in official support for CPLEX in Julia, let them know!.*
 ## Installation
 
 First, obtain a license of CPLEX and install CPLEX solver, following the
-instructions on [IBM's website](http://www.gurobi.com). Then, run the
-following:
-
+instructions on [IBM's website](http://www.gurobi.com). Then, set the
+`CPLEX_STUDIO_BINARIES` environment variable as appropriate and run
+`Pkg.add("CPLEX")`, then `Pkg.build("CPLEX")`. For example:
 ```julia
 # On Windows, this might be
 ENV["CPLEX_STUDIO_BINARIES"] = "C:\\Program Files\\CPLEX_Studio1210\\cplex\\bin\\x86-64_win\\"
@@ -56,7 +56,6 @@ import Pkg
 Pkg.add("CPLEX")
 Pkg.build("CPLEX")
 ```
-
 **Note: your path may differ. Check which folder you installed CPLEX in, and
 update the path accordingly.**
 
