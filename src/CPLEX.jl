@@ -19,12 +19,24 @@ const _CPLEX_VERSION = VersionNumber(
 )
 
 if !(v"12.10.0" <= _CPLEX_VERSION < v"12.11")
-    error(
-        "You have installed version $_CPLEX_VERSION of CPLEX, which is not " *
-        "supported by CPLEX.jl. If the version change was breaking, changes " *
-        "may need to be made to the Julia code. Please open an issue at " *
-        "https://github.com/jump-dev/CPLEX.jl."
-    )
+    error("""
+    You have installed version $_CPLEX_VERSION of CPLEX, which is not supported
+    by CPLEX.jl. We require CPLEX version 12.10.
+
+    After installing CPLEX 12.10, run:
+
+        import Pkg
+        Pkg.rm("CPLEX")
+        Pkg.add("CPLEX")
+
+    Make sure you set the environment variable `CPLEX_STUDIO_BINARIES` following
+    the instructions in the CPLEX.jl README, which is available at
+    https://github.com/jump-dev/CPLEX.jl.
+
+    If you have a newer version of CPLEX installed, changes may need to be made
+    to the Julia code. Please open an issue at
+    https://github.com/jump-dev/CPLEX.jl.
+    """)
 end
 
 include("MOI/MOI_wrapper.jl")
