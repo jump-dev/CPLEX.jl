@@ -96,7 +96,7 @@ function try_local_installation()
 end
 
 function try_travis_installation()
-    url = ENV["SECRET_CPLEX_URL"]
+    url = ENV["SECRET_CPLEX_URL_12100"]
     local_filename = joinpath(@__DIR__, "libcplex.so")
     download(url, local_filename)
     write_depsfile(local_filename)
