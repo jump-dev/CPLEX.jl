@@ -1,113 +1,72 @@
-__precompile__()
-
 module CPLEX
-    using Libdl
 
-    @static if Sys.isapple()
-        Libdl.dlopen("libstdc++",Libdl.RTLD_GLOBAL)
+const _DEPS_FILE = joinpath(dirname(@__DIR__), "deps", "deps.jl")
+if isfile(_DEPS_FILE)
+    include(_DEPS_FILE)
+else
+    error("CPLEX not properly installed. Please run Pkg.build(\"CPLEX\")")
+end
+
+using CEnum
+import SparseArrays
+
+include("gen/ctypes.jl")
+include("gen/libcpx_common.jl")
+include("gen/libcpx_api.jl")
+
+const _CPLEX_VERSION = let
+    status_p = Ref{Cint}()
+    env = CPXopenCPLEX(status_p)
+    p = CPXversion(env)
+    version_string = unsafe_string(p)
+    CPXcloseCPLEX(Ref(env))
+    VersionNumber(parse.(Int, split(version_string, ".")[1:3])...)
+end
+
+if !(v"12.10.0" <= _CPLEX_VERSION < v"12.11")
+    error("""
+    You have installed version $_CPLEX_VERSION of CPLEX, which is not supported
+    by CPLEX.jl. We require CPLEX version 12.10.
+
+    After installing CPLEX 12.10, run:
+
+        import Pkg
+        Pkg.rm("CPLEX")
+        Pkg.add("CPLEX")
+
+    Make sure you set the environment variable `CPLEX_STUDIO_BINARIES` following
+    the instructions in the CPLEX.jl README, which is available at
+    https://github.com/jump-dev/CPLEX.jl.
+
+    If you have a newer version of CPLEX installed, changes may need to be made
+    to the Julia code. Please open an issue at
+    https://github.com/jump-dev/CPLEX.jl.
+    """)
+end
+
+include("MOI/MOI_wrapper.jl")
+include("MOI/MOI_callbacks.jl")
+include("MOI/conflicts.jl")
+include("MOI/indicator_constraint.jl")
+
+# CPLEX exports all `CPXxxx` symbols. If you don't want all of these symbols in
+# your environment, then use `import CPLEX` instead of `using CPLEX`.
+
+for sym in names(@__MODULE__, all=true)
+    sym_string = string(sym)
+    if startswith(sym_string, "CPX")
+        @eval export $sym
     end
+end
 
-    if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
-        include("../deps/deps.jl")
-    else
-        error("CPLEX not properly installed. Please run Pkg.build(\"CPLEX\")")
+include("deprecated_functions.jl")
+
+# Special overload to deprecate the `model.inner` field access.
+function Base.getproperty(opt::Optimizer, key::Symbol)
+    if key == :inner
+        error(_DEPRECATED_ERROR_MESSAGE)
     end
+    return getfield(opt, key)
+end
 
-    ### imports
-    import Base: convert, unsafe_convert, show, copy
-
-    # Standard LP interface
-    using MathProgBase.SolverInterface
-
-    # exported functions
-    # export is_valid,
-    #        set_logfile,
-    #        get_error_msg,
-    #        read_model,
-    #        write_model,
-    #        get_sense,
-    #        set_sense!,
-    #        get_obj,
-    #        set_obj!,
-    #        set_warm_start!,
-    #        free_problem,
-    #        close_CPLEX,
-    #        get_param_type,
-    #        set_param!,
-    #        get_param,
-    #        add_vars!,
-    #        add_var!,
-    #        get_varLB,
-    #        set_varLB!,
-    #        get_varUB,
-    #        set_varUB!,
-    #        set_vartype!,
-    #        get_vartype,
-    #        num_var,
-    #        add_constrs!,
-    #        add_constrs_t!,
-    #        add_rangeconstrs!,
-    #        add_rangeconstrs_t!,
-    #        num_constr,
-    #        get_constr_senses,
-    #        set_constr_senses!,
-    #        get_rhs,
-    #        set_rhs!,
-    #        get_constrLB,
-    #        get_constrUB,
-    #        set_constrLB!,
-    #        set_constrUB!,
-    #        get_nnz,
-    #        get_constr_matrix,
-    #        set_sos!,
-    #        add_qpterms!,
-    #        add_diag_qpterms!,
-    #        add_qconstr!,
-    #        optimize!,
-    #        get_objval,
-    #        get_solution,
-    #        get_reduced_costs,
-    #        get_constr_duals,
-    #        get_constr_solution,
-    #        get_infeasibility_ray,
-    #        get_unbounded_ray,
-    #        get_status,
-    #        get_status_code,
-    #        setcallbackcut,
-    #        cbcut,
-    #        cblazy,
-    #        cbget_mipnode_rel,
-    #        cbget_mipsol_sol,
-    #        cplex_model
-
-    using SparseArrays
-    using LinearAlgebra
-
-    include("cpx_common.jl")
-    include("cpx_env.jl")
-    v = version()
-    if startswith(v,"12.8")
-        include("full_defines_1280.jl")
-        include("cpx_params_1280.jl")
-    elseif startswith(v,"12.9")
-        include("full_defines_1290.jl")
-        include("cpx_params_1290.jl")
-    elseif startswith(v, "12.10")
-        include("full_defines_12100.jl")
-        include("cpx_params_12100.jl")
-    else
-        error("Unsupported CPLEX version $v. Only 12.8, 12.9, and 12.10 are currently supported.")
-    end
-    include("cpx_model.jl")
-    include("cpx_params.jl")
-    include("cpx_vars.jl")
-    include("cpx_constrs.jl")
-    include("cpx_quad.jl")
-    include("cpx_solve.jl")
-    include("cpx_callbacks.jl")
-    include("cpx_highlevel.jl")
-    include("cpx_generic_callbacks.jl")
-
-    include("CplexSolverInterface.jl")
-    include("MOI/MOI_wrapper.jl")
 end

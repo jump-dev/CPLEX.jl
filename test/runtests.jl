@@ -1,10 +1,14 @@
 using Test
-import Pkg
-using MathProgBase
-using CPLEX
 
-@testset "$folder" for folder in ["C_API", "MathProgBase", "MathOptInterface"]
-    @testset "$(file)" for file in readdir(folder)
-        include(joinpath(folder, file))
-    end
+include("MathOptInterface/MOI_wrapper.jl")
+include("MathOptInterface/MOI_callbacks.jl")
+
+using CPLEX
+@testset "Deprecated functions" begin
+    err = ErrorException(CPLEX._DEPRECATED_ERROR_MESSAGE)
+    @test_throws err newlongannotation()
+    @test_throws err CPLEX.get_status()
+    model = CPLEX.Optimizer()
+    @test_throws err model.inner
+    @test model.lp isa Ptr{Cvoid}
 end

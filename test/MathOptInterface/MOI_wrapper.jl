@@ -207,36 +207,45 @@ end
     @testset "User-provided" begin
         env = CPLEX.Env()
         model_1 = CPLEX.Optimizer(env)
-        @test model_1.inner.env === env
+        @test model_1.env === env
         model_2 = CPLEX.Optimizer(env)
-        @test model_2.inner.env === env
+        @test model_2.env === env
         # Check that finalizer doesn't touch env when manually provided.
-        finalize(model_1.inner)
-        @test CPLEX.is_valid(env)
+        finalize(model_1)
+        @test env.ptr != C_NULL
     end
     @testset "Automatic" begin
         model_1 = CPLEX.Optimizer()
         model_2 = CPLEX.Optimizer()
-        @test model_1.inner.env !== model_2.inner.env
+        @test model_1.env.ptr !== model_2.env.ptr
     end
     @testset "Env when emptied" begin
         @testset "User-provided" begin
             env = CPLEX.Env()
             model = CPLEX.Optimizer(env)
-            @test model.inner.env === env
-            @test CPLEX.is_valid(env)
+            @test model.env === env
+            @test env.ptr != C_NULL
             MOI.empty!(model)
-            @test model.inner.env === env
-            @test CPLEX.is_valid(env)
+            @test model.env === env
+            @test env.ptr != C_NULL
         end
         @testset "Automatic" begin
             model = CPLEX.Optimizer()
-            env = model.inner.env
+            env = model.env
             MOI.empty!(model)
-            @test model.inner.env === env
-            @test CPLEX.is_valid(model.inner.env)
+            @test model.env === env
+            @test env.ptr != C_NULL
         end
     end
+    @testset "Manually finalize env and model" begin
+        env = CPLEX.Env()
+        model = CPLEX.Optimizer(env)
+        finalize(env)
+        @test env.finalize_called
+        finalize(model)
+        @test env.ptr == C_NULL
+    end
+
 end
 
 @testset "Continuous -> Integer -> Continuous" begin

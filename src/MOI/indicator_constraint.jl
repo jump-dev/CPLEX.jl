@@ -57,24 +57,36 @@ function MOI.add_constraint(
     # getting the indicator variable
     sense_code = _get_indicator_sense(s.set)
     active_bool = A == MOI.ACTIVATE_ON_ONE ? Cint(0) : Cint(1)
-    var_inner = _info(model, first_index_terms[1].variable_index).column
+    var_inner = Cint(_info(model, first_index_terms[1].variable_index).column - 1)
 
     # keeping track of the constraints
     model.last_constraint_index += 1
-    info = ConstraintInfo(length(model.indicator_constraint_info) + 1, s)
+    info = _ConstraintInfo(length(model.indicator_constraint_info) + 1, s)
     model.indicator_constraint_info[model.last_constraint_index] = (info, func)
 
     linear_idx = Vector{Cint}(undef, length(scalar_index_terms))
     linear_coefficients = Vector{Cdouble}(undef, length(scalar_index_terms))
     for (i, term) in enumerate(scalar_index_terms)
-        linear_idx[i] = _info(model, term.variable_index).column
+        linear_idx[i] = Cint(_info(model, term.variable_index).column - 1)
         linear_coefficients[i] = term.coefficient
     end
     # switching constant on other side
     # a^T x + b <= c <==> a^T x <= c - b
     fcons = MOI.constant(func)
     rhs = Cdouble(MOI.constant(s.set) - fcons[2])
-    add_indicator_constraint(model.inner, linear_idx, linear_coefficients, sense_code, rhs, var_inner, active_bool)
+    CPXaddindconstr(
+        model.env,
+        model.lp,
+        var_inner,
+        active_bool,
+        length(linear_idx),
+        rhs,
+        sense_code,
+        linear_idx,
+        linear_coefficients,
+        C_NULL,
+
+    )
     return MOI.ConstraintIndex{typeof(func), typeof(s)}(model.last_constraint_index)
 end
 
