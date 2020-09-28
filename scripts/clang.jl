@@ -1,10 +1,13 @@
 # TODO(odow):
 #
-# This script can be used to build the C interface to Gurobi. However, it requires
-# you to manually do the following steps first:
+# This script can be used to build the C interface to CPLEX. However, it
+# requires you to manually do the following steps first:
 #
 # 1) Copy cplex.h from CPLEX into this /scripts directory
 # 2) Copy cpxconst.h from CPLEX into this /scripts directory
+#
+# You should also check for an updated version of Clang.jl, and update if one is
+# available.
 
 import Clang
 
