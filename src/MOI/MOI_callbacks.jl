@@ -15,12 +15,21 @@ function Base.unsafe_convert(::Type{Ptr{Cvoid}}, x::_CallbackUserData)
 end
 
 function _cplex_callback_wrapper(
-    context::Ptr{Cvoid},
+    p_context::Ptr{Cvoid},
     context_id::Clong,
     p_user_data::Ptr{Cvoid},
 )
     user_data = unsafe_pointer_to_objref(p_user_data)::_CallbackUserData
-    user_data.callback(CallbackContext(user_data.model, context), context_id)
+    try
+        user_data.callback(
+            CallbackContext(user_data.model, p_context), context_id
+        )
+    catch ex
+        CPXcallbackabort(p_context)
+        if !(ex isa InterruptException)
+            rethrow(ex)
+        end
+    end
     return Cint(0)
 end
 
@@ -43,7 +52,8 @@ end
             CPX_CALLBACKCONTEXT_LOCAL_PROGRESS |
             CPX_CALLBACKCONTEXT_GLOBAL_PROGRESS |
             CPX_CALLBACKCONTEXT_CANDIDATE |
-            CPX_CALLBACKCONTEXT_RELAXATION
+            CPX_CALLBACKCONTEXT_RELAXATION |
+            CPX_CALLBACKCONTEXT_BRANCHING
         )
     )
 
@@ -67,7 +77,8 @@ struct CallbackFunction <: MOI.AbstractCallback
             CPX_CALLBACKCONTEXT_LOCAL_PROGRESS |
             CPX_CALLBACKCONTEXT_GLOBAL_PROGRESS |
             CPX_CALLBACKCONTEXT_CANDIDATE |
-            CPX_CALLBACKCONTEXT_RELAXATION
+            CPX_CALLBACKCONTEXT_RELAXATION |
+            CPX_CALLBACKCONTEXT_BRANCHING
     )
         return new(context_mask)
     end

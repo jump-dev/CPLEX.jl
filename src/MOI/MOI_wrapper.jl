@@ -190,8 +190,6 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     heuristic_callback::Union{Nothing, Function}
     generic_callback::Any
 
-    terminate_signal::Ref{Cint}
-
     """
         Optimizer(env::Union{Nothing, Env} = nothing)
 
@@ -238,15 +236,8 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
                 m.env.ptr = C_NULL
             end
         end
-        model.terminate_signal = Ref{Cint}(0)
-        CPXsetterminate(model.env, model.terminate_signal)
         return model
     end
-end
-
-function terminate(model::Optimizer)
-    model.terminate_signal[] = Cint(1)
-    return
 end
 
 _check_ret(model::Optimizer, ret::Cint) = _check_ret(model.env, ret)
@@ -2443,15 +2434,18 @@ function MOI.optimize!(model::Optimizer)
         _make_problem_type_continuous(model)
     end
     start_time = time()
-    try
-        _optimize!(model)
-    catch ex
-        if ex isa InterruptException
-            terminate(model)
-        else
-            rethrow(ex)
-        end
+
+    # Catch [CTRL+C], even when Julia is run from a script not in interactive
+    # mode. If `true`, then a script would call `atexit` without throwing the
+    # `InterruptException`. `false` is the default in interactive mode.
+    #
+    # TODO(odow): Julia 1.5 exposes `Base.exit_on_sigint(::Bool)`.
+    ccall(:jl_exit_on_sigint, Cvoid, (Cint,), false)
+    _optimize!(model)
+    if !isinteractive()
+        ccall(:jl_exit_on_sigint, Cvoid, (Cint,), true)
     end
+
     model.solve_time = time() - start_time
     model.has_primal_certificate = false
     model.has_dual_certificate = false
@@ -2526,8 +2520,8 @@ const _TERMINATION_STATUSES = Dict(
     CPX_STAT_OPTIMAL_RELAXED_SUM => MOI.LOCALLY_SOLVED,
     CPX_STAT_UNBOUNDED => MOI.DUAL_INFEASIBLE,
 
-    CPXMIP_ABORT_FEAS => MOI.LOCALLY_SOLVED,
-    CPXMIP_ABORT_INFEAS => MOI.OTHER_ERROR,
+    CPXMIP_ABORT_FEAS => MOI.INTERRUPTED,
+    CPXMIP_ABORT_INFEAS => MOI.INTERRUPTED,
     CPXMIP_ABORT_RELAXATION_UNBOUNDED => MOI.INFEASIBLE_OR_UNBOUNDED,
     CPXMIP_ABORT_RELAXED => MOI.LOCALLY_SOLVED,
     CPXMIP_DETTIME_LIM_FEAS => MOI.TIME_LIMIT,
