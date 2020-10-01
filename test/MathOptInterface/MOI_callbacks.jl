@@ -394,17 +394,6 @@ function test_CallbackFunction_HeuristicSolution()
     @test callback_called
 end
 
-function runtests()
-    for name in names(@__MODULE__; all = true)
-        if !startswith("$(name)", "test_")
-            continue
-        end
-        @testset "$(name)" begin
-            getfield(@__MODULE__, name)()
-        end
-    end
-end
-
 end  # module TestCallbacks
 
-TestCallbacks.runtests()
+runtests(TestCallbacks)
