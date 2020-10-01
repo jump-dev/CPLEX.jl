@@ -85,6 +85,12 @@ struct CallbackFunction <: MOI.AbstractCallback
 end
 
 function MOI.set(model::Optimizer, cb::CallbackFunction, f::Function)
+    @static if Sys.iswindows() && Sys.WORD_SIZE == 32
+        error(
+            "Callbacks are not supported on Win32. Use 64-bit Julia with " *
+            "64-bit CPLEX."
+        )
+    end
     if MOI.get(model, MOI.NumberOfThreads()) != 1
         @warn(
             "When using callbacks, make sure to set `NumberOfThreads` to `1` " *
