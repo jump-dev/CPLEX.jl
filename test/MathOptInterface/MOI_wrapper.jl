@@ -12,14 +12,10 @@ const CONFIG = MOIT.TestConfig()
 
 const OPTIMIZER = CPLEX.Optimizer()
 MOI.set(OPTIMIZER, MOI.Silent(), true)
-const BRIDGED_OPTIMIZER = MOI.Bridges.full_bridge_optimizer(OPTIMIZER, Float64)
+MOI.set(OPTIMIZER, MOI.RawParameter("CPX_PARAM_REDUCE"), 0)
+MOI.set(OPTIMIZER, MOI.RawParameter("CPX_PARAM_PRELINEAR"), 0)
 
-const CERTIFICATE_OPTIMIZER = CPLEX.Optimizer()
-MOI.set(CERTIFICATE_OPTIMIZER, MOI.Silent(), true)
-MOI.set(CERTIFICATE_OPTIMIZER, MOI.RawParameter("CPX_PARAM_REDUCE"), 0)
-MOI.set(CERTIFICATE_OPTIMIZER, MOI.RawParameter("CPX_PARAM_PRELINEAR"), 0)
-const BRIDGED_CERTIFICATE_OPTIMIZER =
-    MOI.Bridges.full_bridge_optimizer(CERTIFICATE_OPTIMIZER, Float64)
+const BRIDGED_OPTIMIZER = MOI.Bridges.full_bridge_optimizer(OPTIMIZER, Float64)
 
 function test_basic_constraint_tests()
     MOIT.basic_constraint_tests(BRIDGED_OPTIMIZER, CONFIG; exclude = [
@@ -62,12 +58,7 @@ function test_unittest()
         # TODO(odow): bug! We can't delete a vector of variables  if one is in
         # a second order cone.
         "delete_soc_variables",
-
-        # CPLEX returns INFEASIBLE_OR_UNBOUNDED without extra parameters.
-        # See below for the test.
-        "solve_unbounded_model",
     ])
-    MOIT.solve_unbounded_model(CERTIFICATE_OPTIMIZER, CONFIG)
 end
 
 function test_modificationtest()
@@ -76,17 +67,10 @@ end
 
 function test_contlineartest()
     MOIT.contlineartest(BRIDGED_OPTIMIZER, CONFIG, [
-        # These tests require extra parameters to be set.
-        "linear8a", "linear8b", "linear8c",
-
         # TODO(odow): This test requests the infeasibility certificate of a
         # variable bound.
         "linear12"
     ])
-
-    MOIT.linear8atest(CERTIFICATE_OPTIMIZER, CONFIG)
-    MOIT.linear8btest(CERTIFICATE_OPTIMIZER, CONFIG)
-    MOIT.linear8ctest(CERTIFICATE_OPTIMIZER, CONFIG)
 
     MOIT.linear12test(OPTIMIZER, MOIT.TestConfig(infeas_certificates=false))
 end
@@ -101,35 +85,34 @@ end
 
 function test_contquadratictest()
     MOIT.contquadratictest(
-        BRIDGED_CERTIFICATE_OPTIMIZER,
-        # TODO(odow): duals for quadratic problems.
-        MOIT.TestConfig(duals = false, atol = 1e-3, rtol = 1e-3),
+        BRIDGED_OPTIMIZER,
+        MOIT.TestConfig(atol = 1e-3, rtol = 1e-3),
         ["ncqcp"], # CPLEX doesn't support non-convex problems
     )
 end
 
 function test_contconic()
-    MOIT.lintest(BRIDGED_OPTIMIZER, CONFIG, [
-        # These tests require extra parameters to be set.
-        "lin3", "lin4"
-    ])
+    MOIT.lintest(BRIDGED_OPTIMIZER, CONFIG)
 
-    MOIT.lin3test(BRIDGED_CERTIFICATE_OPTIMIZER, CONFIG)
-    MOIT.lin4test(BRIDGED_CERTIFICATE_OPTIMIZER, CONFIG)
+    soc_config = MOIT.TestConfig(atol=5e-3)
 
-    # TODO(odow): duals for SOC constraints.
-    soc_config = MOIT.TestConfig(duals = false, atol=5e-3)
-
-    MOIT.soctest(BRIDGED_OPTIMIZER, soc_config, [
-        "soc3"
-    ])
-
+    # TODO(odow): investigate why infeasibility certificates not generated for
+    # SOC.
+    MOIT.soctest(BRIDGED_OPTIMIZER, soc_config, ["soc3"])
     MOIT.soc3test(
         BRIDGED_OPTIMIZER,
-        MOIT.TestConfig(duals = false, infeas_certificates = false, atol = 1e-3)
+        MOIT.TestConfig(atol = 1e-3, infeas_certificates = false)
     )
 
-    MOIT.rsoctest(BRIDGED_OPTIMIZER, soc_config)
+    MOIT.rsoctest(BRIDGED_OPTIMIZER, soc_config, ["rotatedsoc2"])
+    MOIT.rotatedsoc2test(
+        BRIDGED_OPTIMIZER,
+        # Need for `duals = false` fixed by https://github.com/jump-dev/MathOptInterface.jl/pull/1171
+        # Remove in a future MOI 0.9.18+ release.
+        MOIT.TestConfig(
+            atol = 1e-3, infeas_certificates = false, duals = false
+        ),
+    )
 
     MOIT.geomeantest(BRIDGED_OPTIMIZER, soc_config)
 end

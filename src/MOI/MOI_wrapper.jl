@@ -2787,15 +2787,61 @@ function MOI.get(
     return _dual_multiplier(model) * p[]
 end
 
-# function MOI.get(
-#     model::Optimizer, attr::MOI.ConstraintDual,
-#     c::MOI.ConstraintIndex{MOI.ScalarQuadraticFunction{Float64}, <:Any}
-# )
-#     _throw_if_optimize_in_progress(model, attr)
-#     MOI.check_result_index_bounds(model, attr)
-#     pi = model.cached_solution.quadratic_dual[_info(model, c).row]
-#     return _dual_multiplier(model) * pi
-# end
+function MOI.get(
+    model::Optimizer,
+    attr::MOI.ConstraintDual,
+    c::MOI.ConstraintIndex{MOI.ScalarQuadraticFunction{Float64}, <:Any},
+)
+    # For more information on QCP duals, see
+    # https://www.ibm.com/support/knowledgecenter/SSSA5P_12.10.0/ilog.odms.cplex.help/CPLEX/UsrMan/topics/cont_optim/qcp/17_QCP_duals.html
+    _throw_if_optimize_in_progress(model, attr)
+    MOI.check_result_index_bounds(model, attr)
+    # The derivative of a quadratic f(x) = x^TQx + a^Tx + b <= 0 is
+    # ∇f(x) = Q^Tx + Qx + a
+    # The dual is undefined if x is at the point of the cone. This can only be
+    # checked to numeric tolerances. We use `cone_top_tol`.
+    cone_top, cone_top_tol = true, 1e-6
+    x = zeros(length(model.variable_info))
+    ret = CPXgetx(model.env, model.lp, x, 0, length(x) - 1)
+    _check_ret(model, ret)
+    ∇f = zeros(length(x))
+    a_i, a_v, qrow, qcol, qval = _CPXgetqconstr(model, c)
+    for (i, j, v) in zip(qrow, qcol, qval)
+        ∇f[i + 1] += v * x[j + 1]
+        ∇f[j + 1] += v * x[i + 1]
+        if abs(x[i + 1]) > cone_top_tol || abs(x[j + 1]) > cone_top_tol
+            cone_top = false
+        end
+    end
+    for (i, v) in zip(a_i, a_v)
+        ∇f[i + 1] += v
+        if abs(x[i + 1]) > cone_top_tol
+            cone_top = false
+        end
+    end
+    # TODO(odow): if at top of cone (x = 0) dual multiplier is ill-formed.
+    if cone_top
+        return NaN
+    end
+    qind = Cint(_info(model, c).row - 1)
+    nz_p, surplus_p = Ref{Cint}(), Ref{Cint}()
+    CPXgetqconstrdslack(
+        model.env, model.lp, qind, nz_p, C_NULL, C_NULL, 0, surplus_p
+    )
+    ind = Vector{Cint}(undef, -surplus_p[])
+    val = Vector{Cdouble}(undef, -surplus_p[])
+    ret = CPXgetqconstrdslack(
+        model.env, model.lp, qind, nz_p, ind, val, -surplus_p[], surplus_p
+    )
+    _check_ret(model, ret)
+    ∇f_max, ∇f_i = findmax(abs.(∇f))
+    for (i, v) in zip(ind, val)
+        if i + 1 == ∇f_i
+            return _dual_multiplier(model) * (∇f_max > cone_top_tol ? v / ∇f[∇f_i] : 0.0)
+        end
+    end
+    return 0.0
+end
 
 function MOI.get(model::Optimizer, attr::MOI.ObjectiveValue)
     _throw_if_optimize_in_progress(model, attr)
@@ -3464,3 +3510,27 @@ function MOI.set(
     return
 end
 
+function MOI.get(
+    model::Optimizer,
+    ::MOI.ConstraintDual,
+    c::MOI.ConstraintIndex{MOI.VectorOfVariables, MOI.SecondOrderCone},
+)
+    f = MOI.get(model, MOI.ConstraintFunction(), c)
+    qind = Cint(_info(model, c).row - 1)
+    surplus_p = Ref{Cint}()
+    CPXgetqconstrdslack(
+        model.env, model.lp, qind, C_NULL, C_NULL, C_NULL, 0, surplus_p
+    )
+    ind = Vector{Cint}(undef, -surplus_p[])
+    val = Vector{Cdouble}(undef, -surplus_p[])
+    ret = CPXgetqconstrdslack(
+        model.env, model.lp, qind, C_NULL, ind, val, -surplus_p[], surplus_p
+    )
+    _check_ret(model, ret)
+    slack = zeros(length(model.variable_info))
+    for (i, v) in zip(ind, val)
+        slack[i + 1] += v
+    end
+    indices = [_info(model, v).column for v in f.variables]
+    return _dual_multiplier(model) * slack[indices]
+end
