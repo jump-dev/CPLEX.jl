@@ -450,3 +450,70 @@ end
         @test MOI.get(model, MOI.ConstraintConflictStatus(), c2) == MOI.NOT_IN_CONFLICT
     end
 end
+
+@testset "ZeroOne_NONE" begin
+    model = CPLEX.Optimizer()
+    x = MOI.add_variable(model)
+    c = MOI.add_constraint(model, MOI.SingleVariable(x), MOI.ZeroOne())
+    tmp = Ref{Cdouble}()
+    CPLEX.CPXgetlb(model.env, model.lp, tmp, 0, 0)
+    @test tmp[] == 0.0
+    CPLEX.CPXgetub(model.env, model.lp, tmp, 0, 0)
+    @test tmp[] == 1.0
+    MOI.delete(model, c)
+    CPLEX.CPXgetlb(model.env, model.lp, tmp, 0, 0)
+    @test tmp[] == -CPLEX.CPX_INFBOUND
+    CPLEX.CPXgetub(model.env, model.lp, tmp, 0, 0)
+    @test tmp[] == CPLEX.CPX_INFBOUND
+end
+
+@testset "ZeroOne_LESS_THAN" begin
+    model = CPLEX.Optimizer()
+    x = MOI.add_variable(model)
+    c = MOI.add_constraint(model, MOI.SingleVariable(x), MOI.ZeroOne())
+    MOI.add_constraint(model, MOI.SingleVariable(x), MOI.LessThan(2.0))
+    tmp = Ref{Cdouble}()
+    CPLEX.CPXgetlb(model.env, model.lp, tmp, 0, 0)
+    @test tmp[] == 0.0
+    CPLEX.CPXgetub(model.env, model.lp, tmp, 0, 0)
+    @test tmp[] == 2.0
+    MOI.delete(model, c)
+    CPLEX.CPXgetlb(model.env, model.lp, tmp, 0, 0)
+    @test tmp[] == -CPLEX.CPX_INFBOUND
+    CPLEX.CPXgetub(model.env, model.lp, tmp, 0, 0)
+    @test tmp[] == 2.0
+end
+
+@testset "ZeroOne_GREATER_THAN" begin
+    model = CPLEX.Optimizer()
+    x = MOI.add_variable(model)
+    c = MOI.add_constraint(model, MOI.SingleVariable(x), MOI.ZeroOne())
+    MOI.add_constraint(model, MOI.SingleVariable(x), MOI.GreaterThan(-2.0))
+    tmp = Ref{Cdouble}()
+    CPLEX.CPXgetlb(model.env, model.lp, tmp, 0, 0)
+    @test tmp[] == -2.0
+    CPLEX.CPXgetub(model.env, model.lp, tmp, 0, 0)
+    @test tmp[] == 1.0
+    MOI.delete(model, c)
+    CPLEX.CPXgetlb(model.env, model.lp, tmp, 0, 0)
+    @test tmp[] == -2.0
+    CPLEX.CPXgetub(model.env, model.lp, tmp, 0, 0)
+    @test tmp[] == CPLEX.CPX_INFBOUND
+end
+
+@testset "ZeroOne_GREATER_THAN" begin
+    model = CPLEX.Optimizer()
+    x = MOI.add_variable(model)
+    c = MOI.add_constraint(model, MOI.SingleVariable(x), MOI.ZeroOne())
+    MOI.add_constraint(model, MOI.SingleVariable(x), MOI.Interval(-2.0, 2.0))
+    tmp = Ref{Cdouble}()
+    CPLEX.CPXgetlb(model.env, model.lp, tmp, 0, 0)
+    @test tmp[] == -2.0
+    CPLEX.CPXgetub(model.env, model.lp, tmp, 0, 0)
+    @test tmp[] == 2.0
+    MOI.delete(model, c)
+    CPLEX.CPXgetlb(model.env, model.lp, tmp, 0, 0)
+    @test tmp[] == -2.0
+    CPLEX.CPXgetub(model.env, model.lp, tmp, 0, 0)
+    @test tmp[] == 2.0
+end

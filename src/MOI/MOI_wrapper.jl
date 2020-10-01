@@ -1432,13 +1432,29 @@ function MOI.add_constraint(
     model::Optimizer, f::MOI.SingleVariable, ::MOI.ZeroOne
 )
     info = _info(model, f.variable)
+    col = Cint(info.column - 1)
+    p_col = Ref(col)
     ret = CPXchgctype(
         model.env,
         model.lp,
         1,
-        Ref{Cint}(info.column - 1),
+        p_col,
         Ref{Cchar}(CPX_BINARY),
     )
+    # Round bounds to avoid the CPLEX warning:
+    #   Warning:  Non-integral bounds for integer variables rounded.
+    # See issue https://github.com/jump-dev/CPLEX.jl/issues/311
+    ret = if info.bound == _NONE
+        CPXchgbds(
+            model.env, model.lp, 2, Cint[col, col], Cchar['L', 'U'], [0.0, 1.0]
+        )
+    elseif info.bound == _LESS_THAN
+        CPXchgbds(model.env, model.lp, 1, p_col, Ref{Cchar}('U'), Ref(1.0))
+    elseif info.bound == _GREATER_THAN
+        CPXchgbds(model.env, model.lp, 1, p_col, Ref{Cchar}('L'), Ref(0.0))
+    else
+        Cint(0)
+    end
     _check_ret(model, ret)
     info.type = CPX_BINARY
     return MOI.ConstraintIndex{MOI.SingleVariable, MOI.ZeroOne}(f.variable.value)
@@ -1449,13 +1465,39 @@ function MOI.delete(
 )
     MOI.throw_if_not_valid(model, c)
     info = _info(model, c)
+    col = Cint(info.column - 1)
     ret = CPXchgctype(
         model.env,
         model.lp,
         1,
-        Ref{Cint}(info.column - 1),
+        Ref(col),
         Ref{Cchar}(CPX_CONTINUOUS),
     )
+    _check_ret(model, ret)
+    # When deleting the ZeroOne bound, reset any bounds that were added. If no
+    # _NONE, we added '[0, 1]'. If _GREATER_THAN, we added '1]', if _LESS_THAN,
+    # we added '[0'. If it is anything else, both bounds were set by the user,
+    # so we don't need to worry.
+    ret = if info.bound == _NONE
+        CPXchgbds(
+            model.env,
+            model.lp,
+            2,
+            [col, col],
+            Cchar['L', 'U'],
+            [-CPX_INFBOUND, CPX_INFBOUND],
+        )
+    elseif info.bound == _GREATER_THAN
+        CPXchgbds(
+            model.env, model.lp, 1, Ref(col), Ref{Cchar}('U'), Ref(CPX_INFBOUND)
+        )
+    elseif info.bound == _LESS_THAN
+        CPXchgbds(
+            model.env, model.lp, 1, Ref(col), Ref{Cchar}('L'), Ref(-CPX_INFBOUND)
+        )
+    else
+        Cint(0)
+    end
     _check_ret(model, ret)
     info.type = CPX_CONTINUOUS
     info.type_constraint_name = ""
@@ -2422,18 +2464,20 @@ function MOI.optimize!(model::Optimizer)
                 push!(values, info.start)
             end
         end
-        ret = CPXaddmipstarts(
-            model.env,
-            model.lp,
-            1,
-            length(varindices),
-            Ref{Cint}(0),
-            varindices,
-            values,
-            Ref{Cint}(CPX_MIPSTART_AUTO),
-            C_NULL,
-        )
-        _check_ret(model, ret)
+        if length(varindices) > 0
+            ret = CPXaddmipstarts(
+                model.env,
+                model.lp,
+                1,
+                length(varindices),
+                Ref{Cint}(0),
+                varindices,
+                values,
+                Ref{Cint}(CPX_MIPSTART_AUTO),
+                C_NULL,
+            )
+            _check_ret(model, ret)
+        end
     else
         # CPLEX is annoying. If you add a discrete constraint, then delete it,
         # CPLEX _DOES NOT_ change the prob type back to the continuous version.
