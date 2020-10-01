@@ -1,9 +1,20 @@
+using CPLEX
 using Test
 
-include("MathOptInterface/MOI_wrapper.jl")
-include("MathOptInterface/MOI_callbacks.jl")
+function runtests(mod)
+    for name in filter(s -> startswith("$(s)", "test_"), names(mod; all = true))
+        @testset "$(name)" begin
+            getfield(mod, name)()
+        end
+    end
+end
 
-using CPLEX
+@testset "MathOptInterface Tests" begin
+    for file in readdir("MathOptInterface")
+        include(joinpath("MathOptInterface", file))
+    end
+end
+
 @testset "Deprecated functions" begin
     err = ErrorException(CPLEX._DEPRECATED_ERROR_MESSAGE)
     @test_throws err newlongannotation()
