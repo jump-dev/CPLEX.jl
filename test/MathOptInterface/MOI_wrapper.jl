@@ -12,8 +12,9 @@ const CONFIG = MOIT.TestConfig()
 
 const OPTIMIZER = CPLEX.Optimizer()
 MOI.set(OPTIMIZER, MOI.Silent(), true)
+# Turn off presolve reductions so CPLEX will generate infeasibility
+# certificates.
 MOI.set(OPTIMIZER, MOI.RawParameter("CPX_PARAM_REDUCE"), 0)
-MOI.set(OPTIMIZER, MOI.RawParameter("CPX_PARAM_PRELINEAR"), 0)
 
 const BRIDGED_OPTIMIZER = MOI.Bridges.full_bridge_optimizer(OPTIMIZER, Float64)
 
