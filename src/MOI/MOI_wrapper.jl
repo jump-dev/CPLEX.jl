@@ -84,7 +84,7 @@ end
 mutable struct Env
     ptr::Ptr{Cvoid}
     # These fields keep track of how many models the `Env` is used for to help
-    # with finalizing. If you finalize an Env first, then the model, Gurobi will
+    # with finalizing. If you finalize an Env first, then the model, CPLEX will
     # throw an error.
     finalize_called::Bool
     attached_models::Int
@@ -2354,7 +2354,7 @@ function _check_moi_callback_validity(model::Optimizer)
         model.user_cut_callback !== nothing ||
         model.heuristic_callback !== nothing
     if has_moi_callback && model.has_generic_callback
-        error("Cannot use Gurobi.CallbackFunction as well as MOI.AbstractCallbackFunction")
+        error("Cannot use CPLEX.CallbackFunction as well as MOI.AbstractCallbackFunction")
     end
     return has_moi_callback
 end
