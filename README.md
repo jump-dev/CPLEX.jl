@@ -23,7 +23,7 @@ CPLEX.jl has two components:
  - an interface to [MathOptInterface](https://github.com/jump-dev/MathOptInterface.jl)
 
 The C API can be accessed via `CPLEX.CPXxx` functions, where the names and
-arguments are identical to the C API. See the [CPLEX documentation](https://www.gurobi.com/documentation/9.0/refman/c_api_details.html)
+arguments are identical to the C API. See the [CPLEX documentation](https://www.ibm.com/support/knowledgecenter/SSSA5P_12.10.0/COS_KC_home.html)
 for details.
 
 *Note: This wrapper is maintained by the JuMP community and is not
@@ -34,7 +34,7 @@ interested in official support for CPLEX in Julia, let them know!.*
 ## Installation
 
 First, obtain a license of CPLEX and install CPLEX solver, following the
-instructions on [IBM's website](http://www.gurobi.com). Then, set the
+instructions on [IBM's website](https://www.ibm.com/analytics/cplex-optimizer). Then, set the
 `CPLEX_STUDIO_BINARIES` environment variable as appropriate and run
 `Pkg.add("CPLEX")`, then `Pkg.build("CPLEX")`. For example:
 ```julia
