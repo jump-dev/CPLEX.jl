@@ -479,8 +479,8 @@ end
 function test_ZeroOne_LESS_THAN()
     model = CPLEX.Optimizer()
     x = MOI.add_variable(model)
-    c = MOI.add_constraint(model, MOI.SingleVariable(x), MOI.ZeroOne())
     MOI.add_constraint(model, MOI.SingleVariable(x), MOI.LessThan(2.0))
+    c = MOI.add_constraint(model, MOI.SingleVariable(x), MOI.ZeroOne())
     tmp = Ref{Cdouble}()
     CPLEX.CPXgetlb(model.env, model.lp, tmp, 0, 0)
     @test tmp[] == 0.0
@@ -496,8 +496,8 @@ end
 function test_ZeroOne_GREATER_THAN()
     model = CPLEX.Optimizer()
     x = MOI.add_variable(model)
-    c = MOI.add_constraint(model, MOI.SingleVariable(x), MOI.ZeroOne())
     MOI.add_constraint(model, MOI.SingleVariable(x), MOI.GreaterThan(-2.0))
+    c = MOI.add_constraint(model, MOI.SingleVariable(x), MOI.ZeroOne())
     tmp = Ref{Cdouble}()
     CPLEX.CPXgetlb(model.env, model.lp, tmp, 0, 0)
     @test tmp[] == -2.0
@@ -513,8 +513,8 @@ end
 function test_ZeroOne_GREATER_THAN()
     model = CPLEX.Optimizer()
     x = MOI.add_variable(model)
-    c = MOI.add_constraint(model, MOI.SingleVariable(x), MOI.ZeroOne())
     MOI.add_constraint(model, MOI.SingleVariable(x), MOI.Interval(-2.0, 2.0))
+    c = MOI.add_constraint(model, MOI.SingleVariable(x), MOI.ZeroOne())
     tmp = Ref{Cdouble}()
     CPLEX.CPXgetlb(model.env, model.lp, tmp, 0, 0)
     @test tmp[] == -2.0

@@ -1448,9 +1448,9 @@ function MOI.add_constraint(
         CPXchgbds(
             model.env, model.lp, 2, Cint[col, col], Cchar['L', 'U'], [0.0, 1.0]
         )
-    elseif info.bound == _LESS_THAN
-        CPXchgbds(model.env, model.lp, 1, p_col, Ref{Cchar}('U'), Ref(1.0))
     elseif info.bound == _GREATER_THAN
+        CPXchgbds(model.env, model.lp, 1, p_col, Ref{Cchar}('U'), Ref(1.0))
+    elseif info.bound == _LESS_THAN
         CPXchgbds(model.env, model.lp, 1, p_col, Ref{Cchar}('L'), Ref(0.0))
     else
         Cint(0)
