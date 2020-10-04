@@ -2835,9 +2835,11 @@ function MOI.get(
     )
     _check_ret(model, ret)
     ∇f_max, ∇f_i = findmax(abs.(∇f))
-    for (i, v) in zip(ind, val)
-        if i + 1 == ∇f_i
-            return _dual_multiplier(model) * (∇f_max > cone_top_tol ? v / ∇f[∇f_i] : 0.0)
+    if ∇f_max > cone_top_tol
+        for (i, v) in zip(ind, val)
+            if i + 1 == ∇f_i
+                return _dual_multiplier(model) * v / ∇f[∇f_i]
+            end
         end
     end
     return 0.0
@@ -3531,6 +3533,6 @@ function MOI.get(
     for (i, v) in zip(ind, val)
         slack[i + 1] += v
     end
-    indices = [_info(model, v).column for v in f.variables]
-    return _dual_multiplier(model) * slack[indices]
+    z = _dual_multiplier(model)
+    return [z * slack[_info(model, v).column] for v in f.variables]
 end
