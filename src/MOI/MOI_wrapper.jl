@@ -84,7 +84,7 @@ end
 mutable struct Env
     ptr::Ptr{Cvoid}
     # These fields keep track of how many models the `Env` is used for to help
-    # with finalizing. If you finalize an Env first, then the model, CPLX will
+    # with finalizing. If you finalize an Env first, then the model, CPLEX will
     # throw an error.
     finalize_called::Bool
     attached_models::Int
