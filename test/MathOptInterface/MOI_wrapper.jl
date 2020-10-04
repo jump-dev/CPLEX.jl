@@ -510,7 +510,7 @@ function test_ZeroOne_GREATER_THAN()
     @test tmp[] == CPLEX.CPX_INFBOUND
 end
 
-function test_ZeroOne_GREATER_THAN()
+function test_ZeroOne_INTERVAL()
     model = CPLEX.Optimizer()
     x = MOI.add_variable(model)
     MOI.add_constraint(model, MOI.SingleVariable(x), MOI.Interval(-2.0, 2.0))
