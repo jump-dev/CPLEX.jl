@@ -8,7 +8,7 @@ const MOI  = MathOptInterface
 const MOIT = MOI.Test
 const MOIB = MOI.Bridges
 
-const CONFIG = MOIT.TestConfig()
+const CONFIG = MOIT.TestConfig(basis = true)
 
 const OPTIMIZER = CPLEX.Optimizer()
 MOI.set(OPTIMIZER, MOI.Silent(), true)

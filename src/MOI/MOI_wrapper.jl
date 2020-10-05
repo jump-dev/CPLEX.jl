@@ -3275,54 +3275,56 @@ function MOI.set(
     return
 end
 
-# function MOI.get(
-#     model::Optimizer, ::MOI.ConstraintBasisStatus,
-#     c::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}, S}
-# ) where {S <: _SCALAR_SETS}
-#     row = _info(model, c).row
-#     # TODO
-#     cbasis = 0 # get_intattrelement(model.lp, "CBasis", row)
-#     if cbasis == 0
-#         return MOI.BASIC
-#     elseif cbasis == -1
-#         return MOI.NONBASIC
-#     else
-#         error("CBasis value of $(cbasis) isn't defined.")
-#     end
-# end
+function MOI.get(
+    model::Optimizer,
+    ::MOI.ConstraintBasisStatus,
+    c::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64}, S},
+) where {S <: _SCALAR_SETS}
+    rstat = Vector{Cint}(undef, length(model.affine_constraint_info))
+    ret = CPXgetbase(model.env, model.lp, C_NULL, rstat)
+    _check_ret(model, ret)
+    cbasis = rstat[_info(model, c).row]
+    if cbasis == CPX_BASIC
+        return MOI.BASIC
+    else
+        # CPLEX uses CPX_AT_LOWER regardless of whether it is <= or >=.
+        @assert cbasis == CPX_AT_LOWER
+        return MOI.NONBASIC
+    end
+end
 
-# function MOI.get(
-#     model::Optimizer, ::MOI.ConstraintBasisStatus,
-#     c::MOI.ConstraintIndex{MOI.SingleVariable, S}
-# ) where {S <: _SCALAR_SETS}
-#     column = _info(model, c).column
-#     _update_if_necessary(model)
-#     vbasis = get_intattrelement(model.lp, "VBasis", column)
-#     if vbasis == 0
-#         return MOI.BASIC
-#     elseif vbasis == -1
-#         if S <: MOI.LessThan
-#             return MOI.BASIC
-#         elseif !(S <: MOI.Interval)
-#             return MOI.NONBASIC
-#         else
-#             return MOI.NONBASIC_AT_LOWER
-#         end
-#     elseif vbasis == -2
-#         MOI.NONBASIC_AT_UPPER
-#         if S <: MOI.GreaterThan
-#             return MOI.BASIC
-#         elseif !(S <: MOI.Interval)
-#             return MOI.NONBASIC
-#         else
-#             return MOI.NONBASIC_AT_UPPER
-#         end
-#     elseif vbasis == -3
-#         return MOI.SUPER_BASIC
-#     else
-#         error("VBasis value of $(vbasis) isn't defined.")
-#     end
-# end
+function MOI.get(
+    model::Optimizer,
+    ::MOI.ConstraintBasisStatus,
+    c::MOI.ConstraintIndex{MOI.SingleVariable, S},
+) where {S <: _SCALAR_SETS}
+    cstat = Vector{Cint}(undef, length(model.variable_info))
+    ret = CPXgetbase(model.env, model.lp, cstat, C_NULL)
+    _check_ret(model, ret)
+    vbasis = cstat[_info(model, c).column]
+    if vbasis == CPX_BASIC
+        return MOI.BASIC
+    elseif vbasis == CPX_FREE_SUPER
+        return MOI.SUPER_BASIC
+    elseif vbasis == CPX_AT_LOWER
+        if S <: MOI.LessThan
+            return MOI.BASIC
+        elseif S <: MOI.Interval
+            return MOI.NONBASIC_AT_LOWER
+        else
+            return MOI.NONBASIC
+        end
+    else
+        @assert vbasis == CPX_AT_UPPER
+        if S <: MOI.GreaterThan
+            return MOI.BASIC
+        elseif S <: MOI.Interval
+            return MOI.NONBASIC_AT_UPPER
+        else
+            return MOI.NONBASIC
+        end
+    end
+end
 
 ###
 ### VectorOfVariables-in-SecondOrderCone
