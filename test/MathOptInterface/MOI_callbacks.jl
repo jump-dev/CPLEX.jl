@@ -394,6 +394,70 @@ function test_CallbackFunction_HeuristicSolution()
     @test callback_called
 end
 
+function test_CPXcallbackabort()
+    model = CPLEX.Optimizer()
+    MOI.set(model, MOI.Silent(), true)
+    x = MOI.add_variable(model)
+    MOI.add_constraint(model, MOI.SingleVariable(x), MOI.Integer())
+    MOI.set(model, MOI.NumberOfThreads(), 1)
+    MOI.set(model, CPLEX.CallbackFunction(), (cb_data, context_id) -> begin
+        @show context_id
+        CPXcallbackabort(cb_data)
+    end)
+    MOI.optimize!(model)
+    @test MOI.get(model, MOI.TerminationStatus()) == MOI.INTERRUPTED
+end
+
+"""
+    test_InterruptException()
+
+This test simulates an InterruptException being thrown. It is a little
+complicated due to the delayed handling of `terminate`, which _schedules_ a
+request for termination, rather than terminating immediately. This means CPLEX
+may continue to call the callback after the interruption.
+
+First, we must ensure that InterruptException() is only thrown once. Double
+interrupting would interrupt our handling of the first interrupt!
+
+Second, if the model is too simplisitic, CPLEX may be able to prove optimality
+after we have interrupted, but before it has decided to actually exit the solve.
+"""
+function test_InterruptException()
+    model = CPLEX.Optimizer()
+    MOI.set(model, MOI.Silent(), true)
+    x = MOI.add_variable(model)
+    MOI.add_constraint(model, MOI.SingleVariable(x), MOI.Integer())
+    MOI.set(model, MOI.ObjectiveSense(), MOI.MIN_SENSE)
+    MOI.set(
+        model,
+        MOI.ObjectiveFunction{MOI.SingleVariable}(),
+        MOI.SingleVariable(x),
+    )
+    MOI.set(model, MOI.NumberOfThreads(), 1)
+    i = 0.0
+    interrupt_thrown = false
+    MOI.set(model, CPLEX.CallbackFunction(), (cb_data, cb_where) -> begin
+        if cb_where != CPLEX.CPX_CALLBACKCONTEXT_CANDIDATE
+            return
+        end
+        MOI.submit(
+            model,
+            MOI.LazyConstraint(cb_data),
+            MOI.ScalarAffineFunction{Float64}(
+                [MOI.ScalarAffineTerm(1.0, x)], 0.0
+            ),
+            MOI.GreaterThan{Float64}(i)
+        )
+        i += 1
+        if !interrupt_thrown
+            interrupt_thrown = true
+            throw(InterruptException())
+        end
+    end)
+    MOI.optimize!(model)
+    @test MOI.get(model, MOI.TerminationStatus()) == MOI.INTERRUPTED
+end
+
 end  # module TestCallbacks
 
 runtests(TestCallbacks)
