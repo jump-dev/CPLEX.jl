@@ -3245,6 +3245,7 @@ function MOI.get(
     if cbasis == CPX_BASIC
         return MOI.BASIC
     else
+        # CPLEX uses CPX_AT_LOWER regardless of whether it is <= or >=.
         @assert cbasis == CPX_AT_LOWER
         return MOI.NONBASIC
     end
