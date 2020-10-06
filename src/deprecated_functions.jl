@@ -1,31 +1,35 @@
 const _DEPRECATED_ERROR_MESSAGE = """
 The C API of CPLEX.jl has been rewritten to expose the complete C API, and
-all old functions have been removed.
+all old functions have been removed. For more information, see the Discourse
+announcement: https://discourse.julialang.org/t/ann-upcoming-breaking-changes-to-cplex-jl-and-gurobi-jl/47814
 
-For example:
+Here is a brief summary of the changes.
 
+* Function names have changed. For example, `CPLEX.close_CPLEX(env)` is now 
+    `CPXcloseCPLEX(env)`.
+* For users of `CPLEX.Optimizer`, `model.inner` has been replaced by the fields
+    `model.env` and `model.lp`, which correspond to the environment and problem
+    pointers at the C API level. For example:
+    ```julia
+    stat = CPLEX.get_status(model.inner)
+    ```
+    is now:
+    ```julia
+    stat = CPXgetstat(model.env, model.lp)
+    ```
+* Querying functionality has changed. For example:
+    ```julia
     is_point = CPLEX.cbcandidateispoint(cb_data)
-
-is now
-
+    ```
+    is now:
+    ```julia
     is_point_P = Ref{Cint}()
     CPXcallbackcandidateispoint(cb_data, is_point_P)
     if ret != 0
         # Do something because the call failed
     end
     is_point = is_point_P[]
-
-For users of `CPLEX.Optimizer`, `model.inner` has been replaced by the fields
-`model.env` and `model.lp`, which correspond to the environment and problem
-pointers at the C API level.
-
-For example:
-
-    stat = CPLEX.get_status(model.inner)
-
-is now:
-
-    stat = CPXgetstat(model.env, model.lp)
+    ```
 
 The new API is more verbose, but the names and function arguments are now
 identical to the C API, documentation for which is available at:
@@ -38,6 +42,7 @@ To revert to the old API, use:
 
 Then restart Julia for the change to take effect.
 """
+
 add_constr!(args...; kwargs...) = error(_DEPRECATED_ERROR_MESSAGE)
 
 add_constrs!(args...; kwargs...) = error(_DEPRECATED_ERROR_MESSAGE)
