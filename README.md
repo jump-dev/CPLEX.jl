@@ -99,6 +99,11 @@ function my_callback_function(cb_data::CPLEX.CallbackContext, context_id::Clong)
     if context_id != CPX_CALLBACKCONTEXT_CANDIDATE
         return
     end
+    ispoint_p = Ref{Cint}()
+    ret = CPXcallbackcandidateispoint(cb_data, ispoint_p)
+    if ret != 0 || ispoint_p[] == 0
+        return  # No candidate point available or error
+    end
     # You can query CALLBACKINFO items
     valueP = Ref{Cdouble}()
     ret = CPXcallbackgetinfodbl(cb_data, CPXCALLBACKINFO_BEST_BND, valueP)
