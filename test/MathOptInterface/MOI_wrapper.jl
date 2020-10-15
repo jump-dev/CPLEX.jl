@@ -92,6 +92,37 @@ function test_contquadratictest()
     )
 end
 
+function test_CPXPARAM_OptimalityTarget()
+    # Test setting CPXPARAM_OptimalityTarget because it changes the problem
+    # type.
+    # Max x^2
+    # s.t. 1 <= x <= 4
+    model = CPLEX.Optimizer()
+    MOI.set(model, MOI.Silent(), true)
+    x = MOI.add_variable(model)
+    MOI.add_constraint(model, MOI.SingleVariable(x), MOI.Interval(1.0, 4.0))
+    MOI.set(
+        model,
+        MOI.ObjectiveFunction{MOI.ScalarQuadraticFunction{Float64}}(),
+        MOI.ScalarQuadraticFunction(
+            MOI.ScalarAffineTerm{Float64}[],
+            [MOI.ScalarQuadraticTerm(2.0, x, x)],
+            0.0,
+        )
+    )
+    MOI.set(model, MOI.ObjectiveSense(), MOI.MAX_SENSE)
+    MOI.set(
+        model,
+        MOI.RawParameter("CPXPARAM_OptimalityTarget"),
+        CPX_OPTIMALITYTARGET_OPTIMALGLOBAL,
+    )
+    MOI.optimize!(model)
+    @test MOI.get(model, MOI.TerminationStatus()) == MOI.OPTIMAL
+    @test MOI.get(model, MOI.PrimalStatus()) == MOI.FEASIBLE_POINT
+    @test MOI.get(model, MOI.ObjectiveValue()) ≈ 16.0 atol=1e-6
+    @test MOI.get(model, MOI.VariablePrimal(), x) ≈ 4.0 atol=1e-6
+end
+
 function test_contconic()
     MOIT.lintest(BRIDGED_OPTIMIZER, CONFIG)
 
