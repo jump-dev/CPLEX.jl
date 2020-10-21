@@ -1,6 +1,7 @@
 **CPLEX.jl underwent a major rewrite between versions 0.6.6 and 0.7.0. Users of
 JuMP should see no breaking changes, but if you used the lower-level C API
-(e.g., for callbacks), you will need to update your code accordingly.**
+(e.g., for callbacks), you will need to update your code accordingly. For a full
+description of the changes, read [this discourse post](https://discourse.julialang.org/t/ann-upcoming-breaking-changes-to-cplex-jl-and-gurobi-jl/47814).**
 
 **To revert to the old API, use:**
 ```julia
@@ -32,6 +33,8 @@ CPLEX license to test `CPLEX.jl` on Travis. If you are a commercial customer
 interested in official support for CPLEX in Julia, let them know!.*
 
 ## Installation
+
+**Minimum version requirement:** CPLEX.jl requires CPLEX version 12.10.
 
 First, obtain a license of CPLEX and install CPLEX solver, following the
 instructions on [IBM's website](https://www.ibm.com/analytics/cplex-optimizer). Then, set the

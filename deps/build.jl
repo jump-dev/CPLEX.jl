@@ -64,7 +64,13 @@ function try_local_installation()
         return
     end
     error("""
-    Unable to locate CPLEX installation. Note this must be downloaded separately.
+    Unable to install CPLEX.jl.
+
+    The versions of CPLEX supported by CPLEX.jl are:
+
+    * 12.10
+
+    You must download and install one of these versions separately.
 
     You should set the `CPLEX_STUDIO_BINARIES` environment variable to point to
     the install location then try again. For example (updating the path to the
