@@ -14,13 +14,17 @@ include("gen/ctypes.jl")
 include("gen/libcpx_common.jl")
 include("gen/libcpx_api.jl")
 
-const _CPLEX_VERSION = let
-    status_p = Ref{Cint}()
-    env = CPXopenCPLEX(status_p)
-    p = CPXversion(env)
-    version_string = unsafe_string(p)
-    CPXcloseCPLEX(Ref(env))
-    VersionNumber(parse.(Int, split(version_string, ".")[1:3])...)
+const _CPLEX_VERSION = if libcplex == "julia_registryci_automerge"
+    VersionNumber(12, 10, 0)  # Fake a valid version for AutoMerge.
+else
+    let
+        status_p = Ref{Cint}()
+        env = CPXopenCPLEX(status_p)
+        p = CPXversion(env)
+        version_string = unsafe_string(p)
+        CPXcloseCPLEX(Ref(env))
+        VersionNumber(parse.(Int, split(version_string, ".")[1:3])...)
+    end
 end
 
 if !(v"12.10.0" <= _CPLEX_VERSION < v"12.11")
