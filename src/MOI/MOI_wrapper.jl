@@ -2720,6 +2720,51 @@ function _dual_multiplier(model::Optimizer)
     return MOI.get(model, MOI.ObjectiveSense()) == MOI.MIN_SENSE ? 1.0 : -1.0
 end
 
+"""
+    _farkas_variable_dual(model::Optimizer, col::Cint)
+
+Return a Farkas dual associated with the variable bounds of `col`.
+
+Compute the Farkas dual as:
+
+    ā * x = λ' * A * x <= λ' * b = -β + sum(āᵢ * Uᵢ | āᵢ < 0) + sum(āᵢ * Lᵢ | āᵢ > 0)
+
+The Farkas dual of the variable is ā, and it applies to the upper bound if ā < 0,
+and it applies to the lower bound if ā > 0.
+"""
+function _farkas_variable_dual(model::Optimizer, col::Cint)
+    nzcnt_p, surplus_p = Ref{Cint}(), Ref{Cint}()
+    cmatbeg = Vector{Cint}(undef, 2)
+    ret = CPXgetcols(
+        model.env,
+        model.lp,
+        nzcnt_p,
+        cmatbeg,
+        C_NULL,
+        C_NULL,
+        Cint(0),
+        surplus_p,
+        col,
+        col,
+    )
+    cmatind = Vector{Cint}(undef, -surplus_p[])
+    cmatval = Vector{Cdouble}(undef, -surplus_p[])
+    ret = CPXgetcols(
+        model.env,
+        model.lp,
+        nzcnt_p,
+        cmatbeg,
+        cmatind,
+        cmatval,
+        -surplus_p[],
+        surplus_p,
+        col,
+        col,
+    )
+    _check_ret(model, ret)
+    return sum(v * model.certificate[i + 1] for (i, v) in zip(cmatind, cmatval))
+end
+
 function MOI.get(
     model::Optimizer,
     attr::MOI.ConstraintDual,
@@ -2728,6 +2773,10 @@ function MOI.get(
     _throw_if_optimize_in_progress(model, attr)
     MOI.check_result_index_bounds(model, attr)
     col = Cint(column(model, c) - 1)
+    if model.has_dual_certificate
+        dual = -_farkas_variable_dual(model, col)
+        return min(0.0, dual)
+    end
     p = Ref{Cdouble}()
     ret = CPXgetdj(model.env, model.lp, p, col, col)
     _check_ret(model, ret)
@@ -2758,6 +2807,10 @@ function MOI.get(
     _throw_if_optimize_in_progress(model, attr)
     MOI.check_result_index_bounds(model, attr)
     col = Cint(column(model, c) - 1)
+    if model.has_dual_certificate
+        dual = -_farkas_variable_dual(model, col)
+        return max(0.0, dual)
+    end
     p = Ref{Cdouble}()
     ret = CPXgetdj(model.env, model.lp, p, col, col)
     _check_ret(model, ret)
@@ -2783,25 +2836,16 @@ end
 function MOI.get(
     model::Optimizer,
     attr::MOI.ConstraintDual,
-    c::MOI.ConstraintIndex{MOI.SingleVariable, MOI.EqualTo{Float64}},
+    c::MOI.ConstraintIndex{
+        MOI.SingleVariable, <:Union{MOI.Interval{Float64}, MOI.EqualTo{Float64}}
+    },
 )
     _throw_if_optimize_in_progress(model, attr)
     MOI.check_result_index_bounds(model, attr)
     col = Cint(column(model, c) - 1)
-    p = Ref{Cdouble}()
-    ret = CPXgetdj(model.env, model.lp, p, col, col)
-    _check_ret(model, ret)
-    return _dual_multiplier(model) * p[]
-end
-
-function MOI.get(
-    model::Optimizer,
-    attr::MOI.ConstraintDual,
-    c::MOI.ConstraintIndex{MOI.SingleVariable, MOI.Interval{Float64}},
-)
-    _throw_if_optimize_in_progress(model, attr)
-    MOI.check_result_index_bounds(model, attr)
-    col = Cint(column(model, c) - 1)
+    if model.has_dual_certificate
+        return -_farkas_variable_dual(model, col)
+    end
     p = Ref{Cdouble}()
     ret = CPXgetdj(model.env, model.lp, p, col, col)
     _check_ret(model, ret)
@@ -2834,6 +2878,9 @@ function MOI.get(
     # https://www.ibm.com/support/knowledgecenter/SSSA5P_12.10.0/ilog.odms.cplex.help/CPLEX/UsrMan/topics/cont_optim/qcp/17_QCP_duals.html
     _throw_if_optimize_in_progress(model, attr)
     MOI.check_result_index_bounds(model, attr)
+    if model.has_dual_certificate
+        error("Infeasibility certificate not available for $(c)")
+    end
     # The derivative of a quadratic f(x) = x^TQx + a^Tx + b <= 0 is
     # ∇f(x) = Q^Tx + Qx + a
     # The dual is undefined if x is at the point of the cone. This can only be
