@@ -101,19 +101,19 @@ function try_local_installation()
     """)
 end
 
-function try_travis_installation()
+function try_ci_installation()
     url = ENV["SECRET_CPLEX_URL_12100"]
     local_filename = joinpath(@__DIR__, "libcplex.so")
     download(url, local_filename)
     write_depsfile(local_filename)
 end
 
-if get(ENV, "TRAVIS", "false") == "true"
-    try_travis_installation()
-elseif get(ENV, "JULIA_REGISTRYCI_AUTOMERGE", "false") == "true"
+if get(ENV, "JULIA_REGISTRYCI_AUTOMERGE", "false") == "true"
     # We need to be able to install and load this package without error for
     # Julia's registry AutoMerge to work. Just write a fake libcplex path.
     write_depsfile("julia_registryci_automerge")
+elseif get(ENV, "SECRET_CPLEX_URL_12100", "") != ""
+    try_ci_installation()
 else
     try_local_installation()
 end
