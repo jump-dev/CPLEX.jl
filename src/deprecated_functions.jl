@@ -414,3 +414,5 @@ version(args...; kwargs...) = error(_DEPRECATED_ERROR_MESSAGE)
 
 write_model(args...; kwargs...) = error(_DEPRECATED_ERROR_MESSAGE)
 
+CplexSolver(args...; kwargs...) = error(_DEPRECATED_ERROR_MESSAGE)
+export CplexSolver
