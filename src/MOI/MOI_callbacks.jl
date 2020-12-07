@@ -1,6 +1,7 @@
 mutable struct CallbackContext
     model::Optimizer
     ptr::Ptr{Cvoid}
+    context_id::Clong
 end
 Base.cconvert(::Type{Ptr{Cvoid}}, x::CallbackContext) = x
 Base.unsafe_convert(::Type{Ptr{Cvoid}}, x::CallbackContext) = x.ptr::Ptr{Cvoid}
@@ -22,7 +23,7 @@ function _cplex_callback_wrapper(
     user_data = unsafe_pointer_to_objref(p_user_data)::_CallbackUserData
     try
         user_data.callback(
-            CallbackContext(user_data.model, p_context), context_id
+            CallbackContext(user_data.model, p_context, context_id), context_id
         )
     catch ex
         CPXcallbackabort(p_context)
@@ -207,6 +208,15 @@ function MOI.get(
     x::MOI.VariableIndex
 )
     return model.callback_variable_primal[_info(model, x).column]
+end
+
+function MOI.get(::Optimizer, attr::MOI.CallbackNodeStatus{CallbackContext})
+    if attr.callback_data.context_id == CPX_CALLBACKCONTEXT_CANDIDATE
+        return MOI.CALLBACK_NODE_STATUS_INTEGER
+    elseif attr.callback_data.context_id == CPX_CALLBACKCONTEXT_RELAXATION
+        return MOI.CALLBACK_NODE_STATUS_FRACTIONAL
+    end
+    return MOI.CALLBACK_NODE_STATUS_UNKNOWN
 end
 
 # ==============================================================================

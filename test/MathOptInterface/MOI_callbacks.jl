@@ -60,6 +60,12 @@ function test_LazyConstraint()
         lazy_called = true
         x_val = MOI.get(model, MOI.CallbackVariablePrimal(cb_data), x)
         y_val = MOI.get(model, MOI.CallbackVariablePrimal(cb_data), y)
+        status = MOI.get(model, MOI.CallbackNodeStatus(cb_data))::MOI.CallbackNodeStatusCode
+        if round.(Int, [x_val, y_val]) ≈ [x_val, y_val] atol=1e-6
+            @test status == MOI.CALLBACK_NODE_STATUS_INTEGER
+        else
+            @test status == MOI.CALLBACK_NODE_STATUS_FRACTIONAL
+        end
         @test MOI.supports(model, MOI.LazyConstraint(cb_data))
         if y_val - x_val > 1 + 1e-6
             MOI.submit(
@@ -225,6 +231,12 @@ function test_Heuristic()
     callback_called = false
     MOI.set(model, MOI.HeuristicCallback(), cb_data -> begin
         x_vals = MOI.get.(model, MOI.CallbackVariablePrimal(cb_data), x)
+        status = MOI.get(model, MOI.CallbackNodeStatus(cb_data))::MOI.CallbackNodeStatusCode
+        if round.(Int, x_vals) ≈ x_vals atol=1e-6
+            @test status == MOI.CALLBACK_NODE_STATUS_INTEGER
+        else
+            @test status == MOI.CALLBACK_NODE_STATUS_FRACTIONAL
+        end
         @test MOI.supports(model, MOI.HeuristicSolution(cb_data))
         @test MOI.submit(
             model,
@@ -392,6 +404,18 @@ function test_CallbackFunction_HeuristicSolution()
     end)
     MOI.optimize!(model)
     @test callback_called
+end
+
+function test_CallbackFunction_CallbackNodeStatus()
+    model, x, item_weights = callback_knapsack_model()
+    unknown_reached = false
+    MOI.set(model, CPLEX.CallbackFunction(), (cb_data, cb_context) -> begin
+        if MOI.get(model, MOI.CallbackNodeStatus(cb_data)) == MOI.CALLBACK_NODE_STATUS_UNKNOWN
+            unknown_reached = true
+        end
+    end)
+    MOI.optimize!(model)
+    @test unknown_reached
 end
 
 function test_CPXcallbackabort()
