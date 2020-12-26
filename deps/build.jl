@@ -32,7 +32,7 @@ function try_local_installation()
     # the path (directly the callable library or # the CPLEX executable) or from
     # an environment variable.
     cpxvers = [
-        "1210", "12100"
+        "1210", "12100", "201", "2010"
     ]
     base_env = "CPLEX_STUDIO_BINARIES"
 
