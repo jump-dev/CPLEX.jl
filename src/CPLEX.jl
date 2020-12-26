@@ -10,29 +10,33 @@ end
 using CEnum
 import SparseArrays
 
-include("gen/ctypes.jl")
-include("gen/libcpx_common.jl")
-include("gen/libcpx_api.jl")
-
 const _CPLEX_VERSION = if libcplex == "julia_registryci_automerge"
     VersionNumber(12, 10, 0)  # Fake a valid version for AutoMerge.
 else
     let
         status_p = Ref{Cint}()
-        env = CPXopenCPLEX(status_p)
-        p = CPXversion(env)
+        env = ccall((:CPXopenCPLEX, libcplex), Ptr{Cvoid}, (Ptr{Cint},), status_p)
+        p = ccall((:CPXversion, libcplex), Cstring, (Ptr{Cvoid},), env)
         version_string = unsafe_string(p)
-        CPXcloseCPLEX(Ref(env))
+        ccall((:CPXcloseCPLEX, libcplex), Cint, (Ptr{Ptr{Cvoid}},), Ref(env))
         VersionNumber(parse.(Int, split(version_string, ".")[1:3])...)
     end
 end
 
-if !(v"12.10.0" <= _CPLEX_VERSION < v"12.11")
+if _CPLEX_VERSION == v"12.10.0"
+    include("gen1210/ctypes.jl")
+    include("gen1210/libcpx_common.jl")
+    include("gen1210/libcpx_api.jl")
+elseif _CPLEX_VERSION == v"20.1.0"
+    include("gen2010/ctypes.jl")
+    include("gen2010/libcpx_common.jl")
+    include("gen2010/libcpx_api.jl")
+else
     error("""
     You have installed version $_CPLEX_VERSION of CPLEX, which is not supported
-    by CPLEX.jl. We require CPLEX version 12.10.
+    by CPLEX.jl. We require CPLEX version 12.10 or 20.1.
 
-    After installing CPLEX 12.10, run:
+    After installing CPLEX, run:
 
         import Pkg
         Pkg.rm("CPLEX")
