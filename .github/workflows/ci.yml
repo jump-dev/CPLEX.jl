@@ -6,7 +6,7 @@ on:
     types: [opened, synchronize, reopened]
 jobs:
   test:
-    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    name: CPLEX${{ matrix.cplex_version}} Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -35,7 +35,7 @@ jobs:
         env:
           SECRET_CPLEX_URL_12100: ${{ secrets.CPLEX_URL_12100 }}
           SECRET_CPLEX_URL_2010: ${{ secrets.CPLEX_URL_2010 }}
-          CPLEX_VERSION: ${{ runner.cplex_version }}
+          CPLEX_VERSION: ${{ matrix.cplex_version }}
       - uses: julia-actions/julia-runtest@v1
       - uses: julia-actions/julia-processcoverage@v1
       - uses: codecov/codecov-action@v1
