@@ -15,10 +15,10 @@ const _CPLEX_VERSION = if libcplex == "julia_registryci_automerge"
 else
     let
         status_p = Ref{Cint}()
-        env = CPXopenCPLEX(status_p)
-        p = CPXversion(env)
+        env = ccall((:CPXopenCPLEX, libcplex), Ptr{Cvoid}, (Ptr{Cint},), status_p)
+        p = ccall((:CPXversion, libcplex), Cstring, (Ptr{Cvoid},), env)
         version_string = unsafe_string(p)
-        CPXcloseCPLEX(Ref(env))
+        ccall((:CPXcloseCPLEX, libcplex), Cint, (Ptr{Ptr{Cvoid}},), Ref(env))
         VersionNumber(parse.(Int, split(version_string, ".")[1:3])...)
     end
 end
