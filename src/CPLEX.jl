@@ -10,9 +10,9 @@ end
 using CEnum
 import SparseArrays
 
-include("gen/ctypes.jl")
-include("gen/libcpx_common.jl")
-include("gen/libcpx_api.jl")
+include("gen1210/ctypes.jl")
+include("gen1210/libcpx_common.jl")
+include("gen1210/libcpx_api.jl")
 
 const _CPLEX_VERSION = if libcplex == "julia_registryci_automerge"
     VersionNumber(12, 10, 0)  # Fake a valid version for AutoMerge.
