@@ -10,10 +10,6 @@ end
 using CEnum
 import SparseArrays
 
-include("gen1210/ctypes.jl")
-include("gen1210/libcpx_common.jl")
-include("gen1210/libcpx_api.jl")
-
 const _CPLEX_VERSION = if libcplex == "julia_registryci_automerge"
     VersionNumber(12, 10, 0)  # Fake a valid version for AutoMerge.
 else
@@ -27,12 +23,24 @@ else
     end
 end
 
-if !(v"12.10.0" <= _CPLEX_VERSION < v"12.11")
+function _is_patch(x::VersionNumber, reference::VersionNumber)
+    return x.major == reference.major && x.minor == reference.minor
+end
+
+if _is_patch(_CPLEX_VERSION, v"12.10")
+    include("gen1210/ctypes.jl")
+    include("gen1210/libcpx_common.jl")
+    include("gen1210/libcpx_api.jl")
+elseif _is_patch(_CPLEX_VERSION, v"20.1")
+    include("gen201/ctypes.jl")
+    include("gen201/libcpx_common.jl")
+    include("gen201/libcpx_api.jl")
+else
     error("""
     You have installed version $_CPLEX_VERSION of CPLEX, which is not supported
-    by CPLEX.jl. We require CPLEX version 12.10.
+    by CPLEX.jl. We require CPLEX version 12.10 or 20.1.
 
-    After installing CPLEX 12.10, run:
+    After installing a supported version of CPLEX, run:
 
         import Pkg
         Pkg.rm("CPLEX")

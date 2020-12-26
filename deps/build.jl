@@ -32,7 +32,7 @@ function try_local_installation()
     # the path (directly the callable library or # the CPLEX executable) or from
     # an environment variable.
     cpxvers = [
-        "1210", "12100"
+        "1210", "12100", "201", "2010", "20100"
     ]
     base_env = "CPLEX_STUDIO_BINARIES"
 
@@ -69,6 +69,7 @@ function try_local_installation()
     The versions of CPLEX supported by CPLEX.jl are:
 
     * 12.10
+    * 20.1
 
     You must download and install one of these versions separately.
 
