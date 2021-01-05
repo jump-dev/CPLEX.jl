@@ -34,7 +34,7 @@ interested in official support for CPLEX in Julia, let them know!.*
 
 ## Installation
 
-**Minimum version requirement:** CPLEX.jl requires CPLEX version 12.10.
+**Minimum version requirement:** CPLEX.jl requires CPLEX version 12.10 or 20.1.
 
 First, obtain a license of CPLEX and install CPLEX solver, following the
 instructions on [IBM's website](https://www.ibm.com/analytics/cplex-optimizer). Then, set the
