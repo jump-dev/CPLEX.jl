@@ -5,6 +5,7 @@ mutable struct CallbackContext
 end
 Base.cconvert(::Type{Ptr{Cvoid}}, x::CallbackContext) = x
 Base.unsafe_convert(::Type{Ptr{Cvoid}}, x::CallbackContext) = x.ptr::Ptr{Cvoid}
+Base.broadcastable(x::CallbackContext) = Ref(x)
 
 mutable struct _CallbackUserData
     model::Optimizer
