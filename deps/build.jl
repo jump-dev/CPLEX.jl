@@ -44,7 +44,7 @@ function get_error_message_if_not_found()
     correct location if needed):
     
     ```
-    ENV["CPLEX_STUDIO_BINARIES"] = "$(possible_paths(["CPLEX_Studio201"]))"
+    ENV["CPLEX_STUDIO_BINARIES"] = "$(possible_paths(["CPLEX_Studio201"])[1])"
     import Pkg
     Pkg.add("CPLEX")
     Pkg.build("CPLEX")
