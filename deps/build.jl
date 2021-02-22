@@ -78,7 +78,7 @@ function try_local_installation()
     end
 
     # Iterate through a series of places where CPLEX could be found: either in
-    # the path (directly the callable library or # the CPLEX executable) or from
+    # the path (directly the callable library or the CPLEX executable) or from
     # an environment variable.
     cpxvers = [
         "1210", "12100",
