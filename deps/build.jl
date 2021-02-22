@@ -16,6 +16,63 @@ function library_name(v)
     return "$(cpx_prefix)cplex$(v).$(Libdl.dlext)"
 end
 
+function get_error_message_if_not_found()
+    # Make the best guess for the CPLEX folder, based on the platform.
+    cplex_studio_stem_folders = ["CPLEX_Studio201", "CPLEX_Studio1210"]
+    cplex_studio_folders_win = ["C:\\\\Program Files\\\\$f\\\\cplex\\\\bin\\\\x86-64_win\\\\" for f in cplex_studio_stem_folders]
+    cplex_studio_folders_mac = ["/Applications/$f/cplex/bin/x86-64_osx/" for f in cplex_studio_stem_folders]
+    cplex_studio_folders_lin = ["/opt/$f/cplex/bin/x86-64_linux/" for f in cplex_studio_stem_folders]
+    
+    cplex_studio_folders = if Sys.iswindows()
+        cplex_studio_folders_win 
+    elseif Sys.isapple()
+        cplex_studio_folders_mac
+    else
+        cplex_studio_folders_lin
+    end
+    
+    cplex_studio_folder_guessed = cplex_studio_folders[1] # If none is found, propose the first one, arbitrarily. 
+    for f in cplex_studio_folders
+        if isdir(f)
+            cplex_studio_folder_guessed = f
+        end
+    end
+
+    # Create the error message based on the user's system and the best guess.
+    error_beginning = """
+    Unable to install CPLEX.jl.
+
+    The versions of CPLEX supported by CPLEX.jl are:
+
+    * 12.10
+    * 20.1
+
+    You must download and install one of these versions separately.
+
+    You should set the `CPLEX_STUDIO_BINARIES` environment variable to point to
+    the install location then try again. For example (updating the path to the
+    correct location if needed):
+    
+    ```
+    """
+    
+    error_middle = """
+    ENV["CPLEX_STUDIO_BINARIES"] = "$(cplex_studio_folder_guessed)"
+    import Pkg
+    Pkg.add("CPLEX")
+    Pkg.build("CPLEX")
+    """
+    
+    error_end = """
+    ```
+
+    See the CPLEX.jl README at https://github.com/jump-dev/CPLEX.jl for further
+    instructions.
+    """
+    
+    return error_beginning * error_middle * error_end
+end
+
 function try_local_installation()
     # Find the path to the CPLEX executable.
     cplex_path = try
@@ -64,43 +121,8 @@ function try_local_installation()
         @info("Using CPLEX found in location `$(l)`")
         return
     end
-    error("""
-    Unable to install CPLEX.jl.
-
-    The versions of CPLEX supported by CPLEX.jl are:
-
-    * 12.10
-    * 20.1
-
-    You must download and install one of these versions separately.
-
-    You should set the `CPLEX_STUDIO_BINARIES` environment variable to point to
-    the install location then try again. For example (updating the path to the
-    correct location if needed):
-
-    ```
-    # On Windows, this might be
-    ENV["CPLEX_STUDIO_BINARIES"] = "C:\\\\Program Files\\\\CPLEX_Studio1210\\\\cplex\\\\bin\\\\x86-64_win\\\\"
-    import Pkg
-    Pkg.add("CPLEX")
-    Pkg.build("CPLEX")
-
-    # On OSX, this might be
-    ENV["CPLEX_STUDIO_BINARIES"] = "/Applications/CPLEX_Studio1210/cplex/bin/x86-64_osx/"
-    import Pkg
-    Pkg.add("CPLEX")
-    Pkg.build("CPLEX")
-
-    # On Unix, this might be
-    ENV["CPLEX_STUDIO_BINARIES"] = "/opt/CPLEX_Studio1210/cplex/bin/x86-64_linux/"
-    import Pkg
-    Pkg.add("CPLEX")
-    Pkg.build("CPLEX")
-    ```
-
-    See the CPLEX.jl README at https://github.com/jump-dev/CPLEX.jl for further
-    instructions.
-    """)
+    
+    error(get_error_message_if_not_found())
 end
 
 function try_ci_installation()
