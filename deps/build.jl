@@ -28,16 +28,6 @@ function possible_paths(cplex_studio_paths::Vector{String})
     end
 end
 
-function guess_cplex_folder(cplex_studio_paths::Vector{String})
-    for f in possible_paths(cplex_studio_paths)
-        if isdir(f)
-            return true, f
-        end
-    end
-
-    return false, nothing
-end
-
 function get_error_message_if_not_found()
     return """
     Unable to install CPLEX.jl.
@@ -102,9 +92,9 @@ function try_local_installation()
             end
         end
         
-        guess_worked, guessed_path = guess_cplex_folder(["CPLEX_Studio$v"])
-        if guess_worked
-            push!(libnames, joinpath(guessed_path, name))
+        guessed_file = joinpath(possible_path("CPLEX_Studio$v"), name)
+        if isfile(guessed_file)
+            push!(libnames, guessed_file)
         end
     end
 
