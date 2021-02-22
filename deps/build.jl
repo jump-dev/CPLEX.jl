@@ -16,15 +16,13 @@ function library_name(v)
     return "$(cpx_prefix)cplex$(v).$(Libdl.dlext)"
 end
 
-function possible_paths(cplex_studio_paths::Vector{String})
-    return map(cplex_studio_paths) do f
-        if Sys.iswindows()
-            return escape_string("C:\\Program Files\\IBM\\ILOG\\$f\\cplex\\bin\\x64_win64\\")
-        elseif Sys.isapple()
-            return "/Applications/$f/cplex/bin/x86-64_osx/"
-        else
-            return "/opt/$f/cplex/bin/x86-64_linux/"
-        end
+function possible_path(cplex_studio_path::AbstractString)
+    if Sys.iswindows()
+        return escape_string("C:\\Program Files\\IBM\\ILOG\\$cplex_studio_path\\cplex\\bin\\x64_win64\\")
+    elseif Sys.isapple()
+        return "/Applications/$cplex_studio_path/cplex/bin/x86-64_osx/"
+    else
+        return "/opt/$cplex_studio_path/cplex/bin/x86-64_linux/"
     end
 end
 
@@ -44,7 +42,7 @@ function get_error_message_if_not_found()
     correct location if needed):
     
     ```
-    ENV["CPLEX_STUDIO_BINARIES"] = "$(possible_paths(["CPLEX_Studio201"])[1])"
+    ENV["CPLEX_STUDIO_BINARIES"] = "$(possible_path("CPLEX_Studio201"))"
     import Pkg
     Pkg.add("CPLEX")
     Pkg.build("CPLEX")
