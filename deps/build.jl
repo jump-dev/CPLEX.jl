@@ -16,9 +16,8 @@ function library_name(v)
     return "$(cpx_prefix)cplex$(v).$(Libdl.dlext)"
 end
 
-function get_error_message_if_not_found()
-    # Make the best guess for the CPLEX folder, based on the platform.
-    cplex_studio_folders = map(["CPLEX_Studio201", "CPLEX_Studio1210"]) do f
+function possible_paths(cplex_studio_paths::Vector{String})
+    return map(cplex_studio_paths) do f
         if Sys.iswindows()
             return escape_string("C:\\Program Files\\IBM\\ILOG\\$f\\cplex\\bin\\x64_win64\\")
         elseif Sys.isapple()
@@ -27,15 +26,19 @@ function get_error_message_if_not_found()
             return "/opt/$f/cplex/bin/x86-64_linux/"
         end
     end
-    
-    cplex_studio_folder_guessed = cplex_studio_folders[1] # If none is found, propose the first one, arbitrarily. 
-    for f in cplex_studio_folders
+end
+
+function guess_cplex_folder(cplex_studio_paths::Vector{String})
+    for f in possible_paths(cplex_studio_paths)
         if isdir(f)
-            cplex_studio_folder_guessed = f
+            return true, f
         end
     end
 
-    # Create the error message based on the user's system and the best guess.
+    return false, nothing
+end
+
+function get_error_message_if_not_found()
     return """
     Unable to install CPLEX.jl.
 
@@ -51,7 +54,7 @@ function get_error_message_if_not_found()
     correct location if needed):
     
     ```
-    ENV["CPLEX_STUDIO_BINARIES"] = "$(cplex_studio_folder_guessed)"
+    ENV["CPLEX_STUDIO_BINARIES"] = "$(possible_paths(["CPLEX_Studio201"]))"
     import Pkg
     Pkg.add("CPLEX")
     Pkg.build("CPLEX")
@@ -97,6 +100,11 @@ function try_local_installation()
             for d in split(ENV[env], ';')
                 push!(libnames, joinpath(d, name))
             end
+        end
+        
+        guess_worked, guessed_path = guess_cplex_folder(["CPLEX_Studio$v"])
+        if guess_worked
+            push!(libnames, joinpath(guessed_path, name))
         end
     end
 
