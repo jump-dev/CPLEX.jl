@@ -39,7 +39,7 @@ function get_error_message_if_not_found()
     end
 
     # Create the error message based on the user's system and the best guess.
-    error_beginning = """
+    return """
     Unable to install CPLEX.jl.
 
     The versions of CPLEX supported by CPLEX.jl are:
@@ -54,23 +54,15 @@ function get_error_message_if_not_found()
     correct location if needed):
     
     ```
-    """
-    
-    error_middle = """
     ENV["CPLEX_STUDIO_BINARIES"] = "$(cplex_studio_folder_guessed)"
     import Pkg
     Pkg.add("CPLEX")
     Pkg.build("CPLEX")
-    """
-    
-    error_end = """
     ```
 
     See the CPLEX.jl README at https://github.com/jump-dev/CPLEX.jl for further
     instructions.
     """
-    
-    return error_beginning * error_middle * error_end
 end
 
 function try_local_installation()
