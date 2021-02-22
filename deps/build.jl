@@ -18,17 +18,14 @@ end
 
 function get_error_message_if_not_found()
     # Make the best guess for the CPLEX folder, based on the platform.
-    cplex_studio_stem_folders = ["CPLEX_Studio201", "CPLEX_Studio1210"]
-    cplex_studio_folders_win = ["C:\\\\Program Files\\\\IBM\\\\ILOG\\\\$f\\\\cplex\\\\bin\\\\x64_win64\\\\" for f in cplex_studio_stem_folders]
-    cplex_studio_folders_mac = ["/Applications/$f/cplex/bin/x86-64_osx/" for f in cplex_studio_stem_folders]
-    cplex_studio_folders_lin = ["/opt/$f/cplex/bin/x86-64_linux/" for f in cplex_studio_stem_folders]
-    
-    cplex_studio_folders = if Sys.iswindows()
-        cplex_studio_folders_win 
-    elseif Sys.isapple()
-        cplex_studio_folders_mac
-    else
-        cplex_studio_folders_lin
+    cplex_studio_folders = map(["CPLEX_Studio201", "CPLEX_Studio1210"]) do f
+        if Sys.iswindows()
+            return "C:\\\\Program Files\\\\$f\\\\cplex\\\\bin\\\\x86-64_win\\\\"
+        elseif Sys.isapple()
+            return "/Applications/$f/cplex/bin/x86-64_osx/"
+        else
+            return "/opt/$f/cplex/bin/x86-64_linux/"
+        end
     end
     
     cplex_studio_folder_guessed = cplex_studio_folders[1] # If none is found, propose the first one, arbitrarily. 
