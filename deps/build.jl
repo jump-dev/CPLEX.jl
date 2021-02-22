@@ -20,7 +20,7 @@ function get_error_message_if_not_found()
     # Make the best guess for the CPLEX folder, based on the platform.
     cplex_studio_folders = map(["CPLEX_Studio201", "CPLEX_Studio1210"]) do f
         if Sys.iswindows()
-            return "C:\\\\Program Files\\\\$f\\\\cplex\\\\bin\\\\x86-64_win\\\\"
+            return "C:\\\\Program Files\\\\IBM\\\\ILOG\\\\$f\\\\cplex\\\\bin\\\\x64_win64\\\\"
         elseif Sys.isapple()
             return "/Applications/$f/cplex/bin/x86-64_osx/"
         else
