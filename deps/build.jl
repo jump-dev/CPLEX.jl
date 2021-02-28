@@ -90,9 +90,11 @@ function try_local_installation()
             end
         end
         
-        guessed_file = joinpath(possible_path("CPLEX_Studio$v"), name)
-        if isfile(guessed_file)
-            push!(libnames, guessed_file)
+        for product in ["CPLEX_Studio$v", "CPLEX_Enterprise_Server$v/CPLEX_Studio"]
+            guessed_file = joinpath(possible_path(product), name)
+            if isfile(guessed_file)
+                push!(libnames, guessed_file)
+            end
         end
     end
 
