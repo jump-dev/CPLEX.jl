@@ -112,20 +112,40 @@ end
 Base.cconvert(::Type{Ptr{Cvoid}}, x::Env) = x
 Base.unsafe_convert(::Type{Ptr{Cvoid}}, env::Env) = env.ptr::Ptr{Cvoid}
 
+function _get_error_string(env::Union{Env, CPXENVptr}, ret::Cint)
+    buffer = Array{Cchar}(undef, CPXMESSAGEBUFSIZE)
+    p = pointer(buffer)
+    return GC.@preserve buffer begin
+        errstr = CPXgeterrorstring(env, ret, p)
+        if errstr == C_NULL
+            "CPLEX Error $(ret): Unknown error code."
+        else
+            unsafe_string(p)
+        end
+    end
+end
+
 function _check_ret(env::Union{Env, CPXENVptr}, ret::Cint)
     if ret == 0
         return
     end
-    buffer = Array{Cchar}(undef, CPXMESSAGEBUFSIZE)
-    p = pointer(buffer)
-    GC.@preserve buffer begin
-        errstr = CPXgeterrorstring(env, ret, p)
-        if errstr == C_NULL
-            error("CPLEX Error $(ret): Unknown error code.")
-        else
-            error(unsafe_string(p))
-        end
+    error(_get_error_string(env, ret))
+end
+
+# If you add a new error code that, when returned by CPLEX inside `optimize!`,
+# should be treated as a TerminationStatus by MOI, to the global `Dict`
+# below, then the rest of the code should pick up on this seamlessly.
+const _ERROR_TO_STATUS = Dict{Cint, MOI.TerminationStatusCode}([
+    # CPLEX Code => TerminationStatus
+    CPXERR_NO_MEMORY => MOI.MEMORY_LIMIT,
+])
+
+# Same as _check_ret, but deals with the `model.ret_optimize` machinery.
+function _check_ret_optimize(model)
+    if !haskey(_ERROR_TO_STATUS, model.ret_optimize)
+        _check_ret(model, model.ret_optimize)
     end
+    return
 end
 
 mutable struct Optimizer <: MOI.AbstractOptimizer
@@ -172,6 +192,19 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     # lazily built on-demand, so most of the time, they are `nothing`.
     name_to_variable::Union{Nothing, Dict{String, Union{Nothing, MOI.VariableIndex}}}
     name_to_constraint_index::Union{Nothing, Dict{String, Union{Nothing, MOI.ConstraintIndex}}}
+
+    # CPLEX has more than one configurable memory limit, but these do not seem
+    # to cover all situations, for example, there are no memory limits for
+    # solving LPs with the many possible algorithms (simplex, barrier, etc...).
+    # In such situations, CPLEX does detect when it needs more memory than it
+    # is available, but returns an error code instead of setting the
+    # termination status (like it does for the configurable memory and time
+    # limits).  For convenience, and homogeinity with other solvers, we save
+    # the code obtained inside `_optimize!` in `ret_optimize`, and do not throw
+    # an exception case it should be interpreted as a termination status.
+    # Then, when/if the termination status is queried, we may override the
+    # result taking into account the `ret_optimize` field.
+    ret_optimize::Cint
 
     has_primal_certificate::Bool
     has_dual_certificate::Bool
@@ -269,6 +302,7 @@ function MOI.empty!(model::Optimizer)
     empty!(model.sos_constraint_info)
     model.name_to_variable = nothing
     model.name_to_constraint_index = nothing
+    model.ret_optimize = Cint(0)
     empty!(model.callback_variable_primal)
     empty!(model.certificate)
     model.has_primal_certificate = false
@@ -293,6 +327,7 @@ function MOI.is_empty(model::Optimizer)
     length(model.sos_constraint_info) != 0 && return false
     model.name_to_variable !== nothing && return false
     model.name_to_constraint_index !== nothing && return false
+    model.ret_optimize !== Cint(0) && return false
     length(model.callback_variable_primal) != 0 && return false
     model.callback_state != _CB_NONE && return false
     model.has_generic_callback && return false
@@ -2428,7 +2463,8 @@ function _optimize!(model)
         @assert prob_type == CPXPROB_LP
         CPXlpopt(model.env, model.lp)
     end
-    _check_ret(model, ret)
+    model.ret_optimize = ret
+    _check_ret_optimize(model)
     return
 end
 
@@ -2515,6 +2551,9 @@ end
 
 function MOI.get(model::Optimizer, attr::MOI.RawStatusString)
     _throw_if_optimize_in_progress(model, attr)
+    if haskey(_ERROR_TO_STATUS, model.ret_optimize)
+        return _get_error_string(model.env, model.ret_optimize)
+    end
     stat = CPXgetstat(model.env, model.lp)
     buffer_str = Vector{Cchar}(undef, CPXMESSAGEBUFSIZE)
     p = CPXgetstatstring(model.env, stat, buffer_str)
@@ -2601,6 +2640,9 @@ const _TERMINATION_STATUSES = Dict(
 
 function MOI.get(model::Optimizer, attr::MOI.TerminationStatus)
     _throw_if_optimize_in_progress(model, attr)
+    if haskey(_ERROR_TO_STATUS, model.ret_optimize)
+        return _ERROR_TO_STATUS[model.ret_optimize]
+    end
     stat = CPXgetstat(model.env, model.lp)
     if stat == 0
         return MOI.OPTIMIZE_NOT_CALLED
