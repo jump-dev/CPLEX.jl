@@ -726,6 +726,14 @@ function test_farkas_dual_max_ii()
     @test clb_dual[2] ≈ c_dual atol = 1e-6
 end
 
+function test_fake_status()
+    model = CPLEX.Optimizer()
+    model.ret_optimize = CPLEX.CPXERR_NO_MEMORY
+    @test MOI.get(model, MOI.TerminationStatus()) == MOI.MEMORY_LIMIT
+    @test MOI.get(model, MOI.RawStatusString()) ==
+        "CPLEX Error  1001: Out of memory.\n"
+end
+
 end  # module TestMOIwrapper
 
 runtests(TestMOIwrapper)
