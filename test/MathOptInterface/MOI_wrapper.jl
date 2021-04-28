@@ -342,7 +342,6 @@ function test_conflict_bounds()
 
     # Once it's called, no problem.
     MOI.compute_conflict!(model)
-    @test MOI.get(model, CPLEX.TerminationStatus()) == MOI.INFEASIBLE
     @test MOI.get(model, CPLEX.ConflictStatus()) == CPLEX.CPX_STAT_CONFLICT_MINIMAL
     @test MOI.get(model, MOI.ConflictStatus()) == MOI.CONFLICT_FOUND
     @test MOI.get(model, MOI.ConstraintConflictStatus(), c1) == MOI.IN_CONFLICT
@@ -364,7 +363,6 @@ function test_conflict_scalaraffine()
 
     # Once it's called, no problem.
     MOI.compute_conflict!(model)
-    @test MOI.get(model, CPLEX.TerminationStatus()) == MOI.INFEASIBLE
     @test MOI.get(model, CPLEX.ConflictStatus()) == CPLEX.CPX_STAT_CONFLICT_MINIMAL
     @test MOI.get(model, MOI.ConflictStatus()) == MOI.CONFLICT_FOUND
     @test MOI.get(model, MOI.ConstraintConflictStatus(), c1) == MOI.IN_CONFLICT
@@ -389,7 +387,6 @@ function test_conflict_two_bound()
 
     # Once it's called, no problem.
     MOI.compute_conflict!(model)
-    @test MOI.get(model, CPLEX.TerminationStatus()) == MOI.INFEASIBLE
     @test MOI.get(model, CPLEX.ConflictStatus()) == CPLEX.CPX_STAT_CONFLICT_MINIMAL
     @test MOI.get(model, MOI.ConflictStatus()) == MOI.CONFLICT_FOUND
     @test MOI.get(model, MOI.ConstraintConflictStatus(), b1) == MOI.IN_CONFLICT
