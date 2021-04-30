@@ -175,6 +175,27 @@ function MOI.get(
     end
 end
 
+function MOI.get(
+    model::Optimizer,
+    ::MOI.ConstraintConflictStatus,
+    index::MOI.ConstraintIndex{
+        MOI.SingleVariable,
+        <:Union{MOI.Integer, MOI.ZeroOne}
+    },
+)
+    _ensure_conflict_computed(model)
+    cindex = findfirst(
+        x -> x == Cint(_info(model, index).column - 1), model.conflict.colind
+    )
+    if cindex === nothing
+        return MOI.NOT_IN_CONFLICT
+    elseif model.conflict.colbdstat[rindex] == CPX_CONFLICT_MEMBER
+        return MOI.IN_CONFLICT
+    else
+        return MOI.MAYBE_IN_CONFLICT
+    end
+end
+
 function MOI.supports(
     ::Optimizer,
     ::MOI.ConstraintConflictStatus,
