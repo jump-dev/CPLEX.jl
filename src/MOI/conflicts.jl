@@ -184,15 +184,14 @@ function MOI.get(
     },
 )
     _ensure_conflict_computed(model)
-    cindex = findfirst(
-        x -> x == Cint(_info(model, index).column - 1), model.conflict.colind
-    )
-    if cindex === nothing
-        return MOI.NOT_IN_CONFLICT
-    elseif model.conflict.colbdstat[rindex] == CPX_CONFLICT_MEMBER
-        return MOI.IN_CONFLICT
-    else
+
+    # CPLEX doesn't give that information (only linear constraints and bounds, 
+    # i.e. about the linear relaxation), even though it will report a conflict.
+    # Report that lack of information to the user.
+    if MOI.is_valid(model, index)
         return MOI.MAYBE_IN_CONFLICT
+    else
+        throw(MOI.InvalidIndex(index))
     end
 end
 
