@@ -29,7 +29,7 @@ for details.
 
 *Note: This wrapper is maintained by the JuMP community and is not
 officially supported by IBM. However, we thank IBM for providing us with a
-CPLEX license to test `CPLEX.jl` on Travis. If you are a commercial customer
+CPLEX license to test `CPLEX.jl` on GitHub. If you are a commercial customer
 interested in official support for CPLEX in Julia, let them know!.*
 
 ## Installation
