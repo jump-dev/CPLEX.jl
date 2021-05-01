@@ -472,6 +472,20 @@ function test_conflict_no_conflict()
     @test MOI.get(model, MOI.ConstraintConflictStatus(), c2) == MOI.NOT_IN_CONFLICT
 end
 
+function test_365()
+    # Root problem: missing method to get the status for an integrality 
+    # constraint.
+    model = CPLEX.Optimizer()
+    x, c1 = MOI.add_constrained_variable(model, MOI.ZeroOne())
+    c2 = MOI.add_constraint(model, MOI.ScalarAffineFunction(MOI.ScalarAffineTerm.([1.0], [x]), 0.0), MOI.GreaterThan(2.0))
+
+    MOI.optimize!(model)
+    MOI.compute_conflict!(model)
+    @test MOI.get(model, CPLEX.ConflictStatus()) == CPLEX.CPX_STAT_CONFLICT_MINIMAL
+    @test MOI.get(model, MOI.ConstraintConflictStatus(), c1) == MOI.MAYBE_IN_CONFLICT
+    @test MOI.get(model, MOI.ConstraintConflictStatus(), c2) == MOI.IN_CONFLICT
+end
+
 function test_ZeroOne_NONE()
     model = CPLEX.Optimizer()
     x = MOI.add_variable(model)

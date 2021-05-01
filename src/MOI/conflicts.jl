@@ -175,6 +175,26 @@ function MOI.get(
     end
 end
 
+function MOI.get(
+    model::Optimizer,
+    ::MOI.ConstraintConflictStatus,
+    index::MOI.ConstraintIndex{
+        MOI.SingleVariable,
+        <:Union{MOI.Integer, MOI.ZeroOne}
+    },
+)
+    _ensure_conflict_computed(model)
+
+    # CPLEX doesn't give that information (only linear constraints and bounds, 
+    # i.e. about the linear relaxation), even though it will report a conflict.
+    # Report that lack of information to the user.
+    if MOI.is_valid(model, index)
+        return MOI.MAYBE_IN_CONFLICT
+    else
+        throw(MOI.InvalidIndex(index))
+    end
+end
+
 function MOI.supports(
     ::Optimizer,
     ::MOI.ConstraintConflictStatus,
