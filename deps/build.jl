@@ -114,26 +114,13 @@ function check_cplex_in_default_paths()
     return libnames
 end
 
-function check_cplex_in_path()
-    # Find the path to the CPLEX executable if it is directly callable.
-    try
-        @static if Sys.isapple() || Sys.isunix()
-            return String[dirname(strip(read(`which cplex`, String)))]
-        elseif Sys.iswindows()
-            return String[dirname(strip(read(`where cplex`, String)))]
-        end
-    catch
-        return String[]
-    end
-end
-
 function try_local_installation()
     # Iterate through a series of places where CPLEX could be found: either 
     # from an environment variable, in the path (directly the callable library 
     # or the CPLEX executable), or in a default install location, in that 
     # order. Indeed, some software packages propose a version of CPLEX in the 
     # PATH that is not useable from Julia.
-    for libnames in [check_cplex_in_environment_variables(), check_cplex_in_path(), check_cplex_in_default_paths()]
+    for libnames in [check_cplex_in_environment_variables(), check_cplex_in_default_paths()]
         found_cplex_lib = check_cplex_in_libnames(libnames)
         if found_cplex_lib !== nothing
             write_depsfile(Libdl.dlpath(found_cplex_lib))
