@@ -5,6 +5,12 @@ if isfile(_DEPS_FILE)
     rm(_DEPS_FILE)
 end
 
+const _CPX_VERS = [ # From oldest to most recent.
+    "1210", "12100",
+    "201", "2010", "20100",
+]
+const _BASE_ENV = "CPLEX_STUDIO_BINARIES"
+
 function write_depsfile(path)
     open(_DEPS_FILE, "w") do f
         println(f, "const libcplex = \"$(escape_string(path))\"")
@@ -16,7 +22,7 @@ function library_name(v)
     return "$(cpx_prefix)cplex$(v).$(Libdl.dlext)"
 end
 
-function possible_path(cplex_studio_path::AbstractString)
+function default_installation_path(cplex_studio_path::AbstractString)
     if Sys.iswindows()
         return escape_string("C:\\Program Files\\IBM\\ILOG\\$cplex_studio_path\\cplex\\bin\\x64_win64\\")
     elseif Sys.isapple()
@@ -39,10 +45,10 @@ function get_error_message_if_not_found()
 
     You should set the `CPLEX_STUDIO_BINARIES` environment variable to point to
     the install location then try again. For example (updating the path to the
-    correct location if needed):
+    correct location):
     
     ```
-    ENV["CPLEX_STUDIO_BINARIES"] = "$(possible_path("CPLEX_Studio201"))"
+    ENV["CPLEX_STUDIO_BINARIES"] = "$(default_installation_path("CPLEX_Studio201"))"
     import Pkg
     Pkg.add("CPLEX")
     Pkg.build("CPLEX")
@@ -53,60 +59,74 @@ function get_error_message_if_not_found()
     """
 end
 
-function try_local_installation()
-    # Find the path to the CPLEX executable.
-    cplex_path = try
-        @static if Sys.isapple() || Sys.isunix()
-            dirname(strip(read(`which cplex`, String)))
-        elseif Sys.iswindows()
-            dirname(strip(read(`where cplex`, String)))
-        end
-    catch
-        nothing
-    end
-
-    # Iterate through a series of places where CPLEX could be found: either in
-    # the path (directly the callable library or the CPLEX executable) or from
-    # an environment variable.
-    cpxvers = [
-        "1210", "12100",
-        "201", "2010", "20100",
-    ]
-    base_env = "CPLEX_STUDIO_BINARIES"
-
-    libnames = String["cplex"]
-    for v in reverse(cpxvers)
-        name = library_name(v)
-        push!(libnames, name)
-        if cplex_path !== nothing
-            push!(libnames, joinpath(cplex_path, name))
-        end
-        for env in [base_env, base_env * v]
-            if !haskey(ENV, env)
-                continue
-            end
-            for d in split(ENV[env], ';')
-                push!(libnames, joinpath(d, name))
-            end
-        end
-        
-        for product in ["CPLEX_Studio$v", "CPLEX_Enterprise_Server$v/CPLEX_Studio"]
-            guessed_file = joinpath(possible_path(product), name)
-            if isfile(guessed_file)
-                push!(libnames, guessed_file)
-            end
-        end
-    end
-
-    # Perform the actual search in the potential places.
+function check_cplex_in_libnames(libnames)
     for l in libnames
         d = Libdl.dlopen_e(l)
         if d == C_NULL
             continue
         end
-        write_depsfile(Libdl.dlpath(d))
-        @info("Using CPLEX found in location `$(l)`")
-        return
+        return l
+    end
+    return nothing
+end
+
+function check_cplex_in_environment_variables()
+    # Find CPLEX in the CPLEX environment variables. 
+    libnames = String[]
+    
+    for v in reverse(_CPX_VERS)
+        name = library_name(v)
+
+        # Library name is not always using the same suffix as in _CPX_VERS.
+        # E.g., on Windows, mix between 201 and 2010 for 20.1:
+        # C:\Program Files\IBM\ILOG\CPLEX_Studio201\opl\bin\x64_win64\cplex2010.dll
+        for env in [_BASE_ENV, _BASE_ENV * v, [_BASE_ENV * v2 for v2 in reverse(_CPX_VERS) if v2 != v]...]
+            if !haskey(ENV, env)
+                continue
+            end
+
+            for d in split(ENV[env], ';')
+                if isdir(d) && isfile(joinpath(d, name))
+                    push!(libnames, joinpath(d, name))
+                end
+            end
+        end
+    end
+
+    return libnames
+end
+
+function check_cplex_in_default_paths()
+    # Find CPLEX in the default installation locations, based on the platform.
+    libnames = String[]
+    for v in reverse(_CPX_VERS)
+        name = library_name(v)
+        for product in ["CPLEX_Studio$v", "CPLEX_Enterprise_Server$v/CPLEX_Studio"]
+            path = default_installation_path(product)
+            if isdir(path)
+                guessed_file = joinpath(path, name)
+                if isfile(guessed_file)
+                    push!(libnames, guessed_file)
+                end
+            end
+        end
+    end
+    return libnames
+end
+
+function try_local_installation()
+    # Iterate through a series of places where CPLEX could be found: either 
+    # from an environment variable, in the path (directly the callable library 
+    # or the CPLEX executable), or in a default install location, in that 
+    # order. Indeed, some software packages propose a version of CPLEX in the 
+    # PATH that is not useable from Julia.
+    for libnames in [check_cplex_in_environment_variables(), check_cplex_in_default_paths()]
+        found_cplex_lib = check_cplex_in_libnames(libnames)
+        if found_cplex_lib !== nothing
+            write_depsfile(Libdl.dlpath(found_cplex_lib))
+            @info("Using CPLEX found in location `$(found_cplex_lib)`")
+            return
+        end
     end
     
     error(get_error_message_if_not_found())
