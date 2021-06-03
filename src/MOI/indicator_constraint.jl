@@ -71,8 +71,7 @@ function MOI.add_constraint(
     # getting the indicator variable
     sense_code = _get_indicator_sense(s.set)
     active_bool = A == MOI.ACTIVATE_ON_ONE ? Cint(0) : Cint(1)
-    var_inner =
-        Cint(_info(model, first_index_terms[1].variable_index).column - 1)
+    var_inner = Cint(_info(model, first_index_terms[1].variable).column - 1)
 
     # keeping track of the constraints
     model.last_constraint_index += 1
@@ -82,7 +81,7 @@ function MOI.add_constraint(
     linear_idx = Vector{Cint}(undef, length(scalar_index_terms))
     linear_coefficients = Vector{Cdouble}(undef, length(scalar_index_terms))
     for (i, term) in enumerate(scalar_index_terms)
-        linear_idx[i] = Cint(_info(model, term.variable_index).column - 1)
+        linear_idx[i] = Cint(_info(model, term.variable).column - 1)
         linear_coefficients[i] = term.coefficient
     end
     # switching constant on other side

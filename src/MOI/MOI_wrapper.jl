@@ -235,7 +235,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     You can share CPLEX `Env`s between models by passing an instance of `Env`
     as the first argument.
 
-    Set optimizer attributes using `MOI.RawParameter` or
+    Set optimizer attributes using `MOI.RawOptimizerAttribute` or
     `JuMP.set_optimizer_atttribute`.
 
     ## Example
@@ -249,7 +249,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
         model = new()
         model.lp = C_NULL
         model.env = env === nothing ? Env() : env
-        MOI.set(model, MOI.RawParameter("CPXPARAM_ScreenOutput"), 1)
+        MOI.set(model, MOI.RawOptimizerAttribute("CPXPARAM_ScreenOutput"), 1)
         model.silent = false
         model.variable_info =
             CleverDicts.CleverDict{MOI.VariableIndex,_VariableInfo}()
@@ -298,7 +298,7 @@ function MOI.empty!(model::Optimizer)
     model.env.attached_models += 1
     model.lp = tmp
     if model.silent
-        MOI.set(model, MOI.RawParameter("CPXPARAM_ScreenOutput"), 0)
+        MOI.set(model, MOI.RawOptimizerAttribute("CPXPARAM_ScreenOutput"), 0)
     end
     model.objective_type = _SCALAR_AFFINE
     model.is_feasibility = true
@@ -426,9 +426,9 @@ MOI.supports(::Optimizer, ::MOI.Silent) = true
 MOI.supports(::Optimizer, ::MOI.NumberOfThreads) = true
 MOI.supports(::Optimizer, ::MOI.TimeLimitSec) = true
 MOI.supports(::Optimizer, ::MOI.ObjectiveSense) = true
-MOI.supports(::Optimizer, ::MOI.RawParameter) = true
+MOI.supports(::Optimizer, ::MOI.RawOptimizerAttribute) = true
 
-function MOI.set(model::Optimizer, param::MOI.RawParameter, value)
+function MOI.set(model::Optimizer, param::MOI.RawOptimizerAttribute, value)
     numP, typeP = Ref{Cint}(), Ref{Cint}()
     ret = CPXgetparamnum(model.env, param.name, numP)
     _check_ret(model.env, ret)
@@ -450,7 +450,7 @@ function MOI.set(model::Optimizer, param::MOI.RawParameter, value)
     return
 end
 
-function MOI.get(model::Optimizer, param::MOI.RawParameter)
+function MOI.get(model::Optimizer, param::MOI.RawOptimizerAttribute)
     numP, typeP = Ref{Cint}(), Ref{Cint}()
     ret = CPXgetparamnum(model.env, param.name, numP)
     _check_ret(model.env, ret)
@@ -488,15 +488,15 @@ function MOI.get(model::Optimizer, param::MOI.RawParameter)
 end
 
 function MOI.set(model::Optimizer, ::MOI.TimeLimitSec, limit::Real)
-    MOI.set(model, MOI.RawParameter("CPXPARAM_TimeLimit"), limit)
+    MOI.set(model, MOI.RawOptimizerAttribute("CPXPARAM_TimeLimit"), limit)
     return
 end
 
 function MOI.get(model::Optimizer, ::MOI.TimeLimitSec)
-    return MOI.get(model, MOI.RawParameter("CPXPARAM_TimeLimit"))
+    return MOI.get(model, MOI.RawOptimizerAttribute("CPXPARAM_TimeLimit"))
 end
 
-MOI.Utilities.supports_default_copy_to(::Optimizer, ::Bool) = true
+MOI.supports_incremental_interface(::Optimizer, ::Bool) = true
 
 function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike; kwargs...)
     return MOI.Utilities.automatic_copy_to(dest, src; kwargs...)
@@ -529,7 +529,7 @@ function _indices_and_coefficients(
     f::MOI.ScalarAffineFunction{Float64},
 )
     for (i, term) in enumerate(f.terms)
-        indices[i] = Cint(column(model, term.variable_index) - 1)
+        indices[i] = Cint(column(model, term.variable) - 1)
         coefficients[i] = term.coefficient
     end
     return indices, coefficients
@@ -557,9 +557,9 @@ function _indices_and_coefficients(
     f::MOI.ScalarQuadraticFunction,
 )
     for (i, term) in enumerate(f.quadratic_terms)
-        I[i] = Cint(column(model, term.variable_index_1) - 1)
-        J[i] = Cint(column(model, term.variable_index_2) - 1)
-        V[i] = term.coefficient
+        I[i] = Cint(column(model, term.variable_1) - 1)
+        J[i] = Cint(column(model, term.variable_2) - 1)
+        V[i] =  term.coefficient
         # CPLEX returns a list of terms. MOI requires 0.5 x' Q x. So, to get
         # from
         #   CPLEX -> MOI => multiply diagonals by 2.0
@@ -575,7 +575,7 @@ function _indices_and_coefficients(
         end
     end
     for (i, term) in enumerate(f.affine_terms)
-        indices[i] = Cint(column(model, term.variable_index) - 1)
+        indices[i] = Cint(column(model, term.variable) - 1)
         coefficients[i] = term.coefficient
     end
     return
@@ -911,7 +911,7 @@ function MOI.set(
     end
     obj = zeros(Float64, num_vars)
     for term in f.terms
-        col = column(model, term.variable_index)
+        col = column(model, term.variable)
         obj[col] += term.coefficient
     end
     ind = convert(Vector{Cint}, 0:(num_vars-1))
@@ -2853,7 +2853,7 @@ end
 
 function MOI.get(model::Optimizer, attr::MOI.PrimalStatus)
     _throw_if_optimize_in_progress(model, attr)
-    if attr.N != 1
+    if attr.result_index != 1
         return MOI.NO_SOLUTION
     end
     solnmethod_p, solntype_p, pfeas_p = Ref{Cint}(), Ref{Cint}(), Ref{Cint}()
@@ -2871,7 +2871,7 @@ end
 
 function MOI.get(model::Optimizer, attr::MOI.DualStatus)
     _throw_if_optimize_in_progress(model, attr)
-    if attr.N != 1
+    if attr.result_index != 1
         return MOI.NO_SOLUTION
     end
     solnmethod_p, solntype_p, dfeas_p = Ref{Cint}(), Ref{Cint}(), Ref{Cint}()
@@ -3203,7 +3203,7 @@ function MOI.get(model::Optimizer, attr::MOI.ObjectiveBound)
     return p[]
 end
 
-function MOI.get(model::Optimizer, attr::MOI.SolveTime)
+function MOI.get(model::Optimizer, attr::MOI.SolveTimeSec)
     _throw_if_optimize_in_progress(model, attr)
     return model.solve_time
 end
@@ -3264,16 +3264,16 @@ end
 
 function MOI.set(model::Optimizer, ::MOI.Silent, flag::Bool)
     model.silent = flag
-    MOI.set(model, MOI.RawParameter("CPX_PARAM_SCRIND"), flag ? 0 : 1)
+    MOI.set(model, MOI.RawOptimizerAttribute("CPX_PARAM_SCRIND"), flag ? 0 : 1)
     return
 end
 
 function MOI.get(model::Optimizer, ::MOI.NumberOfThreads)
-    return Int(MOI.get(model, MOI.RawParameter("CPX_PARAM_THREADS")))
+    return Int(MOI.get(model, MOI.RawOptimizerAttribute("CPX_PARAM_THREADS")))
 end
 
 function MOI.set(model::Optimizer, ::MOI.NumberOfThreads, x::Int)
-    return MOI.set(model, MOI.RawParameter("CPX_PARAM_THREADS"), x)
+    return MOI.set(model, MOI.RawOptimizerAttribute("CPX_PARAM_THREADS"), x)
 end
 
 function MOI.get(model::Optimizer, ::MOI.Name)
@@ -3425,7 +3425,7 @@ function MOI.get(
     return sort!(indices, by = x -> x.value)
 end
 
-function MOI.get(model::Optimizer, ::MOI.ListOfConstraints)
+function MOI.get(model::Optimizer, ::MOI.ListOfConstraintTypesPresent)
     constraints = Set{Tuple{DataType,DataType}}()
     for info in values(model.variable_info)
         if info.bound == _NONE
@@ -3540,7 +3540,7 @@ function _replace_with_matching_sparsity!(
     row::Int,
 )
     for term in replacement.terms
-        col = Cint(column(model, term.variable_index) - 1)
+        col = Cint(column(model, term.variable) - 1)
         ret = CPXchgcoef(
             model.env,
             model.lp,
@@ -3579,14 +3579,16 @@ function _replace_with_different_sparsity!(
 )
     # First, zero out the old constraint function terms.
     for term in previous.terms
-        col = Cint(column(model, term.variable_index) - 1)
-        ret = CPXchgcoef(model.env, model.lp, Cint(row - 1), col, 0.0)
+        col = Cint(column(model, term.variable) - 1)
+        ret = CPXchgcoef(
+            model.env, model.lp, Cint(row - 1), col, 0.0
+        )
         _check_ret(model, ret)
     end
 
     # Next, set the new constraint function terms.
     for term in previous.terms
-        col = Cint(column(model, term.variable_index) - 1)
+        col = Cint(column(model, term.variable) - 1)
         ret = CPXchgcoef(
             model.env,
             model.lp,
