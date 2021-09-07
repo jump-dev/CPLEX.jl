@@ -10,23 +10,19 @@ end
 using CEnum
 import SparseArrays
 
-const _CPLEX_VERSION = if libcplex == "julia_registryci_automerge"
-    VersionNumber(12, 10, 0)  # Fake a valid version for AutoMerge.
-else
-    let
-        status_p = Ref{Cint}()
-        env = ccall(
-            (:CPXopenCPLEX, libcplex),
-            Ptr{Cvoid},
-            (Ptr{Cint},),
-            status_p,
-        )
-        p = ccall((:CPXversion, libcplex), Cstring, (Ptr{Cvoid},), env)
-        version_string = unsafe_string(p)
-        ccall((:CPXcloseCPLEX, libcplex), Cint, (Ptr{Ptr{Cvoid}},), Ref(env))
-        VersionNumber(parse.(Int, split(version_string, ".")[1:3])...)
+function _get_version_number()
+    if libcplex == "julia_registryci_automerge"
+        return VersionNumber(12, 10, 0)  # Fake a valid version for AutoMerge.
     end
+    stat = Ref{Cint}()
+    env = ccall((:CPXopenCPLEX, libcplex), Ptr{Cvoid}, (Ptr{Cint},), stat)
+    p = ccall((:CPXversion, libcplex), Cstring, (Ptr{Cvoid},), env)
+    version_string = unsafe_string(p)
+    ccall((:CPXcloseCPLEX, libcplex), Cint, (Ptr{Ptr{Cvoid}},), Ref(env))
+    return VersionNumber(parse.(Int, split(version_string, ".")[1:3])...)
 end
+
+const _CPLEX_VERSION = _get_version_number()
 
 if _CPLEX_VERSION == v"12.10.0"
     include("gen1210/ctypes.jl")
@@ -37,26 +33,23 @@ elseif _CPLEX_VERSION == v"20.1.0"
     include("gen2010/libcpx_common.jl")
     include("gen2010/libcpx_api.jl")
 else
-    error(
-        """
-  You have installed version $_CPLEX_VERSION of CPLEX, which is not supported
-  by CPLEX.jl. We require CPLEX version 12.10 or 20.1.
+    error("""
+You have installed version $_CPLEX_VERSION of CPLEX, which is not supported
+by CPLEX.jl. We require CPLEX version 12.10 or 20.1.
 
-  After installing CPLEX, run:
+After installing CPLEX, run:
 
-      import Pkg
-      Pkg.rm("CPLEX")
-      Pkg.add("CPLEX")
+    import Pkg
+    Pkg.rm("CPLEX")
+    Pkg.add("CPLEX")
 
-  Make sure you set the environment variable `CPLEX_STUDIO_BINARIES` following
-  the instructions in the CPLEX.jl README, which is available at
-  https://github.com/jump-dev/CPLEX.jl.
+Make sure you set the environment variable `CPLEX_STUDIO_BINARIES` following
+the instructions in the CPLEX.jl README, which is available at
+https://github.com/jump-dev/CPLEX.jl.
 
-  If you have a newer version of CPLEX installed, changes may need to be made
-  to the Julia code. Please open an issue at
-  https://github.com/jump-dev/CPLEX.jl.
-  """,
-    )
+If you have a newer version of CPLEX installed, changes may need to be made
+to the Julia code. Please open an issue at
+https://github.com/jump-dev/CPLEX.jl.""")
 end
 
 include("MOI/MOI_wrapper.jl")
