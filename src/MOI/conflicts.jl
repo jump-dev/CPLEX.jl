@@ -22,7 +22,7 @@ function MOI.compute_conflict!(model::Optimizer)
     confnumrows_p = Ref{Cint}()
     colind = Vector{Cint}(undef, confnumcols_p[])
     colbdstat = Vector{Cint}(undef, confnumcols_p[])
-    confnumcols_p  = Ref{Cint}()
+    confnumcols_p = Ref{Cint}()
     ret = CPXgetconflict(
         model.env,
         model.lp,
@@ -36,7 +36,13 @@ function MOI.compute_conflict!(model::Optimizer)
     )
     if ret == CPXERR_NO_CONFLICT
         model.conflict = _ConflictRefinerData(
-            CPX_STAT_CONFLICT_FEASIBLE, Cint[], Cint[], 0, Cint[], Cint[], 0
+            CPX_STAT_CONFLICT_FEASIBLE,
+            Cint[],
+            Cint[],
+            0,
+            Cint[],
+            Cint[],
+            0,
         )
     else
         _check_ret(model, ret)
@@ -58,7 +64,7 @@ function _ensure_conflict_computed(model::Optimizer)
         error(
             "Cannot access conflict status. Call " *
             "`MOI.compute_conflict!(model)` first. In case the model is " *
-            "modified, the computed conflict will not be purged."
+            "modified, the computed conflict will not be purged.",
         )
     end
 end
@@ -98,11 +104,13 @@ function MOI.get(model::Optimizer, ::MOI.ConflictStatus)
 end
 
 function _get_conflict_status(
-    model::Optimizer, index::MOI.ConstraintIndex{MOI.SingleVariable, <:Any}
+    model::Optimizer,
+    index::MOI.ConstraintIndex{MOI.SingleVariable,<:Any},
 )
     _ensure_conflict_computed(model)
     cindex = findfirst(
-        x -> x == Cint(_info(model, index).column - 1), model.conflict.colind
+        x -> x == Cint(_info(model, index).column - 1),
+        model.conflict.colind,
     )
     return cindex === nothing ? nothing : model.conflict.colbdstat[cindex]
 end
@@ -110,7 +118,7 @@ end
 function MOI.get(
     model::Optimizer,
     ::MOI.ConstraintConflictStatus,
-    index::MOI.ConstraintIndex{MOI.SingleVariable, <:MOI.LessThan},
+    index::MOI.ConstraintIndex{MOI.SingleVariable,<:MOI.LessThan},
 )
     status = _get_conflict_status(model, index)
     if status in (CPX_CONFLICT_MEMBER, CPX_CONFLICT_UB)
@@ -125,7 +133,7 @@ end
 function MOI.get(
     model::Optimizer,
     ::MOI.ConstraintConflictStatus,
-    index::MOI.ConstraintIndex{MOI.SingleVariable, <:MOI.GreaterThan},
+    index::MOI.ConstraintIndex{MOI.SingleVariable,<:MOI.GreaterThan},
 )
     status = _get_conflict_status(model, index)
     if status in (CPX_CONFLICT_MEMBER, CPX_CONFLICT_LB)
@@ -141,13 +149,18 @@ function MOI.get(
     model::Optimizer,
     ::MOI.ConstraintConflictStatus,
     index::MOI.ConstraintIndex{
-        MOI.SingleVariable, <:Union{MOI.EqualTo, MOI.Interval}
-    }
+        MOI.SingleVariable,
+        <:Union{MOI.EqualTo,MOI.Interval},
+    },
 )
     status = _get_conflict_status(model, index)
     if status in (CPX_CONFLICT_MEMBER, CPX_CONFLICT_LB, CPX_CONFLICT_UB)
         return MOI.IN_CONFLICT
-    elseif status in (CPX_CONFLICT_POSSIBLE_MEMBER, CPX_CONFLICT_POSSIBLE_LB, CPX_CONFLICT_POSSIBLE_UB)
+    elseif status in (
+        CPX_CONFLICT_POSSIBLE_MEMBER,
+        CPX_CONFLICT_POSSIBLE_LB,
+        CPX_CONFLICT_POSSIBLE_UB,
+    )
         return MOI.MAYBE_IN_CONFLICT
     else
         return MOI.NOT_IN_CONFLICT
@@ -159,12 +172,13 @@ function MOI.get(
     ::MOI.ConstraintConflictStatus,
     index::MOI.ConstraintIndex{
         <:MOI.ScalarAffineFunction,
-        <:Union{MOI.LessThan, MOI.GreaterThan, MOI.EqualTo}
+        <:Union{MOI.LessThan,MOI.GreaterThan,MOI.EqualTo},
     },
 )
     _ensure_conflict_computed(model)
     rindex = findfirst(
-        x -> x == Cint(_info(model, index).row - 1), model.conflict.rowind
+        x -> x == Cint(_info(model, index).row - 1),
+        model.conflict.rowind,
     )
     if rindex === nothing
         return MOI.NOT_IN_CONFLICT
@@ -180,7 +194,7 @@ function MOI.get(
     ::MOI.ConstraintConflictStatus,
     index::MOI.ConstraintIndex{
         MOI.SingleVariable,
-        <:Union{MOI.Integer, MOI.ZeroOne}
+        <:Union{MOI.Integer,MOI.ZeroOne},
     },
 )
     _ensure_conflict_computed(model)
@@ -198,7 +212,7 @@ end
 function MOI.supports(
     ::Optimizer,
     ::MOI.ConstraintConflictStatus,
-    ::Type{MOI.ConstraintIndex{<:MOI.SingleVariable, <:_SCALAR_SETS}},
+    ::Type{MOI.ConstraintIndex{<:MOI.SingleVariable,<:_SCALAR_SETS}},
 )
     return true
 end
@@ -206,10 +220,12 @@ end
 function MOI.supports(
     ::Optimizer,
     ::MOI.ConstraintConflictStatus,
-    ::Type{MOI.ConstraintIndex{
-        <:MOI.ScalarAffineFunction,
-        <:Union{MOI.LessThan, MOI.GreaterThan, MOI.EqualTo}
-    }},
+    ::Type{
+        MOI.ConstraintIndex{
+            <:MOI.ScalarAffineFunction,
+            <:Union{MOI.LessThan,MOI.GreaterThan,MOI.EqualTo},
+        },
+    },
 )
     return true
 end
