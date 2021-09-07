@@ -559,7 +559,7 @@ function _indices_and_coefficients(
     for (i, term) in enumerate(f.quadratic_terms)
         I[i] = Cint(column(model, term.variable_1) - 1)
         J[i] = Cint(column(model, term.variable_2) - 1)
-        V[i] =  term.coefficient
+        V[i] = term.coefficient
         # CPLEX returns a list of terms. MOI requires 0.5 x' Q x. So, to get
         # from
         #   CPLEX -> MOI => multiply diagonals by 2.0
@@ -3580,9 +3580,7 @@ function _replace_with_different_sparsity!(
     # First, zero out the old constraint function terms.
     for term in previous.terms
         col = Cint(column(model, term.variable) - 1)
-        ret = CPXchgcoef(
-            model.env, model.lp, Cint(row - 1), col, 0.0
-        )
+        ret = CPXchgcoef(model.env, model.lp, Cint(row - 1), col, 0.0)
         _check_ret(model, ret)
     end
 

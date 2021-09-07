@@ -71,13 +71,17 @@ function test_basic_constraint_tests()
 end
 
 function test_unittest()
-    return MOIT.unittest(BRIDGED_OPTIMIZER, CONFIG, [
-        # TODO(odow): bug! We can't delete a vector of variables  if one is in
-        # a second order cone.
-        "delete_soc_variables",
-        # TODO(odow): Implement ConstraintDualStart.
-        "solve_start_soc",
-    ])
+    return MOIT.unittest(
+        BRIDGED_OPTIMIZER,
+        CONFIG,
+        [
+            # TODO(odow): bug! We can't delete a vector of variables  if one is in
+            # a second order cone.
+            "delete_soc_variables",
+            # TODO(odow): Implement ConstraintDualStart.
+            "solve_start_soc",
+        ],
+    )
 end
 
 function test_modificationtest()
@@ -141,14 +145,14 @@ end
 function test_contconic()
     MOIT.lintest(BRIDGED_OPTIMIZER, CONFIG)
 
-    soc_config = MOIT.Config(atol=5e-3)
+    soc_config = MOIT.Config(atol = 5e-3)
 
     # TODO(odow): investigate why infeasibility certificates not generated for
     # SOC.
     MOIT.soctest(BRIDGED_OPTIMIZER, soc_config, ["soc3"])
     MOIT.soc3test(
         BRIDGED_OPTIMIZER,
-        MOIT.Config(atol = 1e-3, infeas_certificates = false)
+        MOIT.Config(atol = 1e-3, infeas_certificates = false),
     )
 
     MOIT.rsoctest(BRIDGED_OPTIMIZER, soc_config, ["rotatedsoc2"])
@@ -156,9 +160,7 @@ function test_contconic()
         BRIDGED_OPTIMIZER,
         # Need for `duals = false` fixed by https://github.com/jump-dev/MathOptInterface.jl/pull/1171
         # Remove in a future MOI 0.9.18+ release.
-        MOIT.Config(
-            atol = 1e-3, infeas_certificates = false, duals = false
-        ),
+        MOIT.Config(atol = 1e-3, infeas_certificates = false, duals = false),
     )
 
     return MOIT.geomeantest(BRIDGED_OPTIMIZER, soc_config)
