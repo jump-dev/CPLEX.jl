@@ -24,7 +24,8 @@ function _cplex_callback_wrapper(
     user_data = unsafe_pointer_to_objref(p_user_data)::_CallbackUserData
     try
         user_data.callback(
-            CallbackContext(user_data.model, p_context, context_id), context_id
+            CallbackContext(user_data.model, p_context, context_id),
+            context_id,
         )
     catch ex
         CPXcallbackabort(p_context)
@@ -73,14 +74,13 @@ struct CallbackFunction <: MOI.AbstractCallback
     context_mask::UInt16
 
     function CallbackFunction(
-        context_mask::UInt16 =
-            CPX_CALLBACKCONTEXT_THREAD_UP |
-            CPX_CALLBACKCONTEXT_THREAD_DOWN |
-            CPX_CALLBACKCONTEXT_LOCAL_PROGRESS |
-            CPX_CALLBACKCONTEXT_GLOBAL_PROGRESS |
-            CPX_CALLBACKCONTEXT_CANDIDATE |
-            CPX_CALLBACKCONTEXT_RELAXATION |
-            CPX_CALLBACKCONTEXT_BRANCHING
+        context_mask::UInt16 = CPX_CALLBACKCONTEXT_THREAD_UP |
+                               CPX_CALLBACKCONTEXT_THREAD_DOWN |
+                               CPX_CALLBACKCONTEXT_LOCAL_PROGRESS |
+                               CPX_CALLBACKCONTEXT_GLOBAL_PROGRESS |
+                               CPX_CALLBACKCONTEXT_CANDIDATE |
+                               CPX_CALLBACKCONTEXT_RELAXATION |
+                               CPX_CALLBACKCONTEXT_BRANCHING,
     )
         return new(context_mask)
     end
@@ -90,7 +90,7 @@ function MOI.set(model::Optimizer, cb::CallbackFunction, f::Function)
     @static if Sys.iswindows() && Sys.WORD_SIZE == 32
         error(
             "Callbacks are not supported on Win32. Use 64-bit Julia with " *
-            "64-bit CPLEX."
+            "64-bit CPLEX.",
         )
     end
     if MOI.get(model, MOI.NumberOfThreads()) != 1
@@ -102,7 +102,9 @@ function MOI.set(model::Optimizer, cb::CallbackFunction, f::Function)
         )
     end
     cpx_callback = @cfunction(
-        _cplex_callback_wrapper, Cint, (Ptr{Cvoid}, Clong, Ptr{Cvoid})
+        _cplex_callback_wrapper,
+        Cint,
+        (Ptr{Cvoid}, Clong, Ptr{Cvoid})
     )
     user_data = _CallbackUserData(
         model,
@@ -110,7 +112,7 @@ function MOI.set(model::Optimizer, cb::CallbackFunction, f::Function)
             model.callback_state = _CB_GENERIC
             f(context::CallbackContext, context_id::Clong)
             model.callback_state = _CB_NONE
-        end
+        end,
     )
     ret = CPXcallbacksetfunc(
         model.env,
@@ -133,7 +135,8 @@ Load the solution during a callback so that it can be accessed using
 `MOI.CallbackVariablePrimal`.
 """
 function load_callback_variable_primal(
-    cb_data::CallbackContext, context_id::Clong
+    cb_data::CallbackContext,
+    context_id::Clong,
 )
     model = cb_data.model::Optimizer
     N = length(model.variable_info)
@@ -157,7 +160,7 @@ function load_callback_variable_primal(
     else
         error(
             "`load_callback_variable_primal` can only be called at " *
-            "CPX_CALLBACKCONTEXT_CANDIDATE or CPX_CALLBACKCONTEXT_RELAXATION."
+            "CPX_CALLBACKCONTEXT_CANDIDATE or CPX_CALLBACKCONTEXT_RELAXATION.",
         )
     end
     return
@@ -206,7 +209,7 @@ end
 function MOI.get(
     model::Optimizer,
     ::MOI.CallbackVariablePrimal{CallbackContext},
-    x::MOI.VariableIndex
+    x::MOI.VariableIndex,
 )
     return model.callback_variable_primal[_info(model, x).column]
 end
@@ -234,14 +237,22 @@ function MOI.submit(
     model::Optimizer,
     cb::MOI.LazyConstraint{CallbackContext},
     f::MOI.ScalarAffineFunction{Float64},
-    s::Union{MOI.LessThan{Float64}, MOI.GreaterThan{Float64}, MOI.EqualTo{Float64}}
+    s::Union{
+        MOI.LessThan{Float64},
+        MOI.GreaterThan{Float64},
+        MOI.EqualTo{Float64},
+    },
 )
     if model.callback_state == _CB_USER_CUT
         throw(MOI.InvalidCallbackUsage(MOI.UserCutCallback(), cb))
     elseif model.callback_state == _CB_HEURISTIC
         throw(MOI.InvalidCallbackUsage(MOI.HeuristicCallback(), cb))
     elseif !iszero(f.constant)
-        throw(MOI.ScalarFunctionConstantNotZero{Float64, typeof(f), typeof(s)}(f.constant))
+        throw(
+            MOI.ScalarFunctionConstantNotZero{Float64,typeof(f),typeof(s)}(
+                f.constant,
+            ),
+        )
     end
     indices, coefficients = _indices_and_coefficients(model, f)
     sense, rhs = _sense_and_rhs(s)
@@ -274,7 +285,9 @@ function MOI.submit(
     cb::MOI.UserCut{CallbackContext},
     f::MOI.ScalarAffineFunction{Float64},
     s::Union{
-        MOI.LessThan{Float64}, MOI.GreaterThan{Float64}, MOI.EqualTo{Float64}
+        MOI.LessThan{Float64},
+        MOI.GreaterThan{Float64},
+        MOI.EqualTo{Float64},
     },
 )
     if model.callback_state == _CB_LAZY
@@ -282,7 +295,11 @@ function MOI.submit(
     elseif model.callback_state == _CB_HEURISTIC
         throw(MOI.InvalidCallbackUsage(MOI.HeuristicCallback(), cb))
     elseif !iszero(f.constant)
-        throw(MOI.ScalarFunctionConstantNotZero{Float64, typeof(f), typeof(s)}(f.constant))
+        throw(
+            MOI.ScalarFunctionConstantNotZero{Float64,typeof(f),typeof(s)}(
+                f.constant,
+            ),
+        )
     end
     rmatind, rmatval = _indices_and_coefficients(model, f)
     sense, rhs = _sense_and_rhs(s)
