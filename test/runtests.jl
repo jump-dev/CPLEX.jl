@@ -6,14 +6,6 @@ end
 using CPLEX
 using Test
 
-function runtests(mod)
-    for name in filter(s -> startswith("$(s)", "test_"), names(mod; all = true))
-        @testset "$(name)" begin
-            getfield(mod, name)()
-        end
-    end
-end
-
 @testset "MathOptInterface Tests" begin
     for file in readdir("MathOptInterface")
         include(joinpath("MathOptInterface", file))

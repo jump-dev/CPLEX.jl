@@ -6,6 +6,17 @@ using Test
 
 const MOI = CPLEX.MOI
 
+function runtests()
+    for name in names(@__MODULE__; all = true)
+        if startswith("$(name)", "test_")
+            @testset "$(name)" begin
+                getfield(@__MODULE__, name)()
+            end
+        end
+    end
+    return
+end
+
 function callback_simple_model()
     model = CPLEX.Optimizer()
     MOI.set(model, MOI.Silent(), true)
@@ -38,7 +49,7 @@ function callback_knapsack_model()
 
     N = 30
     x = MOI.add_variables(model, N)
-    MOI.add_constraints(model, MOI.SingleVariable.(x), MOI.ZeroOne())
+    MOI.add_constraints(model, x, MOI.ZeroOne())
     MOI.set.(model, MOI.VariablePrimalStart(), x, 0.0)
     Random.seed!(1)
     item_weights, item_values = rand(N), rand(N)
@@ -478,7 +489,7 @@ function test_CPXcallbackabort()
     model = CPLEX.Optimizer()
     MOI.set(model, MOI.Silent(), true)
     x = MOI.add_variable(model)
-    MOI.add_constraint(model, MOI.SingleVariable(x), MOI.Integer())
+    MOI.add_constraint(model, x, MOI.Integer())
     MOI.set(model, MOI.NumberOfThreads(), 1)
     MOI.set(
         model,
@@ -510,13 +521,9 @@ function test_InterruptException()
     model = CPLEX.Optimizer()
     MOI.set(model, MOI.Silent(), true)
     x = MOI.add_variable(model)
-    MOI.add_constraint(model, MOI.SingleVariable(x), MOI.Integer())
+    MOI.add_constraint(model, x, MOI.Integer())
     MOI.set(model, MOI.ObjectiveSense(), MOI.MIN_SENSE)
-    MOI.set(
-        model,
-        MOI.ObjectiveFunction{MOI.SingleVariable}(),
-        MOI.SingleVariable(x),
-    )
+    MOI.set(model, MOI.ObjectiveFunction{MOI.VariableIndex}(), x)
     MOI.set(model, MOI.NumberOfThreads(), 1)
     i = 0.0
     interrupt_thrown = false
@@ -568,4 +575,4 @@ end
 
 end  # module TestCallbacks
 
-runtests(TestCallbacks)
+TestCallbacks.runtests()
