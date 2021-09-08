@@ -43,16 +43,7 @@ mutable struct _VariableInfo
     lower_bound_if_soc::Float64
     num_soc_constraints::Int
     function _VariableInfo(index::MOI.VariableIndex, column::Int)
-        return new(
-            index,
-            column,
-            _NONE,
-            CPX_CONTINUOUS,
-            nothing,
-            "",
-            NaN,
-            0,
-        )
+        return new(index, column, _NONE, CPX_CONTINUOUS, nothing, "", NaN, 0)
     end
 end
 
@@ -1270,9 +1261,8 @@ function MOI.add_constraints(
             info.bound = _INTERVAL
         end
     end
-    indices = [
-        MOI.ConstraintIndex{MOI.VariableIndex,eltype(s)}(fi.value) for fi in f
-    ]
+    indices =
+        [MOI.ConstraintIndex{MOI.VariableIndex,eltype(s)}(fi.value) for fi in f]
     _set_bounds(model, indices, s)
     return indices
 end
@@ -3343,10 +3333,7 @@ function MOI.get(model::Optimizer, ::MOI.ListOfConstraintTypesPresent)
         elseif info.type == CPX_INTEGER
             push!(constraints, (MOI.VariableIndex, MOI.Integer))
         elseif info.type == CPX_SEMICONT
-            push!(
-                constraints,
-                (MOI.VariableIndex, MOI.Semicontinuous{Float64}),
-            )
+            push!(constraints, (MOI.VariableIndex, MOI.Semicontinuous{Float64}))
         elseif info.type == CPX_SEMIINT
             push!(constraints, (MOI.VariableIndex, MOI.Semiinteger{Float64}))
         end
@@ -3373,9 +3360,12 @@ function MOI.get(model::Optimizer, ::MOI.ListOfConstraintTypesPresent)
     return collect(constraints)
 end
 
-function MOI.get(model::Optimizer, ::MOI.ObjectiveFunctionType)
+function MOI.get(
+    model::Optimizer,
+    ::MOI.ObjectiveFunctionType,
+)::Union{Nothing,Type}
     if model.is_feasibility
-        return nothing
+        return
     elseif model.objective_type == _SINGLE_VARIABLE
         return MOI.VariableIndex
     elseif model.objective_type == _SCALAR_AFFINE
