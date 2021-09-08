@@ -27,15 +27,14 @@ function test_runtests()
         model,
         MOI.Test.Config(atol = 1e-3, rtol = 1e-3),
         exclude = String[
-            # TODO(odow): fix these bugs
-            "test_model_ListOfConstraintAttributesSet",
+            # TOOD: VariablePrimalStart not in ListOfVariableAttributesSet
             "test_model_ModelFilter_AbstractVariableAttribute",
-            "test_objective_get_ObjectiveFunction_ScalarAffineFunction",
-            "test_objective_set_via_modify",
+            # TODO: investigate
             "test_solve_SOS2_add_and_delete",
             # CPLEX doesn't support nonconvex QCPs
             "test_quadratic_nonconvex_",
             # TODO(odow): fixed in MOI 0.10.1
+            "test_objective_get_ObjectiveFunction_ScalarAffineFunction",
             "test_conic_SecondOrderCone_negative_initial_bound",
             "test_conic_SecondOrderCone_negative_post_bound",
             "test_conic_SecondOrderCone_negative_post_bound_ii",

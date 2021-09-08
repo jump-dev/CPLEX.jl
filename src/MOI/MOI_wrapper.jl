@@ -498,8 +498,15 @@ function MOI.get(model::Optimizer, ::MOI.ListOfModelAttributesSet)
     return attributes
 end
 
-function MOI.get(model::Optimizer, ::MOI.ListOfConstraintAttributesSet)
+function MOI.get(::Optimizer, ::MOI.ListOfConstraintAttributesSet)
     return MOI.AbstractConstraintAttribute[MOI.ConstraintName()]
+end
+
+function MOI.get(
+    ::Optimizer,
+    ::MOI.ListOfConstraintAttributesSet{MOI.VariableIndex},
+)
+    return MOI.AbstractConstraintAttribute[]
 end
 
 function _indices_and_coefficients(
@@ -918,8 +925,9 @@ function MOI.get(
     terms = MOI.ScalarAffineTerm{Float64}[]
     for (index, info) in model.variable_info
         coefficient = dest[info.column]
-        iszero(coefficient) && continue
-        push!(terms, MOI.ScalarAffineTerm(coefficient, index))
+        if !iszero(coefficient)
+            push!(terms, MOI.ScalarAffineTerm(coefficient, index))
+        end
     end
     constant = Ref{Cdouble}()
     ret = CPXgetobjoffset(model.env, model.lp, constant)
@@ -3360,13 +3368,8 @@ function MOI.get(model::Optimizer, ::MOI.ListOfConstraintTypesPresent)
     return collect(constraints)
 end
 
-function MOI.get(
-    model::Optimizer,
-    ::MOI.ObjectiveFunctionType,
-)::Union{Nothing,Type}
-    if model.is_feasibility
-        return
-    elseif model.objective_type == _SINGLE_VARIABLE
+function MOI.get(model::Optimizer, ::MOI.ObjectiveFunctionType)
+    if model.objective_type == _SINGLE_VARIABLE
         return MOI.VariableIndex
     elseif model.objective_type == _SCALAR_AFFINE
         return MOI.ScalarAffineFunction{Float64}
@@ -3394,12 +3397,13 @@ end
 
 function MOI.modify(
     model::Optimizer,
-    c::MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}},
+    ::MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}},
     chg::MOI.ScalarCoefficientChange{Float64},
 )
     col = Cint(column(model, chg.variable) - 1)
     ret = CPXchgobj(model.env, model.lp, 1, Ref(col), Ref(chg.new_coefficient))
     _check_ret(model, ret)
+    model.objective_type = _SCALAR_AFFINE
     return
 end
 
