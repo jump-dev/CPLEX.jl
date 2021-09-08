@@ -105,7 +105,7 @@ end
 
 function _get_conflict_status(
     model::Optimizer,
-    index::MOI.ConstraintIndex{MOI.SingleVariable,<:Any},
+    index::MOI.ConstraintIndex{MOI.VariableIndex,<:Any},
 )
     _ensure_conflict_computed(model)
     cindex = findfirst(
@@ -118,7 +118,7 @@ end
 function MOI.get(
     model::Optimizer,
     ::MOI.ConstraintConflictStatus,
-    index::MOI.ConstraintIndex{MOI.SingleVariable,<:MOI.LessThan},
+    index::MOI.ConstraintIndex{MOI.VariableIndex,<:MOI.LessThan},
 )
     status = _get_conflict_status(model, index)
     if status in (CPX_CONFLICT_MEMBER, CPX_CONFLICT_UB)
@@ -133,7 +133,7 @@ end
 function MOI.get(
     model::Optimizer,
     ::MOI.ConstraintConflictStatus,
-    index::MOI.ConstraintIndex{MOI.SingleVariable,<:MOI.GreaterThan},
+    index::MOI.ConstraintIndex{MOI.VariableIndex,<:MOI.GreaterThan},
 )
     status = _get_conflict_status(model, index)
     if status in (CPX_CONFLICT_MEMBER, CPX_CONFLICT_LB)
@@ -149,7 +149,7 @@ function MOI.get(
     model::Optimizer,
     ::MOI.ConstraintConflictStatus,
     index::MOI.ConstraintIndex{
-        MOI.SingleVariable,
+        MOI.VariableIndex,
         <:Union{MOI.EqualTo,MOI.Interval},
     },
 )
@@ -193,13 +193,13 @@ function MOI.get(
     model::Optimizer,
     ::MOI.ConstraintConflictStatus,
     index::MOI.ConstraintIndex{
-        MOI.SingleVariable,
+        MOI.VariableIndex,
         <:Union{MOI.Integer,MOI.ZeroOne},
     },
 )
     _ensure_conflict_computed(model)
 
-    # CPLEX doesn't give that information (only linear constraints and bounds, 
+    # CPLEX doesn't give that information (only linear constraints and bounds,
     # i.e. about the linear relaxation), even though it will report a conflict.
     # Report that lack of information to the user.
     if MOI.is_valid(model, index)
@@ -212,7 +212,7 @@ end
 function MOI.supports(
     ::Optimizer,
     ::MOI.ConstraintConflictStatus,
-    ::Type{MOI.ConstraintIndex{<:MOI.SingleVariable,<:_SCALAR_SETS}},
+    ::Type{MOI.ConstraintIndex{<:MOI.VariableIndex,<:_SCALAR_SETS}},
 )
     return true
 end
