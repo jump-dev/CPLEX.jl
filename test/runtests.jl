@@ -1,8 +1,3 @@
-if get(ENV, "GITHUB_ACTIONS", "") == "true"
-    import Pkg
-    Pkg.add(Pkg.PackageSpec(name = "MathOptInterface", rev = "master"))
-end
-
 using CPLEX
 using Test
 
