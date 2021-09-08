@@ -13,7 +13,13 @@ const CleverDicts = MOI.Utilities.CleverDicts
     _EQUAL_TO,
 )
 
-@enum(_ObjectiveType, _SINGLE_VARIABLE, _SCALAR_AFFINE, _SCALAR_QUADRATIC,)
+@enum(
+    _ObjectiveType,
+    _SINGLE_VARIABLE,
+    _SCALAR_AFFINE,
+    _SCALAR_QUADRATIC,
+    _UNSET_OBJECTIVE,
+)
 
 @enum(
     CallbackState,
@@ -132,13 +138,9 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     # parameter.
     silent::Bool
 
-    # An enum to remember what objective is currently stored in the model.
+    # Helpers to remember what objective is currently stored in the model.
     objective_type::_ObjectiveType
-
-    # A flag to keep track of MOI.FEASIBILITY_SENSE, since CPLEX only stores
-    # MIN_SENSE or MAX_SENSE. This allows us to differentiate between MIN_SENSE
-    # and FEASIBILITY_SENSE.
-    is_feasibility::Bool
+    objective_sense::Union{Nothing,MOI.OptimizationSense}
 
     # A mapping from the MOI.VariableIndex to the CPLEX column. _VariableInfo
     # also stores some additional fields like what bounds have been added, the
@@ -280,8 +282,8 @@ function MOI.empty!(model::Optimizer)
     if model.silent
         MOI.set(model, MOI.RawOptimizerAttribute("CPXPARAM_ScreenOutput"), 0)
     end
-    model.objective_type = _SCALAR_AFFINE
-    model.is_feasibility = true
+    model.objective_type = _UNSET_OBJECTIVE
+    model.objective_sense = nothing
     empty!(model.variable_info)
     empty!(model.affine_constraint_info)
     empty!(model.quadratic_constraint_info)
@@ -305,8 +307,8 @@ function MOI.empty!(model::Optimizer)
 end
 
 function MOI.is_empty(model::Optimizer)
-    model.objective_type != _SCALAR_AFFINE && return false
-    model.is_feasibility == false && return false
+    model.objective_type != _UNSET_OBJECTIVE && return false
+    model.objective_sense !== nothing && return false
     !isempty(model.variable_info) && return false
     length(model.affine_constraint_info) != 0 && return false
     length(model.quadratic_constraint_info) != 0 && return false
@@ -483,14 +485,32 @@ function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike)
 end
 
 function MOI.get(model::Optimizer, ::MOI.ListOfVariableAttributesSet)
-    return MOI.AbstractVariableAttribute[MOI.VariableName()]
+    ret = MOI.AbstractVariableAttribute[]
+    found_name, found_start = false, false
+    for info in values(model.variable_info)
+        if !found_name && !isempty(info.name)
+            push!(ret, MOI.VariableName())
+            found_name = true
+        end
+        if !found_start && info.start !== nothing
+            push!(ret, MOI.VariablePrimalStart())
+            found_start = true
+        end
+        if found_start && found_name
+            return ret
+        end
+    end
+    return ret
 end
 
 function MOI.get(model::Optimizer, ::MOI.ListOfModelAttributesSet)
-    attributes = Any[MOI.ObjectiveSense()]
-    typ = MOI.get(model, MOI.ObjectiveFunctionType())
-    if typ !== nothing
-        push!(attributes, MOI.ObjectiveFunction{typ}())
+    attributes = MOI.AbstractModelAttribute[]
+    if model.objective_sense !== nothing
+        push!(attributes, MOI.ObjectiveSense())
+    end
+    if model.objective_type != _UNSET_OBJECTIVE
+        F = MOI.get(model, MOI.ObjectiveFunctionType())
+        push!(attributes, MOI.ObjectiveFunction{F}())
     end
     if MOI.get(model, MOI.Name()) != ""
         push!(attributes, MOI.Name())
@@ -826,34 +846,22 @@ function MOI.set(
     ::MOI.ObjectiveSense,
     sense::MOI.OptimizationSense,
 )
-    if sense == MOI.MIN_SENSE
-        ret = CPXchgobjsen(model.env, model.lp, CPX_MIN)
-        _check_ret(model, ret)
-        model.is_feasibility = false
+    ret = if sense == MOI.MIN_SENSE
+        CPXchgobjsen(model.env, model.lp, CPX_MIN)
     elseif sense == MOI.MAX_SENSE
-        ret = CPXchgobjsen(model.env, model.lp, CPX_MAX)
-        _check_ret(model, ret)
-        model.is_feasibility = false
+        CPXchgobjsen(model.env, model.lp, CPX_MAX)
     else
         @assert sense == MOI.FEASIBILITY_SENSE
         _zero_objective(model)
-        ret = CPXchgobjsen(model.env, model.lp, CPX_MIN)
-        _check_ret(model, ret)
-        model.is_feasibility = true
+        CPXchgobjsen(model.env, model.lp, CPX_MIN)
     end
+    _check_ret(model, ret)
+    model.objective_sense = sense
     return
 end
 
 function MOI.get(model::Optimizer, ::MOI.ObjectiveSense)
-    sense = CPXgetobjsen(model.env, model.lp)
-    if model.is_feasibility
-        return MOI.FEASIBILITY_SENSE
-    elseif sense == CPX_MAX
-        return MOI.MAX_SENSE
-    else
-        @assert sense == CPX_MIN
-        return MOI.MIN_SENSE
-    end
+    return something(model.objective_sense, MOI.FEASIBILITY_SENSE)
 end
 
 function MOI.set(
@@ -3403,7 +3411,10 @@ function MOI.modify(
     col = Cint(column(model, chg.variable) - 1)
     ret = CPXchgobj(model.env, model.lp, 1, Ref(col), Ref(chg.new_coefficient))
     _check_ret(model, ret)
-    model.objective_type = _SCALAR_AFFINE
+    if model.objective_type == _UNSET_OBJECTIVE ||
+       model.objective_type == _SINGLE_VARIABLE
+        model.objective_type = _SCALAR_AFFINE
+    end
     return
 end
 
