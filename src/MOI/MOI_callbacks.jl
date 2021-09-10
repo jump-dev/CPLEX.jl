@@ -326,7 +326,7 @@ function MOI.submit(
     end
     ret = CPXcallbackpostheursoln(
         cb.callback_data,
-        Cint(1),
+        Cint(length(variables)),
         Cint[_info(model, var).column - 1 for var in variables],
         values,
         NaN,
