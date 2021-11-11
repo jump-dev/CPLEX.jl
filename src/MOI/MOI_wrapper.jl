@@ -138,7 +138,6 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     # parameter.
     silent::Bool
 
-    has_solution::Bool
     variable_primal::Union{Nothing,Vector{Float64}}
 
     # Helpers to remember what objective is currently stored in the model.
@@ -236,9 +235,8 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
         model.env = env === nothing ? Env() : env
         MOI.set(model, MOI.RawOptimizerAttribute("CPXPARAM_ScreenOutput"), 1)
         model.silent = false
-        model.has_solution = false
         model.variable_primal = nothing
-    
+
         model.variable_info =
             CleverDicts.CleverDict{MOI.VariableIndex,_VariableInfo}()
         model.affine_constraint_info = Dict{Int,_ConstraintInfo}()
@@ -309,7 +307,6 @@ function MOI.empty!(model::Optimizer)
     model.user_cut_callback = nothing
     model.heuristic_callback = nothing
     model.generic_callback = nothing
-    model.has_solution = false
     model.variable_primal = nothing
     return
 end
@@ -2633,7 +2630,6 @@ function MOI.optimize!(model::Optimizer)
     model.solve_time = time() - start_time
     model.has_primal_certificate = false
     model.has_dual_certificate = false
-    model.has_solution = false
     if MOI.get(model, MOI.PrimalStatus()) == MOI.INFEASIBILITY_CERTIFICATE
         resize!(model.certificate, length(model.variable_info))
         ret = CPXgetray(model.env, model.lp, model.certificate)
@@ -2646,9 +2642,6 @@ function MOI.optimize!(model::Optimizer)
         model.has_dual_certificate = true
     end
     model.variable_primal = nothing
-    if MOI.get(model, MOI.ResultCount()) == 1
-        model.has_solution = true
-    end
     return
 end
 
@@ -2818,17 +2811,15 @@ function MOI.get(model::Optimizer, attr::MOI.DualStatus)
     end
 end
 
-_update_cache(::Optimizer, data::Vector{Float64}, ::Any) = data
+_update_cache(::Optimizer, data::Vector{Float64}) = data
 
-function _update_cache(model::Optimizer, ::Nothing, f_p::F) where {F}
+function _update_cache(model::Optimizer, ::Nothing)
     n = length(model.variable_info)
     x = zeros(n)
-    ret = f_p(model.env, model.lp, x, 0, n-1)
+    ret = CPXgetx(model.env, model.lp, x, 0, n - 1)
     _check_ret(model, ret)
     return x
 end
-
-_get_cached_solution(model::Optimizer, data::Vector{Float64}, x) = data[column(model, x)]
 
 function MOI.get(
     model::Optimizer,
@@ -2840,12 +2831,8 @@ function MOI.get(
     if model.has_primal_certificate
         return model.certificate[column(model, x)]
     end
-    model.variable_primal = _update_cache(
-        model,
-        model.variable_primal,
-        CPXgetx,
-        )
-    return _get_cached_solution(model, model.variable_primal, x)
+    model.variable_primal = _update_cache(model, model.variable_primal)
+    return model.variable_primal[column(model, x)]
 end
 
 function MOI.get(
