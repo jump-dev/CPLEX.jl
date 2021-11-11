@@ -327,6 +327,8 @@ end
 
 MOI.get(::Optimizer, ::MOI.SolverName) = "CPLEX"
 
+MOI.get(::Optimizer, ::MOI.SolverVersion) = string(_CPLEX_VERSION)
+
 function MOI.supports(
     ::Optimizer,
     ::MOI.ObjectiveFunction{F},
