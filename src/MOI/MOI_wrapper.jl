@@ -3131,17 +3131,17 @@ end
 
 function MOI.get(model::Optimizer, attr::MOI.SimplexIterations)
     _throw_if_optimize_in_progress(model, attr)
-    return CPXgetitcnt(model.env, model.lp)
+    return convert(Int64, CPXgetitcnt(model.env, model.lp))
 end
 
 function MOI.get(model::Optimizer, attr::MOI.BarrierIterations)
     _throw_if_optimize_in_progress(model, attr)
-    return CPXgetbaritcnt(model.env, model.lp)
+    return convert(Int64, CPXgetbaritcnt(model.env, model.lp))
 end
 
 function MOI.get(model::Optimizer, attr::MOI.NodeCount)
     _throw_if_optimize_in_progress(model, attr)
-    return CPXgetnodecnt(model.env, model.lp)
+    return convert(Int64, CPXgetnodecnt(model.env, model.lp))
 end
 
 function MOI.get(model::Optimizer, attr::MOI.RelativeGap)
