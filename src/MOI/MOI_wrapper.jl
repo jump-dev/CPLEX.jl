@@ -129,6 +129,26 @@ function _check_ret_optimize(model)
     return
 end
 
+"""
+    Optimizer(env::Union{Nothing, Env} = nothing)
+
+Create a new Optimizer object.
+
+You can share CPLEX `Env`s between models by passing an instance of `Env` as the
+first argument.
+
+Set optimizer attributes using `MOI.RawOptimizerAttribute` or
+`JuMP.set_optimizer_atttribute`.
+
+## Example
+
+```julia
+using JuMP, CPLEX
+const env = CPLEX.Env()
+model = JuMP.Model(() -> CPLEX.Optimizer(env))
+set_optimizer_attribute(model, "CPXPARAM_ScreenOutput", 0)
+```
+"""
 mutable struct Optimizer <: MOI.AbstractOptimizer
     # The low-level CPLEX model.
     lp::CPXLPptr
@@ -211,24 +231,6 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     heuristic_callback::Union{Nothing,Function}
     generic_callback::Any
 
-    """
-        Optimizer(env::Union{Nothing, Env} = nothing)
-
-    Create a new Optimizer object.
-
-    You can share CPLEX `Env`s between models by passing an instance of `Env`
-    as the first argument.
-
-    Set optimizer attributes using `MOI.RawOptimizerAttribute` or
-    `JuMP.set_optimizer_atttribute`.
-
-    ## Example
-
-        using JuMP, CPLEX
-        const env = CPLEX.Env()
-        model = JuMP.Model(() -> CPLEX.Optimizer(env))
-        set_optimizer_attribute(model, "CPXPARAM_ScreenOutput", 0)
-    """
     function Optimizer(env::Union{Nothing,Env} = nothing)
         model = new()
         model.lp = C_NULL
@@ -2757,7 +2759,7 @@ function MOI.get(model::Optimizer, attr::MOI.TerminationStatus)
 
         $(MOI.get(model, MOI.RawStatusString()))
 
-        Please open an issue at https://github.com/JuliaOpt/CPLEX.jl/issues and
+        Please open an issue at https://github.com/jump-dev/CPLEX.jl/issues and
         provide the complete text of this error message.
         """)
         return MOI.OTHER_ERROR

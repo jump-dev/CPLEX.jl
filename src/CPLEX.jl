@@ -25,11 +25,9 @@ end
 const _CPLEX_VERSION = _get_version_number()
 
 if _CPLEX_VERSION == v"12.10.0"
-    include("gen1210/ctypes.jl")
     include("gen1210/libcpx_common.jl")
     include("gen1210/libcpx_api.jl")
 elseif _CPLEX_VERSION == v"20.1.0"
-    include("gen2010/ctypes.jl")
     include("gen2010/libcpx_common.jl")
     include("gen2010/libcpx_api.jl")
 else
@@ -60,21 +58,8 @@ include("MOI/indicator_constraint.jl")
 # CPLEX exports all `CPXxxx` symbols. If you don't want all of these symbols in
 # your environment, then use `import CPLEX` instead of `using CPLEX`.
 
-for sym in names(@__MODULE__, all = true)
-    sym_string = string(sym)
-    if startswith(sym_string, "CPX")
-        @eval export $sym
-    end
-end
-
-include("deprecated_functions.jl")
-
-# Special overload to deprecate the `model.inner` field access.
-function Base.getproperty(opt::Optimizer, key::Symbol)
-    if key == :inner
-        error(_DEPRECATED_ERROR_MESSAGE)
-    end
-    return getfield(opt, key)
+for sym in filter(s -> startswith("$s", "CPX"), names(@__MODULE__, all = true))
+    @eval export $sym
 end
 
 end
