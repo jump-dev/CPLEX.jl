@@ -27,17 +27,11 @@ function test_runtests()
         model,
         MOI.Test.Config(atol = 1e-3, rtol = 1e-3),
         exclude = String[
+            # TODO(odow): new tests
+            "test_unbounded_",
+            "test_infeasible_",
             # CPLEX doesn't support nonconvex QCPs
             "test_quadratic_nonconvex_",
-            # TODO(odow): fixed in MOI 0.10.1
-            "test_solve_SOS2_add_and_delete",
-            "test_objective_get_ObjectiveFunction_ScalarAffineFunction",
-            "test_conic_SecondOrderCone_negative_initial_bound",
-            "test_conic_SecondOrderCone_negative_post_bound",
-            "test_conic_SecondOrderCone_negative_post_bound_ii",
-            "test_conic_SecondOrderCone_no_initial_bound",
-            "test_conic_SecondOrderCone_nonnegative_initial_bound",
-            "test_conic_SecondOrderCone_nonnegative_post_bound",
         ],
     )
     return
