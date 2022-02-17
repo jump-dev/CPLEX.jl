@@ -1,7 +1,7 @@
 name = "CPLEX"
 uuid = "a076750e-1247-5638-91d2-ce28b192dca0"
 repo = "https://github.com/jump-dev/CPLEX.jl"
-version = "0.8.1"
+version = "1.0.0"
 
 [deps]
 CEnum = "fa961155-64e5-5f13-b03f-caf6b980ea82"
@@ -11,8 +11,8 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [compat]
 CEnum = "0.3, 0.4"
-MathOptInterface = "0.10"
-julia = "1"
+MathOptInterface = "1"
+julia = "1.6"
 
 [extras]
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
