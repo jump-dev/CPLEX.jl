@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ['1.0', '1']  # Test against LTS and current minor release
+        version: ['1.6', '1']  # Test against LTS and current minor release
         os: [ubuntu-latest]
         arch: [x64]
         cplex_version: ['12100', '2010']
