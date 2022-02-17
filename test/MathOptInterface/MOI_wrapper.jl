@@ -32,6 +32,7 @@ function test_runtests()
             "test_infeasible_",
             # CPLEX doesn't support nonconvex QCPs
             "test_quadratic_nonconvex_",
+            "test_conic_SecondOrderCone_negative_post_bound_3",
         ],
     )
     return
