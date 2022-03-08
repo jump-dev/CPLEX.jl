@@ -470,7 +470,7 @@ function MOI.get(model::Optimizer, param::MOI.RawOptimizerAttribute)
     else
         @assert typeP[] == CPX_PARAMTYPE_LONG
         valueP = Ref{CPXLONG}()
-        ret = CPXsetlongparam(model.env, numP[], valueP)
+        ret = CPXgetlongparam(model.env, numP[], valueP)
         _check_ret(model.env, ret)
         return valueP[]
     end
