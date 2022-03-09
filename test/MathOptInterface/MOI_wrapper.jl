@@ -200,7 +200,7 @@ end
 
 function test_getlongparam()
     model = CPLEX.Optimizer()
-    y = MOI.get(model, MOI.RawOptimizerAttribute("CPX_PARAM_INTSOLLIM")
+    y = MOI.get(model, MOI.RawOptimizerAttribute("CPX_PARAM_INTSOLLIM"))
     # The default is a really big number, but not the typemax.
     @test y > 0.95 * typemax(y)
     return
