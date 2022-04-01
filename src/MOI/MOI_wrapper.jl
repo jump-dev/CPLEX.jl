@@ -241,6 +241,13 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     heuristic_callback::Union{Nothing,Function}
     generic_callback::Any
 
+    # For more information on why `pass_names` is necessary, read:
+    # https://github.com/jump-dev/CPLEX.jl/issues/392
+    # The underlying problem is that we observed that add_variable, then set
+    # VariableName then add_variable (i.e., what CPLEX in direct-mode does) is
+    # faster than adding variable in batch then setting names in batch (i.e.,
+    # what default_copy_to does). If implementing MOI.copy_to, you should take
+    # this into consideration.
     pass_names::Bool
 
     function Optimizer(
@@ -505,6 +512,9 @@ end
 
 MOI.supports_incremental_interface(::Optimizer) = true
 
+# !!! info
+#     If modifying this function, read the comment in the defintion of Optimizer
+#     about the need for `pass_names`.
 function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike)
     return MOI.Utilities.default_copy_to(dest, src)
 end
