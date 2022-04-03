@@ -206,6 +206,14 @@ function test_getlongparam()
     return
 end
 
+function test_PassNames()
+    model = CPLEX.Optimizer()
+    @test model.pass_names == false
+    MOI.set(model, CPLEX.PassNames(), true)
+    @test model.pass_names == true
+    return
+end
+
 end  # module TestMOIwrapper
 
 TestMOIwrapper.runtests()

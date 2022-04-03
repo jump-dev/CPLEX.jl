@@ -130,7 +130,7 @@ function _check_ret_optimize(model)
 end
 
 """
-    Optimizer(env::Union{Nothing, Env} = nothing; pass_names::Bool = false)
+    Optimizer(env::Union{Nothing, Env} = nothing)
 
 Create a new Optimizer object.
 
@@ -140,23 +140,29 @@ first argument.
 Set optimizer attributes using `MOI.RawOptimizerAttribute` or
 `JuMP.set_optimizer_atttribute`.
 
-## Names
+## Example
+
+```julia
+using JuMP, CPLEX
+const env = CPLEX.Env()
+model = JuMP.Model(() -> CPLEX.Optimizer(env)
+set_optimizer_attribute(model, "CPXPARAM_ScreenOutput", 0)
+```
+
+## `CPLEX.PassNames`
 
 By default, variable and constraint names are stored in the MOI wrapper, but are
 _not_ passed to the inner CPLEX model object because doing so can lead to a
 large performance degradation. The downside of not passing names is that various
 log messages from CPLEX will report names like constraint "R1" and variable "C2"
 instead of their actual names. You can change this behavior using
-`pass_names = true` to force CPLEX.jl to pass variable and constraint names to
-the inner CPLEX model object.
-
-## Example
+`CPLEX.PassNames` to force CPLEX.jl to pass variable and constraint names to the
+inner CPLEX model object:
 
 ```julia
 using JuMP, CPLEX
-const env = CPLEX.Env()
-model = JuMP.Model(() -> CPLEX.Optimizer(env; pass_names = true))
-set_optimizer_attribute(model, "CPXPARAM_ScreenOutput", 0)
+model = JuMP.Model(CPLEX.Optimizer)
+set_optimizer_attribute(model, CPLEX.PassNames(), true)
 ```
 """
 mutable struct Optimizer <: MOI.AbstractOptimizer
@@ -250,10 +256,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     # this into consideration.
     pass_names::Bool
 
-    function Optimizer(
-        env::Union{Nothing,Env} = nothing;
-        pass_names::Bool = false,
-    )
+    function Optimizer(env::Union{Nothing,Env} = nothing)
         model = new()
         model.lp = C_NULL
         model.env = env === nothing ? Env() : env
@@ -270,7 +273,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
             Dict{Int,Tuple{_ConstraintInfo,MOI.VectorAffineFunction{Float64}}}()
         model.callback_variable_primal = Float64[]
         model.certificate = Float64[]
-        model.pass_names = pass_names
+        model.pass_names = false
         MOI.empty!(model)
         finalizer(model) do m
             ret = CPXfreeprob(m.env, Ref(m.lp))
@@ -353,6 +356,20 @@ function MOI.is_empty(model::Optimizer)
     model.user_cut_callback !== nothing && return false
     model.heuristic_callback !== nothing && return false
     return true
+end
+
+"""
+    PassNames() <: MOI.AbstractOptimizerAttribute
+
+An optimizer attribute to control whether CPLEX.jl should pass names to the
+inner CPLEX model object. See the docstring of `CPLEX.Optimizer` for more
+information.
+"""
+struct PassNames <: MOI.AbstractOptimizerAttribute end
+
+function MOI.set(model::Optimizer, ::PassNames, value::Bool)
+    model.pass_names = value
+    return
 end
 
 MOI.get(::Optimizer, ::MOI.SolverName) = "CPLEX"
