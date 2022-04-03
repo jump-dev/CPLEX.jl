@@ -130,7 +130,7 @@ function _check_ret_optimize(model)
 end
 
 """
-    Optimizer(env::Union{Nothing, Env} = nothing)
+    Optimizer(env::Union{Nothing, Env} = nothing; pass_names::Bool = false)
 
 Create a new Optimizer object.
 
@@ -140,12 +140,22 @@ first argument.
 Set optimizer attributes using `MOI.RawOptimizerAttribute` or
 `JuMP.set_optimizer_atttribute`.
 
+## Names
+
+By default, variable and constraint names are stored in the MOI wrapper, but are
+_not_ passed to the inner CPLEX model object because doing so can lead to a
+large performance degradation. The downside of not passing names is that various
+log messages from CPLEX will report names like constraint "R1" and variable "C2"
+instead of their actual names. You can change this behavior using
+`pass_names = true` to force CPLEX.jl to pass variable and constraint names to
+the inner CPLEX model object.
+
 ## Example
 
 ```julia
 using JuMP, CPLEX
 const env = CPLEX.Env()
-model = JuMP.Model(() -> CPLEX.Optimizer(env))
+model = JuMP.Model(() -> CPLEX.Optimizer(env; pass_names = true))
 set_optimizer_attribute(model, "CPXPARAM_ScreenOutput", 0)
 ```
 """
@@ -231,7 +241,19 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
     heuristic_callback::Union{Nothing,Function}
     generic_callback::Any
 
-    function Optimizer(env::Union{Nothing,Env} = nothing)
+    # For more information on why `pass_names` is necessary, read:
+    # https://github.com/jump-dev/CPLEX.jl/issues/392
+    # The underlying problem is that we observed that add_variable, then set
+    # VariableName then add_variable (i.e., what CPLEX in direct-mode does) is
+    # faster than adding variable in batch then setting names in batch (i.e.,
+    # what default_copy_to does). If implementing MOI.copy_to, you should take
+    # this into consideration.
+    pass_names::Bool
+
+    function Optimizer(
+        env::Union{Nothing,Env} = nothing;
+        pass_names::Bool = false,
+    )
         model = new()
         model.lp = C_NULL
         model.env = env === nothing ? Env() : env
@@ -248,6 +270,7 @@ mutable struct Optimizer <: MOI.AbstractOptimizer
             Dict{Int,Tuple{_ConstraintInfo,MOI.VectorAffineFunction{Float64}}}()
         model.callback_variable_primal = Float64[]
         model.certificate = Float64[]
+        model.pass_names = pass_names
         MOI.empty!(model)
         finalizer(model) do m
             ret = CPXfreeprob(m.env, Ref(m.lp))
@@ -489,6 +512,9 @@ end
 
 MOI.supports_incremental_interface(::Optimizer) = true
 
+# !!! info
+#     If modifying this function, read the comment in the defintion of Optimizer
+#     about the need for `pass_names`.
 function MOI.copy_to(dest::Optimizer, src::MOI.ModelLike)
     return MOI.Utilities.default_copy_to(dest, src)
 end
@@ -821,8 +847,7 @@ function MOI.set(
     name::String,
 )
     info = _info(model, v)
-    info.name = name
-    if isascii(name)
+    if model.pass_names && info.name != name && isascii(name)
         ret = CPXchgname(
             model.env,
             model.lp,
@@ -832,6 +857,7 @@ function MOI.set(
         )
         _check_ret(model, ret)
     end
+    info.name = name
     model.name_to_variable = nothing
     return
 end
@@ -2057,8 +2083,7 @@ function MOI.set(
     name::String,
 )
     info = _info(model, c)
-    info.name = name
-    if isascii(name)
+    if model.pass_names && info.name != name && isascii(name)
         ret = CPXchgname(
             model.env,
             model.lp,
@@ -2068,6 +2093,7 @@ function MOI.set(
         )
         _check_ret(model, ret)
     end
+    info.name = name
     model.name_to_constraint_index = nothing
     return
 end
