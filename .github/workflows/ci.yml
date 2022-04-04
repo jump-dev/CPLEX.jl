@@ -14,7 +14,7 @@ jobs:
         version: ['1.6', '1']  # Test against LTS and current minor release
         os: [ubuntu-latest]
         arch: [x64]
-        cplex_version: ['12100', '2010']
+        cplex_version: ['12100', '2010', '2210']
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
@@ -35,6 +35,7 @@ jobs:
         env:
           SECRET_CPLEX_URL_12100: ${{ secrets.CPLEX_URL_12100 }}
           SECRET_CPLEX_URL_2010: ${{ secrets.CPLEX_URL_2010 }}
+          SECRET_CPLEX_URL_2210: ${{ secrets.CPLEX_URL_2210 }}
           CPLEX_VERSION: ${{ matrix.cplex_version }}
       - uses: julia-actions/julia-runtest@v1
       - uses: julia-actions/julia-processcoverage@v1
