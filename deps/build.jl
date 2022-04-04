@@ -8,6 +8,7 @@ end
 const _CPX_VERS = [ # From oldest to most recent.
     "1210", "12100",
     "201", "2010", "20100",
+    "221", "2210", "22100",
 ]
 const _BASE_ENV = "CPLEX_STUDIO_BINARIES"
 
@@ -40,6 +41,7 @@ function get_error_message_if_not_found()
 
     * 12.10
     * 20.1
+    * 22.1
 
     You must download and install one of these versions separately.
 
