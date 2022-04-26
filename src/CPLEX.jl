@@ -1,3 +1,8 @@
+# Copyright (c) 2013: Joey Huchette and contributors
+#
+# Use of this source code is governed by an MIT-style license that can be found
+# in the LICENSE.md file or at https://opensource.org/licenses/MIT.
+
 module CPLEX
 
 const _DEPS_FILE = joinpath(dirname(@__DIR__), "deps", "deps.jl")
