@@ -26,6 +26,10 @@ CPLEX.jl has two components:
 The C API can be accessed via `CPLEX.CPXxx` functions, where the names and
 arguments are identical to the C API. See the [CPLEX documentation](https://www.ibm.com/support/knowledgecenter/SSSA5P_12.10.0/COS_KC_home.html)
 for details.
+For instance, if you want to silence the output from the solver:
+```julia
+    set_optimizer_attribute(model, "CPXPARAM_ScreenOutput", 0)
+```
 
 *Note: This wrapper is maintained by the JuMP community and is not
 officially supported by IBM. However, we thank IBM for providing us with a
