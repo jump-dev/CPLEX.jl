@@ -3250,19 +3250,25 @@ function MOI.set(model::Optimizer, ::MOI.NumberOfThreads, x::Int)
 end
 
 function MOI.get(model::Optimizer, ::MOI.AbsoluteGapTolerance)
-    return MOI.get(model, MOI.RawOptimizerAttribute("CPXPARAM_MIP_Tolerances_AbsMIPGap"))
+    param = MOI.RawOptimizerAttribute("CPXPARAM_MIP_Tolerances_AbsMIPGap")
+    return MOI.get(model, param)
 end
 
 function MOI.set(model::Optimizer, ::MOI.AbsoluteGapTolerance, gap::Real)
-    return MOI.set(model, MOI.RawOptimizerAttribute("CPXPARAM_MIP_Tolerances_AbsMIPGap"), gap)
+    param = MOI.RawOptimizerAttribute("CPXPARAM_MIP_Tolerances_AbsMIPGap")
+    MOI.set(model, param, convert(Float64, gap))
+    return
 end
 
 function MOI.get(model::Optimizer, ::MOI.RelativeGapTolerance)
-    return MOI.get(model, MOI.RawOptimizerAttribute("CPXPARAM_MIP_Tolerances_MIPGap"))
+    param = MOI.RawOptimizerAttribute("CPXPARAM_MIP_Tolerances_MIPGap")
+    return MOI.get(model, param)
 end
 
 function MOI.set(model::Optimizer, ::MOI.RelativeGapTolerance, gap::Real)
-    return MOI.set(model, MOI.RawOptimizerAttribute("CPXPARAM_MIP_Tolerances_MIPGap"), gap)
+    param = MOI.RawOptimizerAttribute("CPXPARAM_MIP_Tolerances_MIPGap")
+    MOI.set(model, param, convert(Float64, gap))
+    return
 end
 
 function MOI.get(model::Optimizer, ::MOI.Name)
