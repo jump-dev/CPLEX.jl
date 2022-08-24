@@ -154,7 +154,8 @@ function load_callback_variable_primal(
             Cint(N - 1),
             C_NULL,
         )
-    elseif context_id == CPX_CALLBACKCONTEXT_RELAXATION
+    elseif context_id == CPX_CALLBACKCONTEXT_RELAXATION ||
+           context_id == CPX_CALLBACKCONTEXT_BRANCHING
         ret = CPXcallbackgetrelaxationpoint(
             cb_data,
             model.callback_variable_primal,
