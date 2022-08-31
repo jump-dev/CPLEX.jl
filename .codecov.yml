@@ -1,0 +1,4 @@
+ignore:
+  - 'src/gen1210'
+  - 'src/gen2010'
+  - 'src/gen2210'
