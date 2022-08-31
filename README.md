@@ -164,7 +164,7 @@ function add_annotation(
     if all_variables
         @assert num_variables == JuMP.num_variables(model)
     end
-    indices, annotations = Cint[], Clong[]
+    indices, annotations = CPXINT[], CPXLONG[]
     for (key, value) in variable_classification
         for variable_ref in value
             push!(indices, variable_ref.index.value - 1)
@@ -172,7 +172,7 @@ function add_annotation(
         end
     end
     cplex = backend(model)
-    index_p = Ref{Cint}()
+    index_p = Ref{CPXINT}()
     CPXnewlongannotation(
         cplex.env,
         cplex.lp,
