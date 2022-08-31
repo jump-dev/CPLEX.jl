@@ -462,6 +462,8 @@ MOI.supports(::Optimizer, ::MOI.Silent) = true
 MOI.supports(::Optimizer, ::MOI.NumberOfThreads) = true
 MOI.supports(::Optimizer, ::MOI.TimeLimitSec) = true
 MOI.supports(::Optimizer, ::MOI.ObjectiveSense) = true
+MOI.supports(::Optimizer, ::MOI.AbsoluteGapTolerance) = true
+MOI.supports(::Optimizer, ::MOI.RelativeGapTolerance) = true
 MOI.supports(::Optimizer, ::MOI.RawOptimizerAttribute) = true
 
 function MOI.set(model::Optimizer, param::MOI.RawOptimizerAttribute, value)
@@ -3245,6 +3247,28 @@ end
 
 function MOI.set(model::Optimizer, ::MOI.NumberOfThreads, x::Int)
     return MOI.set(model, MOI.RawOptimizerAttribute("CPX_PARAM_THREADS"), x)
+end
+
+function MOI.get(model::Optimizer, ::MOI.AbsoluteGapTolerance)
+    param = MOI.RawOptimizerAttribute("CPXPARAM_MIP_Tolerances_AbsMIPGap")
+    return MOI.get(model, param)
+end
+
+function MOI.set(model::Optimizer, ::MOI.AbsoluteGapTolerance, gap::Real)
+    param = MOI.RawOptimizerAttribute("CPXPARAM_MIP_Tolerances_AbsMIPGap")
+    MOI.set(model, param, convert(Float64, gap))
+    return
+end
+
+function MOI.get(model::Optimizer, ::MOI.RelativeGapTolerance)
+    param = MOI.RawOptimizerAttribute("CPXPARAM_MIP_Tolerances_MIPGap")
+    return MOI.get(model, param)
+end
+
+function MOI.set(model::Optimizer, ::MOI.RelativeGapTolerance, gap::Real)
+    param = MOI.RawOptimizerAttribute("CPXPARAM_MIP_Tolerances_MIPGap")
+    MOI.set(model, param, convert(Float64, gap))
+    return
 end
 
 function MOI.get(model::Optimizer, ::MOI.Name)
