@@ -14,7 +14,7 @@ const _CPX_VERS = [ # From oldest to most recent.
     "1210", "12100",
     "201", "2010", "20100",
     "221", "2210", "22100",
-    "2211",
+    "2211", "22110",
 ]
 const _BASE_ENV = "CPLEX_STUDIO_BINARIES"
 
