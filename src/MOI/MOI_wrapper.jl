@@ -2905,6 +2905,9 @@ function MOI.get(
     c::MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64},<:Any},
 )
     _throw_if_optimize_in_progress(model, attr)
+    if model.has_primal_certificate
+        return MOI.Utilities.get_fallback(model, attr, c)
+    end
     MOI.check_result_index_bounds(model, attr)
     row = Cint(_info(model, c).row - 1)
     ax = Ref{Cdouble}()
@@ -3159,6 +3162,9 @@ end
 function MOI.get(model::Optimizer, attr::MOI.ObjectiveValue)
     _throw_if_optimize_in_progress(model, attr)
     MOI.check_result_index_bounds(model, attr)
+    if model.has_primal_certificate
+        return MOI.Utilities.get_fallback(model, attr)
+    end
     p = Ref{Cdouble}()
     ret = CPXgetobjval(model.env, model.lp, p)
     _check_ret(model, ret)
@@ -3206,6 +3212,9 @@ end
 
 function MOI.get(model::Optimizer, attr::MOI.DualObjectiveValue)
     _throw_if_optimize_in_progress(model, attr)
+    if model.has_dual_certificate
+        return MOI.Utilities.get_fallback(model, attr, Float64)
+    end
     MOI.check_result_index_bounds(model, attr)
     p = Ref{Cdouble}()
     ret = CPXgetbestobjval(model.env, model.lp, p)
