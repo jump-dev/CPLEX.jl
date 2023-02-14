@@ -1,15 +1,3 @@
-**CPLEX.jl underwent a major rewrite between versions 0.6.6 and 0.7.0. Users of
-JuMP should see no breaking changes, but if you used the lower-level C API
-(e.g., for callbacks), you will need to update your code accordingly. For a full
-description of the changes, read [this discourse post](https://discourse.julialang.org/t/ann-upcoming-breaking-changes-to-cplex-jl-and-gurobi-jl/47814).**
-
-**To revert to the old API, use:**
-```julia
-import Pkg
-Pkg.add(Pkg.PackageSpec(name = "CPLEX", version = v"0.6"))
-```
-**Then restart Julia for the change to take effect.**
-
 # CPLEX.jl
 
 CPLEX.jl is a wrapper for the [IBM® ILOG® CPLEX® Optimization
@@ -34,7 +22,7 @@ interested in official support for CPLEX in Julia, let them know!.*
 
 ## Installation
 
-**Minimum version requirement:** CPLEX.jl requires CPLEX version 12.10 or 20.1.
+**Minimum version requirement:** CPLEX.jl requires CPLEX version 12.10, 20.1, or 22.1.
 
 First, obtain a license of CPLEX and install CPLEX solver, following the
 instructions on [IBM's website](https://www.ibm.com/analytics/cplex-optimizer). Then, set the
@@ -43,35 +31,25 @@ instructions on [IBM's website](https://www.ibm.com/analytics/cplex-optimizer). 
 ```julia
 # On Windows, this might be
 ENV["CPLEX_STUDIO_BINARIES"] = "C:\\Program Files\\CPLEX_Studio1210\\cplex\\bin\\x86-64_win\\"
-import Pkg
-Pkg.add("CPLEX")
-Pkg.build("CPLEX")
-
 # On OSX, this might be
 ENV["CPLEX_STUDIO_BINARIES"] = "/Applications/CPLEX_Studio1210/cplex/bin/x86-64_osx/"
-import Pkg
-Pkg.add("CPLEX")
-Pkg.build("CPLEX")
-
 # On Unix, this might be
 ENV["CPLEX_STUDIO_BINARIES"] = "/opt/CPLEX_Studio1210/cplex/bin/x86-64_linux/"
+
 import Pkg
 Pkg.add("CPLEX")
 Pkg.build("CPLEX")
 ```
+
 **Note: your path may differ. Check which folder you installed CPLEX in, and
 update the path accordingly.**
 
 ## Use with JuMP
 
-We highly recommend that you use the *CPLEX.jl* package with higher level
-packages such as [JuMP.jl](https://github.com/jump-dev/JuMP.jl).
+Use `CPLEX.jl` with JuMP as follows:
 
-This can be done using the ``CPLEX.Optimizer`` object. Here is how to create a
-*JuMP* model that uses CPLEX as the solver.
 ```julia
 using JuMP, CPLEX
-
 model = Model(CPLEX.Optimizer)
 set_optimizer_attribute(model, "CPX_PARAM_EPINT", 1e-8)
 ```
