@@ -42,7 +42,7 @@ elseif _CPLEX_VERSION in (v"22.1.0", v"22.1.1")
 else
     error("""
 You have installed version $_CPLEX_VERSION of CPLEX, which is not supported
-by CPLEX.jl. We require CPLEX version 12.10 or 20.1.
+by CPLEX.jl. We require CPLEX version 12.10, 20.1, or 22.1.
 
 After installing CPLEX, run:
 
