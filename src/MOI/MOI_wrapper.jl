@@ -24,6 +24,7 @@ const CleverDicts = MOI.Utilities.CleverDicts
     _SCALAR_AFFINE,
     _SCALAR_QUADRATIC,
     _UNSET_OBJECTIVE,
+    _VECTOR_AFFINE,
 )
 
 @enum(
@@ -389,6 +390,7 @@ function MOI.supports(
         MOI.VariableIndex,
         MOI.ScalarAffineFunction{Float64},
         MOI.ScalarQuadraticFunction{Float64},
+        MOI.VectorAffineFunction{Float64},
     },
 }
     return true
@@ -1100,6 +1102,87 @@ function MOI.get(
     return MOI.Utilities.canonical(
         MOI.ScalarQuadraticFunction(q_terms, terms, constant[]),
     )
+end
+
+function MOI.set(
+    model::Optimizer,
+    ::MOI.ObjectiveFunction{F},
+    f::F,
+) where {F<:MOI.VectorAffineFunction{Float64}}
+    if model.objective_type == _SCALAR_QUADRATIC
+        # We need to zero out the existing quadratic objective.
+        num_vars = length(model.variable_info)
+        ret = CPXcopyquad(
+            model.env,
+            model.lp,
+            fill(Cint(0), num_vars),
+            fill(Cint(0), num_vars),
+            Ref{Cint}(),
+            Ref{Cdouble}(),
+        )
+        _check_ret(model, ret)
+    end
+    ret = CPXsetnumobjs(model.env, model.lp, Cint(MOI.output_dimension(f)))
+    _check_ret(model, ret)
+    for (i, fi) in enumerate(MOI.Utilities.eachscalar(f))
+        ret = CPXmultiobjsetobj(
+            model.env,
+            model.lp,
+            Cint(i - 1),
+            length(fi.terms),
+            [Cint(column(model, term.variable) - 1) for term in fi.terms],
+            [term.coefficient for term in fi.terms],
+            fi.constant,
+            1.0,
+            1,
+            CPX_NO_ABSTOL_CHANGE,
+            CPX_NO_RELTOL_CHANGE,
+            "Objective $i",
+        )
+        _check_ret(model, ret)
+    end
+    model.objective_type = _VECTOR_AFFINE
+    return
+end
+
+function MOI.get(
+    model::Optimizer,
+    ::MOI.ObjectiveFunction{MOI.VectorAffineFunction{Float64}},
+)
+    if model.objective_type != _VECTOR_AFFINE
+        error(
+            "Unable to get objective function. Currently: $(model.objective_type).",
+        )
+    end
+    n = CPXgetnumobjs(model.env, model.lp)
+    f = MOI.ScalarAffineFunction{Float64}[]
+    dest = zeros(Cdouble, length(model.variable_info))
+    for i in 1:n
+        offset_p = Ref{Cdouble}(0.0)
+        ret = CPXmultiobjgetobj(
+            model.env,
+            model.lp,
+            Cint(i - 1),
+            dest,
+            Cint(0),
+            Cint(length(dest) - 1),
+            offset_p,
+            C_NULL,
+            C_NULL,
+            C_NULL,
+            C_NULL,
+        )
+        _check_ret(model, ret)
+        terms = MOI.ScalarAffineTerm{Float64}[]
+        for (index, info) in model.variable_info
+            coefficient = dest[info.column]
+            if !iszero(coefficient)
+                push!(terms, MOI.ScalarAffineTerm(coefficient, index))
+            end
+        end
+        push!(f, MOI.ScalarAffineFunction(terms, offset_p[]))
+    end
+    return MOI.Utilities.operate(vcat, Float64, f...)
 end
 
 function MOI.modify(
@@ -2607,7 +2690,9 @@ function _optimize!(model)
     prob_type = CPXgetprobtype(model.env, model.lp)
     # There are prob_types other than the ones listed here, but the
     # CPLEX.Optimizer should never encounter them.
-    ret = if prob_type in (CPXPROB_MILP, CPXPROB_MIQP, CPXPROB_MIQCP)
+    ret = if model.objective_type == _VECTOR_AFFINE
+        CPXmultiobjopt(model.env, model.lp, C_NULL)
+    elseif prob_type in (CPXPROB_MILP, CPXPROB_MIQP, CPXPROB_MIQCP)
         CPXmipopt(model.env, model.lp)
     elseif prob_type in (CPXPROB_QP, CPXPROB_QCP)
         CPXqpopt(model.env, model.lp)
@@ -3169,6 +3254,16 @@ function MOI.get(model::Optimizer, attr::MOI.ObjectiveValue)
     MOI.check_result_index_bounds(model, attr)
     if model.has_primal_certificate
         return MOI.Utilities.get_fallback(model, attr)
+    elseif model.objective_type == _VECTOR_AFFINE
+        n = CPXgetnumobjs(model.env, model.lp)
+        objval = zeros(n)
+        objP = Ref{Cdouble}(0.0)
+        for i in 1:n
+            ret = CPXmultiobjgetobjval(model.env, model.lp, Cint(i - 1), objP)
+            _check_ret(model, ret)
+            objval[i] = objP[]
+        end
+        return objval
     end
     p = Ref{Cdouble}()
     ret = CPXgetobjval(model.env, model.lp, p)
@@ -3491,9 +3586,11 @@ function MOI.get(model::Optimizer, ::MOI.ObjectiveFunctionType)
         return MOI.VariableIndex
     elseif model.objective_type == _SCALAR_AFFINE
         return MOI.ScalarAffineFunction{Float64}
-    else
-        @assert model.objective_type == _SCALAR_QUADRATIC
+    elseif model.objective_type == _SCALAR_QUADRATIC
         return MOI.ScalarQuadraticFunction{Float64}
+    else
+        @assert model.objective_type == _VECTOR_AFFINE
+        return MOI.VectorAffineFunction{Float64}
     end
 end
 
@@ -3932,4 +4029,54 @@ function MOI.get(
     end
     z = _dual_multiplier(model)
     return [z * slack[_info(model, v).column] for v in f.variables]
+end
+
+"""
+    MultiObjectiveAttribute(index::Int, field::String)
+
+An attribute to interact with CPLEX's multi-objective attributes.
+
+`index` is the 1-based index of the scalar objective function to modify.
+
+`field` is a `String` that must be one of:
+
+ * `"weight"`: to change the scalarization weight of the objective
+ * `"priority"`: to change the priority of the objective
+ * `"abstol"`: to change the absolute tolerance of the objective
+ * `"reltol"`: to change the relative tolerance of the objective
+"""
+struct MultiObjectiveAttribute <: MOI.AbstractModelAttribute
+    index::Int
+    field::String
+end
+
+function MOI.set(model::Optimizer, attr::MultiObjectiveAttribute, value)
+    weight = CPX_NO_WEIGHT_CHANGE
+    priority = CPX_NO_PRIORITY_CHANGE
+    abstol = CPX_NO_ABSTOL_CHANGE
+    reltol = CPX_NO_RELTOL_CHANGE
+    if attr.field == "weight"
+        weight = value
+    elseif attr.field == "priority"
+        priority = value
+    elseif attr.field == "abstol"
+        abstol = value
+    elseif attr.field == "reltol"
+        reltol = value
+    else
+        throw(MOI.UnsupportedAttribute(attr))
+    end
+    ret = CPXmultiobjchgattribs(
+        model.env,
+        model.lp,
+        Cint(attr.index - 1),
+        CPX_NO_OFFSET_CHANGE,
+        weight,
+        priority,
+        abstol,
+        reltol,
+        C_NULL,
+    )
+    _check_ret(model, ret)
+    return
 end
