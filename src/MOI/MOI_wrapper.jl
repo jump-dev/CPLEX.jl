@@ -2637,6 +2637,11 @@ function MOI.optimize!(model::Optimizer)
         )
         model.has_generic_callback = false
     end
+    n = CPXgetnummipstarts(model.env, model.lp)
+    if n > 0
+        ret = CPXdelmipstarts(model.env, model.lp, 0, n - 1)
+        _check_ret(model, ret)
+    end
     if _has_discrete_variables(model)
         varindices = Cint[]
         values = Float64[]
