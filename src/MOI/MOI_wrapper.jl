@@ -3206,6 +3206,9 @@ function MOI.get(model::Optimizer, attr::MOI.RelativeGap)
     _throw_if_optimize_in_progress(model, attr)
     p = Ref{Cdouble}()
     ret = CPXgetmiprelgap(model.env, model.lp, p)
+    if ret == CPXERR_NOT_MIP
+        throw(MOI.GetAttributeNotAllowed(attr, "Not a mixed-integer problem."))
+    end
     _check_ret(model, ret)
     return p[]
 end
