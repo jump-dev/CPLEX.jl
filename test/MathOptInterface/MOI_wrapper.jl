@@ -246,6 +246,43 @@ c4: y >= 0.25
     return
 end
 
+function test_multiobjective_attributes()
+    model = CPLEX.Optimizer()
+    MOI.set(model, MOI.Silent(), true)
+    MOI.Utilities.loadfromstring!(
+        model,
+        """
+variables: x, y
+minobjective: [-2 * x + -1 * y, x + 3 * y]
+c1: x + y >= 1.0
+c2: 0.5 * x + 1.0 * y >= 0.75
+c3: x >= 0.0
+c4: y >= 0.25
+""",
+    )
+    MOI.set(model, CPLEX.MultiObjectiveAttribute(1, "reltol"), 0.0)
+    MOI.set(model, CPLEX.MultiObjectiveAttribute(1, "abstol"), 0.0)
+    MOI.set(model, CPLEX.MultiObjectiveAttribute(1, "weight"), -1.0)
+    MOI.set(model, CPLEX.MultiObjectiveAttribute(1, "priority"), 1)
+    MOI.set(model, CPLEX.MultiObjectiveAttribute(2, "priority"), 2)
+    MOI.optimize!(model)
+    @test MOI.get(model, MOI.ObjectiveValue()) ≈ [-2.25, 1.75]
+    x = MOI.get(model, MOI.ListOfVariableIndices())
+    @test MOI.get(model, MOI.VariablePrimal(), x) ≈ [1.0, 0.25]
+    MOI.set(model, CPLEX.MultiObjectiveAttribute(1, "priority"), 2)
+    MOI.set(model, CPLEX.MultiObjectiveAttribute(2, "priority"), 1)
+    MOI.optimize!(model)
+    @test MOI.get(model, MOI.ObjectiveValue()) ≈ [-1.0, 3.0]
+    x = MOI.get(model, MOI.ListOfVariableIndices())
+    @test MOI.get(model, MOI.VariablePrimal(), x) ≈ [0.0, 1.0]
+    @test_throws(
+        MOI.UnsupportedAttribute,
+        MOI.set(model, CPLEX.MultiObjectiveAttribute(1, "bad_attr"), 0.0),
+    )
+    return
+end
+
+
 function test_example_biobjective_knapsack()
     p1 = [77.0, 94, 71, 63, 96, 82, 85, 75, 72, 91, 99, 63, 84, 87, 79, 94, 90]
     p2 = [65.0, 90, 90, 77, 95, 84, 70, 94, 66, 92, 74, 97, 60, 60, 65, 97, 93]

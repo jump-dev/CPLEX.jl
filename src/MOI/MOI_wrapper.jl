@@ -4030,3 +4030,53 @@ function MOI.get(
     z = _dual_multiplier(model)
     return [z * slack[_info(model, v).column] for v in f.variables]
 end
+
+"""
+    MultiObjectiveAttribute(index::Int, field::String)
+
+An attribute to interact with CPLEX's multi-objective attributes.
+
+`index` is the 1-based index of the scalar objective function to modify.
+
+`field` is a `String` that must be one of:
+
+ * `"weight"`: to change the scalarization weight of the objective
+ * `"priority"`: to change the priority of the objective
+ * `"abstol"`: to change the absolute tolerance of the objective
+ * `"reltol"`: to change the relative tolerance of the objective
+"""
+struct MultiObjectiveAttribute <: MOI.AbstractModelAttribute
+    index::Int
+    field::String
+end
+
+function MOI.set(model::Optimizer, attr::MultiObjectiveAttribute, value)
+    weight = CPX_NO_WEIGHT_CHANGE
+    priority = CPX_NO_PRIORITY_CHANGE
+    abstol = CPX_NO_ABSTOL_CHANGE
+    reltol = CPX_NO_RELTOL_CHANGE
+    if attr.field == "weight"
+        weight = value
+    elseif attr.field == "priority"
+        priority = value
+    elseif attr.field == "abstol"
+        abstol = value
+    elseif attr.field == "reltol"
+        reltol = value
+    else
+        throw(MOI.UnsupportedAttribute(attr))
+    end
+    ret = CPXmultiobjchgattribs(
+        model.env,
+        model.lp,
+        Cint(attr.index - 1),
+        CPX_NO_OFFSET_CHANGE,
+        weight,
+        priority,
+        abstol,
+        reltol,
+        C_NULL,
+    )
+    _check_ret(model, ret)
+    return
+end
