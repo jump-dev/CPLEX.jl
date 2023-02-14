@@ -219,6 +219,15 @@ function test_PassNames()
     return
 end
 
+function test_relative_gap_GetAttributeNotAllowed()
+    model = CPLEX.Optimizer()
+    x = MOI.add_variable(model)
+    MOI.add_constraint(model, x, MOI.GreaterThan(1.0))
+    MOI.optimize!(model)
+    @test_throws MOI.GetAttributeNotAllowed MOI.get(model, MOI.RelativeGap())
+    return
+end
+
 end  # module TestMOIwrapper
 
 TestMOIwrapper.runtests()
