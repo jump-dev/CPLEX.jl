@@ -65,6 +65,40 @@ model = Model(CPLEX.Optimizer)
 set_attribute(model, "CPX_PARAM_EPINT", 1e-8)
 ```
 
+## List of supported problem types
+
+List of supported model attributes:
+
+ * `MOI.ConflictStatus`
+ * `MOI.HeuristicCallback`
+ * `MOI.LazyConstraintCallback`
+ * `MOI.Name`
+ * `MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}`
+ * `MOI.ObjectiveFunction{MOI.ScalarQuadraticFunction{Float64}}`
+ * `MOI.ObjectiveFunction{MOI.VariableIndex}`
+ * `MOI.ObjectiveFunction{MOI.VectorAffineFunction{Float64}}`
+ * `MOI.ObjectiveSense`
+ * `MOI.UserCutCallback`
+
+List of supported constraint types:
+
+ * `MOI.ScalarAffineFunction{Float64}` in `MOI.EqualTo{Float64}`
+ * `MOI.ScalarAffineFunction{Float64}` in `MOI.GreaterThan{Float64}`
+ * `MOI.ScalarAffineFunction{Float64}` in `MOI.LessThan{Float64}`
+ * `MOI.ScalarQuadraticFunction{Float64}` in `MOI.GreaterThan{Float64}`
+ * `MOI.ScalarQuadraticFunction{Float64}` in `MOI.LessThan{Float64}`
+ * `MOI.VariableIndex` in `MOI.EqualTo{Float64}`
+ * `MOI.VariableIndex` in `MOI.GreaterThan{Float64}`
+ * `MOI.VariableIndex` in `MOI.Integer`
+ * `MOI.VariableIndex` in `MOI.Interval{Float64}`
+ * `MOI.VariableIndex` in `MOI.LessThan{Float64}`
+ * `MOI.VariableIndex` in `MOI.Semicontinuous{Float64}`
+ * `MOI.VariableIndex` in `MOI.Semiinteger{Float64}`
+ * `MOI.VariableIndex` in `MOI.ZeroOne`
+ * `MOI.VectorOfVariables` in `MOI.SOS1{Float64}`
+ * `MOI.VectorOfVariables` in `MOI.SOS2{Float64}`
+ * `MOI.VectorOfVariables` in `MOI.SecondOrderCone`
+
 ## Options
 
 Options match those of the C API in the [CPLEX documentation](https://www.ibm.com/support/knowledgecenter/SSSA5P_12.10.0/ilog.odms.cplex.help/CPLEX/Parameters/topics/introListAlpha.html).
