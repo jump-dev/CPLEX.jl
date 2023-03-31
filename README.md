@@ -21,6 +21,15 @@ by IBM. However, we thank IBM for providing us with a CPLEX license to test
 `CPLEX.jl` on GitHub. If you are a commercial customer interested in official
 support for CPLEX in Julia, let them know!
 
+## License
+
+`CPLEX.jl` is licensed under the [MIT License](https://github.com/jump-dev/CPLEX.jl/blob/master/LICENSE.md).
+
+The underlying solver is a closed-source commercial product for which you must
+[purchase a license](https://www.ibm.com/analytics/cplex-optimizer).
+
+Free CPLEX licenses are available for [academics and students](http://ibm.biz/Bdzvqw).
+
 ## Installation
 
 **Minimum version requirement:** CPLEX.jl requires CPLEX version 12.10, 20.1, or
@@ -28,9 +37,6 @@ support for CPLEX in Julia, let them know!
 
 First, obtain a license of CPLEX and install CPLEX solver, following the
 instructions on [IBM's website](https://www.ibm.com/analytics/cplex-optimizer).
-Note that you cannot use CPLEX.jl without having purchased and installed a copy
-of CPLEX Optimization Studio from [IBM](http://www.ibm.com/). However, CPLEX is
-available for free to [academics and students](http://ibm.biz/Bdzvqw).
 
 Once installed, set the `CPLEX_STUDIO_BINARIES` environment variable as
 appropriate and run `Pkg.add("CPLEX")`. For example:
