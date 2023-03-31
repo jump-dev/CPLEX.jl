@@ -1,11 +1,10 @@
 # CPLEX.jl
 
-CPLEX.jl is a wrapper for the [IBM® ILOG® CPLEX® Optimization
-Studio](https://www.ibm.com/products/ilog-cplex-optimization-studio)
+[![Build Status](https://github.com/jump-dev/CPLEX.jl/workflows/CI/badge.svg?branch=master)](https://github.com/jump-dev/CPLEX.jl/actions?query=workflow%3ACI)
+[![codecov](https://codecov.io/gh/jump-dev/CPLEX.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/jump-dev/CPLEX.jl)
 
-You cannot use CPLEX.jl without having purchased and installed a copy of CPLEX
-Optimization Studio from [IBM](http://www.ibm.com/). However, CPLEX is
-available for free to [academics and students](http://ibm.biz/Bdzvqw).
+[CPLEX.jl](https://github.com/jump-dev/CPLEX.jl) is a wrapper for the
+[IBM® ILOG® CPLEX® Optimization Studio](https://www.ibm.com/products/ilog-cplex-optimization-studio).
 
 CPLEX.jl has two components:
  - a thin wrapper around the complete C API
@@ -15,46 +14,54 @@ The C API can be accessed via `CPLEX.CPXxx` functions, where the names and
 arguments are identical to the C API. See the [CPLEX documentation](https://www.ibm.com/support/knowledgecenter/SSSA5P_12.10.0/COS_KC_home.html)
 for details.
 
-*Note: This wrapper is maintained by the JuMP community and is not
-officially supported by IBM. However, we thank IBM for providing us with a
-CPLEX license to test `CPLEX.jl` on GitHub. If you are a commercial customer
-interested in official support for CPLEX in Julia, let them know!.*
+## Affiliation
+
+This wrapper is maintained by the JuMP community and is not officially supported
+by IBM. However, we thank IBM for providing us with a CPLEX license to test
+`CPLEX.jl` on GitHub. If you are a commercial customer interested in official
+support for CPLEX in Julia, let them know!
 
 ## Installation
 
-**Minimum version requirement:** CPLEX.jl requires CPLEX version 12.10, 20.1, or 22.1.
+**Minimum version requirement:** CPLEX.jl requires CPLEX version 12.10, 20.1, or
+22.1.
 
 First, obtain a license of CPLEX and install CPLEX solver, following the
-instructions on [IBM's website](https://www.ibm.com/analytics/cplex-optimizer). Then, set the
-`CPLEX_STUDIO_BINARIES` environment variable as appropriate and run
-`Pkg.add("CPLEX")`, then `Pkg.build("CPLEX")`. For example:
+instructions on [IBM's website](https://www.ibm.com/analytics/cplex-optimizer).
+Note that you cannot use CPLEX.jl without having purchased and installed a copy
+of CPLEX Optimization Studio from [IBM](http://www.ibm.com/). However, CPLEX is
+available for free to [academics and students](http://ibm.biz/Bdzvqw).
+
+Once installed, set the `CPLEX_STUDIO_BINARIES` environment variable as
+appropriate and run `Pkg.add("CPLEX")`. For example:
 ```julia
-# On Windows, this might be
+# On Windows, this might be:
 ENV["CPLEX_STUDIO_BINARIES"] = "C:\\Program Files\\CPLEX_Studio1210\\cplex\\bin\\x86-64_win\\"
-# On OSX, this might be
+# On OSX, this might be:
 ENV["CPLEX_STUDIO_BINARIES"] = "/Applications/CPLEX_Studio1210/cplex/bin/x86-64_osx/"
-# On Unix, this might be
+# On Unix, this might be:
 ENV["CPLEX_STUDIO_BINARIES"] = "/opt/CPLEX_Studio1210/cplex/bin/x86-64_linux/"
 
 import Pkg
 Pkg.add("CPLEX")
-Pkg.build("CPLEX")
 ```
 
-**Note: your path may differ. Check which folder you installed CPLEX in, and
-update the path accordingly.**
+!!! note
+    The exact path may differ. Check which folder you installed CPLEX in, and
+    update the path accordingly.
 
 ## Use with JuMP
 
 Use `CPLEX.jl` with JuMP as follows:
-
 ```julia
 using JuMP, CPLEX
 model = Model(CPLEX.Optimizer)
-set_optimizer_attribute(model, "CPX_PARAM_EPINT", 1e-8)
+set_attribute(model, "CPX_PARAM_EPINT", 1e-8)
 ```
 
-Parameters match those of the C API in the [CPLEX documentation](https://www.ibm.com/support/knowledgecenter/SSSA5P_12.10.0/ilog.odms.cplex.help/CPLEX/Parameters/topics/introListAlpha.html).
+## Options
+
+Options match those of the C API in the [CPLEX documentation](https://www.ibm.com/support/knowledgecenter/SSSA5P_12.10.0/ilog.odms.cplex.help/CPLEX/Parameters/topics/introListAlpha.html).
 
 ## Callbacks
 
