@@ -65,39 +65,44 @@ model = Model(CPLEX.Optimizer)
 set_attribute(model, "CPX_PARAM_EPINT", 1e-8)
 ```
 
-## List of supported problem types
+## MathOptInterface API
 
-List of supported model attributes:
+The CPLEX optimizer supports the following constraints and attributes.
 
- * `MOI.ConflictStatus`
- * `MOI.HeuristicCallback`
- * `MOI.LazyConstraintCallback`
- * `MOI.Name`
- * `MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}`
- * `MOI.ObjectiveFunction{MOI.ScalarQuadraticFunction{Float64}}`
- * `MOI.ObjectiveFunction{MOI.VariableIndex}`
- * `MOI.ObjectiveFunction{MOI.VectorAffineFunction{Float64}}`
- * `MOI.ObjectiveSense`
- * `MOI.UserCutCallback`
+List of supported objective functions:
+
+ * [`MOI.ObjectiveFunction{MOI.ScalarAffineFunction{Float64}}`](@ref)
+ * [`MOI.ObjectiveFunction{MOI.ScalarQuadraticFunction{Float64}}`](@ref)
+ * [`MOI.ObjectiveFunction{MOI.VariableIndex}`](@ref)
+ * [`MOI.ObjectiveFunction{MOI.VectorAffineFunction{Float64}}`](@ref)
 
 List of supported constraint types:
 
- * `MOI.ScalarAffineFunction{Float64}` in `MOI.EqualTo{Float64}`
- * `MOI.ScalarAffineFunction{Float64}` in `MOI.GreaterThan{Float64}`
- * `MOI.ScalarAffineFunction{Float64}` in `MOI.LessThan{Float64}`
- * `MOI.ScalarQuadraticFunction{Float64}` in `MOI.GreaterThan{Float64}`
- * `MOI.ScalarQuadraticFunction{Float64}` in `MOI.LessThan{Float64}`
- * `MOI.VariableIndex` in `MOI.EqualTo{Float64}`
- * `MOI.VariableIndex` in `MOI.GreaterThan{Float64}`
- * `MOI.VariableIndex` in `MOI.Integer`
- * `MOI.VariableIndex` in `MOI.Interval{Float64}`
- * `MOI.VariableIndex` in `MOI.LessThan{Float64}`
- * `MOI.VariableIndex` in `MOI.Semicontinuous{Float64}`
- * `MOI.VariableIndex` in `MOI.Semiinteger{Float64}`
- * `MOI.VariableIndex` in `MOI.ZeroOne`
- * `MOI.VectorOfVariables` in `MOI.SOS1{Float64}`
- * `MOI.VectorOfVariables` in `MOI.SOS2{Float64}`
- * `MOI.VectorOfVariables` in `MOI.SecondOrderCone`
+ * [`MOI.ScalarAffineFunction{Float64}`](@ref) in [`MOI.EqualTo{Float64}`](@ref)
+ * [`MOI.ScalarAffineFunction{Float64}`](@ref) in [`MOI.GreaterThan{Float64}`](@ref)
+ * [`MOI.ScalarAffineFunction{Float64}`](@ref) in [`MOI.LessThan{Float64}`](@ref)
+ * [`MOI.ScalarQuadraticFunction{Float64}`](@ref) in [`MOI.GreaterThan{Float64}`](@ref)
+ * [`MOI.ScalarQuadraticFunction{Float64}`](@ref) in [`MOI.LessThan{Float64}`](@ref)
+ * [`MOI.VariableIndex`](@ref) in [`MOI.EqualTo{Float64}`](@ref)
+ * [`MOI.VariableIndex`](@ref) in [`MOI.GreaterThan{Float64}`](@ref)
+ * [`MOI.VariableIndex`](@ref) in [`MOI.Integer`](@ref)
+ * [`MOI.VariableIndex`](@ref) in [`MOI.Interval{Float64}`](@ref)
+ * [`MOI.VariableIndex`](@ref) in [`MOI.LessThan{Float64}`](@ref)
+ * [`MOI.VariableIndex`](@ref) in [`MOI.Semicontinuous{Float64}`](@ref)
+ * [`MOI.VariableIndex`](@ref) in [`MOI.Semiinteger{Float64}`](@ref)
+ * [`MOI.VariableIndex`](@ref) in [`MOI.ZeroOne`](@ref)
+ * [`MOI.VectorOfVariables`](@ref) in [`MOI.SOS1{Float64}`](@ref)
+ * [`MOI.VectorOfVariables`](@ref) in [`MOI.SOS2{Float64}`](@ref)
+ * [`MOI.VectorOfVariables`](@ref) in [`MOI.SecondOrderCone`](@ref)
+
+List of supported model attributes:
+
+ * [`MOI.ConflictStatus()`](@ref)
+ * [`MOI.HeuristicCallback()`](@ref)
+ * [`MOI.LazyConstraintCallback()`](@ref)
+ * [`MOI.Name()`](@ref)
+ * [`MOI.ObjectiveSense()`](@ref)
+ * [`MOI.UserCutCallback()`](@ref)
 
 ## Options
 
