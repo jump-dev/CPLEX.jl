@@ -19,7 +19,7 @@ for details.
 This wrapper is maintained by the JuMP community and is not officially supported
 by IBM. However, we thank IBM for providing us with a CPLEX license to test
 `CPLEX.jl` on GitHub. If you are a commercial customer interested in official
-support for CPLEX in Julia, let them know!
+support for CPLEX in Julia, let them know.
 
 ## License
 
@@ -32,8 +32,7 @@ Free CPLEX licenses are available for [academics and students](http://ibm.biz/Bd
 
 ## Installation
 
-**Minimum version requirement:** CPLEX.jl requires CPLEX version 12.10, 20.1, or
-22.1.
+CPLEX.jl requires CPLEX version 12.10, 20.1, or 22.1.
 
 First, obtain a license of CPLEX and install CPLEX solver, following the
 instructions on [IBM's website](https://www.ibm.com/analytics/cplex-optimizer).
@@ -114,7 +113,7 @@ Options match those of the C API in the [CPLEX documentation](https://www.ibm.co
 
 ## Callbacks
 
-Here is an example using CPLEX's solver-specific callbacks.
+CPLEX.jl provides a solver-specific callback to CPLEX:
 
 ```julia
 using JuMP, CPLEX, Test
@@ -184,7 +183,7 @@ optimize!(model)
 
 ## Annotations for automatic Benders' decomposition
 
-Here is an example of using CPLEX's annotation feature for automatic Benders'
+Here is an example of using the annotation feature for automatic Benders'
 decomposition:
 ```julia
 using JuMP, CPLEX
