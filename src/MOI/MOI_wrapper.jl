@@ -3582,7 +3582,9 @@ function MOI.get(model::Optimizer, ::MOI.ListOfConstraintTypesPresent)
 end
 
 function MOI.get(model::Optimizer, ::MOI.ObjectiveFunctionType)
-    if model.objective_type == _SINGLE_VARIABLE
+    if model.objective_type == _UNSET_OBJECTIVE
+        return MOI.ScalarAffineFunction{Float64}
+    elseif model.objective_type == _SINGLE_VARIABLE
         return MOI.VariableIndex
     elseif model.objective_type == _SCALAR_AFFINE
         return MOI.ScalarAffineFunction{Float64}
