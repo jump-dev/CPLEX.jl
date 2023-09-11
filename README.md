@@ -111,6 +111,13 @@ List of supported model attributes:
 
 Options match those of the C API in the [CPLEX documentation](https://www.ibm.com/support/knowledgecenter/SSSA5P_12.10.0/ilog.odms.cplex.help/CPLEX/Parameters/topics/introListAlpha.html).
 
+Set options using `JuMP.set_attribute`:
+```julia
+using JuMP, CPLEX
+model = Model(CPLEX.Optimizer)
+set_attribute(model, "CPX_PARAM_EPINT", 1e-8)
+```
+
 ## Callbacks
 
 CPLEX.jl provides a solver-specific callback to CPLEX:
