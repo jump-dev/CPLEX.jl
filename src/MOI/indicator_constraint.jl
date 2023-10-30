@@ -46,7 +46,7 @@ function MOI.get(
 )
     MOI.throw_if_not_valid(model, c)
     func = model.indicator_constraint_info[c.value][2]
-    return func
+    return copy(func)
 end
 
 function MOI.add_constraint(
