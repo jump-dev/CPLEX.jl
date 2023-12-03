@@ -535,7 +535,7 @@ function MOI.set(
     limit::Union{Nothing,Real},
 )
     new_limit = something(limit, _TIME_LIMIT_DEFAULT)
-    MOI.set(model, MOI.RawOptimizerAttribute("CPXPARAM_TimeLimit"), limit)
+    MOI.set(model, MOI.RawOptimizerAttribute("CPXPARAM_TimeLimit"), new_limit)
     return
 end
 
