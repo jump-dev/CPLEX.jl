@@ -527,15 +527,21 @@ function MOI.get(model::Optimizer, param::MOI.RawOptimizerAttribute)
     return
 end
 
-function MOI.set(model::Optimizer, ::MOI.TimeLimitSec, limit::Union{Real, Nothing})
-    if typeof(limit) == Real
-        MOI.set(model, MOI.RawOptimizerAttribute("CPXPARAM_TimeLimit"), limit)
-    end
+const _TIME_LIMIT_DEFAULT = 1.0e75
+
+function MOI.set(
+    model::Optimizer,
+    ::MOI.TimeLimitSec,
+    limit::Union{Nothing,Real},
+)
+    new_limit = something(limit, _TIME_LIMIT_DEFAULT)
+    MOI.set(model, MOI.RawOptimizerAttribute("CPXPARAM_TimeLimit"), limit)
     return
 end
 
 function MOI.get(model::Optimizer, ::MOI.TimeLimitSec)
-    return MOI.get(model, MOI.RawOptimizerAttribute("CPXPARAM_TimeLimit"))
+    limit = MOI.get(model, MOI.RawOptimizerAttribute("CPXPARAM_TimeLimit"))
+    return limit === _TIME_LIMIT_DEFAULT ? nothing : limit
 end
 
 MOI.supports_incremental_interface(::Optimizer) = true
