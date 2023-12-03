@@ -527,8 +527,10 @@ function MOI.get(model::Optimizer, param::MOI.RawOptimizerAttribute)
     return
 end
 
-function MOI.set(model::Optimizer, ::MOI.TimeLimitSec, limit::Real)
-    MOI.set(model, MOI.RawOptimizerAttribute("CPXPARAM_TimeLimit"), limit)
+function MOI.set(model::Optimizer, ::MOI.TimeLimitSec, limit::Union{Real, Nothing})
+    if typeof(limit) == Real
+        MOI.set(model, MOI.RawOptimizerAttribute("CPXPARAM_TimeLimit"), limit)
+    end
     return
 end
 
