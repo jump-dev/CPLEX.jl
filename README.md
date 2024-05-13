@@ -21,6 +21,12 @@ by IBM. However, we thank IBM for providing us with a CPLEX license to test
 `CPLEX.jl` on GitHub. If you are a commercial customer interested in official
 support for CPLEX in Julia, let them know.
 
+## Getting help
+
+If you need help, please ask a question on the [JuMP community forum](https://jump.dev/forum).
+
+If you have a reproducible example of a bug, please [open a GitHub issue](https://github.com/jump-dev/CPLEX.jl/issues/new).
+
 ## License
 
 `CPLEX.jl` is licensed under the [MIT License](https://github.com/jump-dev/CPLEX.jl/blob/master/LICENSE.md).
