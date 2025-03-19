@@ -35,7 +35,7 @@ if _CPLEX_VERSION == v"12.10.0"
 elseif _CPLEX_VERSION == v"20.1.0"
     include("gen2010/libcpx_common.jl")
     include("gen2010/libcpx_api.jl")
-elseif _CPLEX_VERSION in (v"22.1.0", v"22.1.1")
+elseif _CPLEX_VERSION in (v"22.1.0", v"22.1.1", v"22.1.2")
     include("gen2210/ctypes.jl")
     include("gen2210/libcpx_common.jl")
     include("gen2210/libcpx_api.jl")
