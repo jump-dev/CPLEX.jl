@@ -313,6 +313,22 @@ function test_example_biobjective_knapsack()
     return
 end
 
+function test_ListOfConstraintTypesPresent_indicator()
+    model = CPLEX.Optimizer()
+    x = MOI.add_variable(model)
+    z = MOI.add_variable(model)
+    MOI.add_constraint(model, z, MOI.ZeroOne())
+    c = MOI.add_constraint(
+        model,
+        MOI.Utilities.operate(vcat, Float64, 1.0 * z, 1.0 * x),
+        MOI.Indicator{MOI.ACTIVATE_ON_ONE}(MOI.EqualTo(1.0)),
+    )
+    F = MOI.VectorAffineFunction{Float64}
+    S = MOI.Indicator{MOI.ACTIVATE_ON_ONE,MOI.EqualTo{Float64}}
+    @test (F, S) in MOI.get(model, MOI.ListOfConstraintTypesPresent())
+    return
+end
+
 end  # module TestMOIwrapper
 
 TestMOIwrapper.runtests()

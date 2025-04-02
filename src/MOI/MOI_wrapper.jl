@@ -326,6 +326,7 @@ function MOI.empty!(model::Optimizer)
     empty!(model.affine_constraint_info)
     empty!(model.quadratic_constraint_info)
     empty!(model.sos_constraint_info)
+    empty!(model.indicator_constraint_info)
     model.name_to_variable = nothing
     model.name_to_constraint_index = nothing
     model.ret_optimize = Cint(0)
@@ -3585,6 +3586,12 @@ function MOI.get(model::Optimizer, ::MOI.ListOfConstraintTypesPresent)
     end
     for info in values(model.sos_constraint_info)
         push!(constraints, (MOI.VectorOfVariables, typeof(info.set)))
+    end
+    for (info, _) in values(model.indicator_constraint_info)
+        push!(
+            constraints,
+            (MOI.VectorAffineFunction{Float64}, typeof(info.set)),
+        )
     end
     return collect(constraints)
 end
