@@ -326,6 +326,7 @@ function MOI.empty!(model::Optimizer)
     empty!(model.affine_constraint_info)
     empty!(model.quadratic_constraint_info)
     empty!(model.sos_constraint_info)
+    empty!(model.indicator_constraint_info)
     model.name_to_variable = nothing
     model.name_to_constraint_index = nothing
     model.ret_optimize = Cint(0)
