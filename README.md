@@ -11,7 +11,7 @@ CPLEX.jl has two components:
  - an interface to [MathOptInterface](https://github.com/jump-dev/MathOptInterface.jl)
 
 The C API can be accessed via `CPLEX.CPXxx` functions, where the names and
-arguments are identical to the C API. See the [CPLEX documentation](https://www.ibm.com/support/knowledgecenter/SSSA5P_12.10.0/COS_KC_home.html)
+arguments are identical to the C API. See the [CPLEX documentation](https://www.ibm.com/docs/en/icos/22.1.0?topic=apis-callable-library)
 for details.
 
 ## Affiliation
