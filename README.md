@@ -11,15 +11,16 @@ CPLEX.jl has two components:
  - an interface to [MathOptInterface](https://github.com/jump-dev/MathOptInterface.jl)
 
 The C API can be accessed via `CPLEX.CPXxx` functions, where the names and
-arguments are identical to the C API. See the [CPLEX documentation](https://www.ibm.com/support/knowledgecenter/SSSA5P_12.10.0/COS_KC_home.html)
+arguments are identical to the C API. See the [CPLEX documentation](https://www.ibm.com/docs/en/icos/22.1.0?topic=apis-callable-library)
 for details.
 
 ## Affiliation
 
 This wrapper is maintained by the JuMP community and is not officially supported
 by IBM. However, we thank IBM for providing us with a CPLEX license to test
-`CPLEX.jl` on GitHub. If you are a commercial customer interested in official
-support for CPLEX in Julia, let them know.
+`CPLEX.jl` on GitHub.
+
+If you are a commercial customer interested in official support for CPLEX in Julia,let them know.
 
 ## Getting help
 
