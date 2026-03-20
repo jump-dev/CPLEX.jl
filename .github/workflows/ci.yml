@@ -15,17 +15,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ['1.6', '1']  # Test against LTS and current minor release
+        version: ['1.10', '1']  # Test against LTS and current minor release
         os: [ubuntu-latest]
         arch: [x64]
         cplex_version: ['12100', '2010', '2210']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - uses: julia-actions/cache@v1
+      - uses: julia-actions/cache@v3
       - uses: julia-actions/julia-buildpkg@v1
         env:
           SECRET_CPLEX_URL_12100: ${{ secrets.CPLEX_URL_12100 }}
@@ -34,7 +34,7 @@ jobs:
           CPLEX_VERSION: ${{ matrix.cplex_version }}
       - uses: julia-actions/julia-runtest@v1
       - uses: julia-actions/julia-processcoverage@v1
-      - uses: codecov/codecov-action@v4
+      - uses: codecov/codecov-action@v5
         with:
-          file: lcov.info
+          files: lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}

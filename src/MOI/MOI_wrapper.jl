@@ -2175,9 +2175,7 @@ function MOI.get(
             terms,
             MOI.ScalarAffineTerm(
                 rmatval[i],
-                model.variable_info[CleverDicts.LinearIndex(
-                    rmatind[i] + 1,
-                )].index,
+                model.variable_info[CleverDicts.LinearIndex(rmatind[i] + 1)].index,
             ),
         )
     end
