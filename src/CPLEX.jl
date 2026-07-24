@@ -35,28 +35,32 @@ if _CPLEX_VERSION == v"12.10.0"
 elseif _CPLEX_VERSION == v"20.1.0"
     include("gen2010/libcpx_common.jl")
     include("gen2010/libcpx_api.jl")
-elseif _CPLEX_VERSION in (v"22.1.0", v"22.1.1", v"22.1.2")
+elseif _CPLEX_VERSION in (v"22.1.0", v"22.1.1", v"22.1.2", v"22.2.0")
     include("gen2210/ctypes.jl")
     include("gen2210/libcpx_common.jl")
     include("gen2210/libcpx_api.jl")
 else
-    error("""
-You have installed version $_CPLEX_VERSION of CPLEX, which is not supported
-by CPLEX.jl. We require CPLEX version 12.10, 20.1, or 22.1.
+    error(
+        """
+        You have installed version $_CPLEX_VERSION of CPLEX, which is not supported
+        by CPLEX.jl. We require CPLEX version 12.10, 20.1, 22.1, or 22.2.
 
-After installing CPLEX, run:
+        After installing CPLEX, run:
+        ```julia
+        import Pkg
+        Pkg.rm("CPLEX")
+        Pkg.add("CPLEX")
+        ```
 
-    import Pkg
-    Pkg.rm("CPLEX")
-    Pkg.add("CPLEX")
+        Make sure you set the environment variable `CPLEX_STUDIO_BINARIES` following
+        the instructions in the CPLEX.jl README, which is available at
+        https://github.com/jump-dev/CPLEX.jl.
 
-Make sure you set the environment variable `CPLEX_STUDIO_BINARIES` following
-the instructions in the CPLEX.jl README, which is available at
-https://github.com/jump-dev/CPLEX.jl.
-
-If you have a newer version of CPLEX installed, changes may need to be made
-to the Julia code. Please open an issue at
-https://github.com/jump-dev/CPLEX.jl.""")
+        If you have a newer version of CPLEX installed, changes may need to be made
+        to the Julia code. Please open an issue at
+        https://github.com/jump-dev/CPLEX.jl.
+        """,
+    )
 end
 
 include("MOI/MOI_wrapper.jl")
