@@ -38,7 +38,7 @@ Free CPLEX licenses are available for [academics and students](http://ibm.biz/Bd
 
 ## Installation
 
-CPLEX.jl requires CPLEX version 12.10, 20.1, or 22.1.
+CPLEX.jl requires CPLEX version 12.10, 20.1, 22.1, or 22.2.
 
 First, obtain a license of CPLEX and install CPLEX solver, following the
 instructions on [IBM's website](https://www.ibm.com/analytics/cplex-optimizer).
